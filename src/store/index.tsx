@@ -73,7 +73,7 @@ function calculateKPIs(state: AppState): DashboardKPIs {
   const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total_thb || 0), 0);
   const totalCOGS = confirmedOrders.reduce((sum, o) => sum + (o.cost_thb || 0), 0);
   const grossProfit = totalRevenue - totalCOGS;
-  const netProfit = confirmedOrders.reduce((sum, o) => sum + o.net_profit, 0);
+  const netProfit = confirmedOrders.reduce((sum, o) => sum + (o.net_profit || 0), 0);
   
   const inventoryValue = state.inventory.reduce((sum, inv) => 
     sum + (inv.quantity_on_hand * inv.weighted_average_cost_thb), 0

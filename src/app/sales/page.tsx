@@ -111,7 +111,7 @@ export default function SalesPage() {
     try {
       const orderData = {
         order_number: order.order_number,
-        customer_id: order.customer_name, // Using customer_name as customer_id
+        customer_id: null, // No customer linkage - using customer_name as display text
         order_date: order.created_at.split('T')[0],
         status: order.status,
         total_thb: order.total,
