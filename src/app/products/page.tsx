@@ -377,13 +377,14 @@ export default function ProductsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="SKU"
               value={formData.sku}
               onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
               disabled={isViewMode || !!editingProduct}
               required
+              placeholder="เช่น ASA-001"
             />
             <Select
               label="หมวดหมู่"
@@ -395,11 +396,12 @@ export default function ProductsPage() {
           </div>
 
           <Input
-            label="ชื่อสินค้า (ไทย)"
+            label="ชื่อสินค้า (ไทย) *"
             value={formData.name_th}
             onChange={(e) => setFormData({ ...formData, name_th: e.target.value })}
             disabled={isViewMode}
             required
+            placeholder="เช่น พื้น ASA ลายไม้"
           />
 
           <Input
@@ -407,27 +409,38 @@ export default function ProductsPage() {
             value={formData.name_en}
             onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
             disabled={isViewMode}
+            placeholder="เช่น ASA Flooring Premium"
           />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Select
-              label="หน่วย"
+              label="หน่วย *"
               options={unitOptions}
               value={formData.unit}
               onChange={(e) => setFormData({ ...formData, unit: e.target.value as ProductUnit })}
               disabled={isViewMode}
             />
             <Input
+              label="ผู้จัดจำหน่าย"
+              value={formData.default_supplier}
+              onChange={(e) => setFormData({ ...formData, default_supplier: e.target.value })}
+              disabled={isViewMode}
+              placeholder="เช่น ซัพพลายเออร์จีน"
+            />
+          </div>
+            <Input
               label="ขนาด"
               value={formData.spec_size}
               onChange={(e) => setFormData({ ...formData, spec_size: e.target.value })}
               disabled={isViewMode}
+              placeholder="เช่น 150x900 มม."
             />
             <Input
               label="ความหนา"
               value={formData.spec_thickness}
               onChange={(e) => setFormData({ ...formData, spec_thickness: e.target.value })}
               disabled={isViewMode}
+              placeholder="เช่น 8 มม."
             />
           </div>
 
@@ -437,18 +450,13 @@ export default function ProductsPage() {
               value={formData.spec_color}
               onChange={(e) => setFormData({ ...formData, spec_color: e.target.value })}
               disabled={isViewMode}
-            />
-            <Input
-              label="ผู้จัดจำหน่าย"
-              value={formData.default_supplier}
-              onChange={(e) => setFormData({ ...formData, default_supplier: e.target.value })}
-              disabled={isViewMode}
+              placeholder="เช่น โอ๊ค"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="จุดสั่งซื้อใหม่"
+              label="จุดสั่งซื้อใหม่ (Reorder)"
               type="number"
               value={formData.reorder_point}
               onChange={(e) => setFormData({ ...formData, reorder_point: parseInt(e.target.value) || 0 })}
