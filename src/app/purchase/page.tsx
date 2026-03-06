@@ -210,36 +210,51 @@ export default function PurchasePage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
-        title={editingPO ? 'แก้ไขใบสั่งซื้อ' : 'สร้างใบสั่งซื้อใหม่'}
+        title={editingPO ? '📋 แก้ไขใบสั่งซื้อ' : '📋 สร้างใบสั่งซื้อใหม่'}
         size="xl"
         footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }}>ยกเลิก</Button>
-            <Button onClick={handleSave}>บันทึก</Button>
+          <div className="flex gap-3 w-full">
+            <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 py-3">❌ ยกเลิก</Button>
+            <Button onClick={handleSave} className="flex-1 py-3">💾 บันทึกใบสั่งซื้อ</Button>
           </div>
         }
       >
         <div className="space-y-6">
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="ผู้จัดจำหน่าย"
-              value={formData.supplier}
-              onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-            />
-            <Input
-              label="อัตราแลกเปลี่ยน (THB/CNY)"
-              type="number"
-              step="0.01"
-              value={formData.exchange_rate}
-              onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 0 })}
-            />
+          {/* Header Info - Improved UX */}
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🏭 ผู้จัดจำหน่าย (Supplier)
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="เช่น บริษัท ซัพพลายเออร์ จีน"
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  💱 อัตราแลกเปลี่ยน (THB/CNY)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="5.12"
+                  value={formData.exchange_rate}
+                  onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Products */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">📦 รายการสินค้า</h4>
+              <h4 className="font-semibold text-gray-900 text-lg">📦 รายการสินค้า</h4>
               <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
             </div>
             <div className="space-y-3">
@@ -251,9 +266,11 @@ export default function PurchasePage() {
                                   product?.unit === 'meter' ? 'เมตร' : 
                                   product?.unit === 'set' ? 'ชุด' : 'หน่วย';
                 return (
-                <div key={idx} className="bg-gray-50 rounded-xl p-3 space-y-2">
+                <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 mb-1 block">เลือกสินค้า</label>
                   <select
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white"
                     value={item.product_id}
                     onChange={(e) => {
                       const newItems = [...items];
@@ -261,20 +278,22 @@ export default function PurchasePage() {
                       setItems(newItems);
                     }}
                   >
-                    <option value="">เลือกสินค้า</option>
+                    <option value="">-- เลือกสินค้า --</option>
                     {state.products.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.sku} - {p.name_th} ({p.unit === 'sqm' ? 'ตร.ม.' : p.unit === 'piece' ? 'ชิ้น' : p.unit === 'box' ? 'กล่อง' : p.unit === 'meter' ? 'เมตร' : p.unit === 'set' ? 'ชุด' : p.unit})
+                        {p.sku} | {p.name_th} ({p.unit === 'sqm' ? 'ตร.ม.' : p.unit === 'piece' ? 'ชิ้น' : p.unit === 'box' ? 'กล่อง' : p.unit === 'meter' ? 'เมตร' : p.unit === 'set' ? 'ชุด' : p.unit})
                       </option>
                     ))}
                   </select>
-                  <div className="grid grid-cols-2 gap-2">
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">จำนวน ({unitLabel})</label>
-                    <Input
+                      <label className="text-xs font-medium text-gray-500 mb-1 block">จำนวน ({unitLabel})</label>
+                    <input
                     type="number"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-lg"
                     placeholder="0"
-                    value={item.quantity}
+                    value={item.quantity || ''}
                     onChange={(e) => {
                       const newItems = [...items];
                       newItems[idx].quantity = parseInt(e.target.value) || 0;
@@ -283,11 +302,12 @@ export default function PurchasePage() {
                   />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">ราคาต่อหน่วย (CNY)</label>
-                  <Input
+                    <label className="text-xs font-medium text-gray-500 mb-1 block">ราคาต่อหน่วย (¥ CNY)</label>
+                  <input
                     type="number"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-lg"
                     placeholder="0"
-                    value={item.unit_price_cny}
+                    value={item.unit_price_cny || ''}
                     onChange={(e) => {
                       const newItems = [...items];
                       newItems[idx].unit_price_cny = parseFloat(e.target.value) || 0;
@@ -296,28 +316,36 @@ export default function PurchasePage() {
                   />
                   </div>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                    <span className="text-sm text-gray-500">รวม:</span>
-                    <span className="text-sm font-bold text-orange-600">
-                      {formatCurrency(item.quantity * item.unit_price_cny, 'CNY')}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 bg-gray-50 rounded-xl px-3 py-2">
+                    <span className="text-sm text-gray-600">รวม:</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      ¥ {formatCurrency(item.quantity * item.unit_price_cny, 'CNY')}
                     </span>
                   </div>
                 </div>
               )})}
+              {items.length === 0 && (
+                <div className="text-center py-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                  <p className="text-gray-400 mb-2">ยังไม่มีรายการสินค้า</p>
+                  <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้าชิ้นแรก</Button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Shipment Costs */}
-          <div className="bg-blue-50 rounded-xl p-4">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">🚚 ค่าขนส่งและค่าใช้จ่าย</h4>
+              <h4 className="font-semibold text-gray-900">🚚 ค่าขนส่งและค่าใช้จ่าย</h4>
               <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่ม</Button>
             </div>
             <div className="space-y-2">
               {shipmentCosts.map((cost, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <Input
-                    placeholder="เช่น ค่าขนส่งท่าเรือ"
+                <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded-xl">
+                  <input
+                    type="text"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                    placeholder="เช่น ค่าขนส่งท่าเรือ, ค่าพิเศษ"
                     value={cost.description}
                     onChange={(e) => {
                       const newCosts = [...shipmentCosts];
@@ -325,19 +353,19 @@ export default function PurchasePage() {
                       setShipmentCosts(newCosts);
                     }}
                   />
-                  <Input
+                  <input
                     type="number"
-                    placeholder="CNY"
-                    className="w-24"
-                    value={cost.amount_cny}
+                    className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm text-center"
+                    placeholder="¥"
+                    value={cost.amount_cny || ''}
                     onChange={(e) => {
                       const newCosts = [...shipmentCosts];
                       newCosts[idx].amount_cny = parseFloat(e.target.value) || 0;
                       setShipmentCosts(newCosts);
                     }}
                   />
-                  <span className="text-sm text-gray-500 whitespace-nowrap">
-                    ≈ {formatCurrency(cnyToThb(cost.amount_cny, formData.exchange_rate))}
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    ≈ ฿{formatCurrency(cnyToThb(cost.amount_cny, formData.exchange_rate))}
                   </span>
                 </div>
               ))}
@@ -348,15 +376,24 @@ export default function PurchasePage() {
           </div>
 
           {/* Total */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">รวม (CNY):</span>
-              <span className="font-medium">{formatCurrency(calculateTotal().totalCny, 'CNY')}</span>
+          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-2xl p-5 border-2 border-orange-200">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">รวมค่าสินค้า (CNY):</span>
+              <span className="font-semibold">¥ {formatCurrency(calculateTotal().totalCny, 'CNY')}</span>
             </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-gray-500">รวม (THB):</span>
-              <span className="font-bold text-lg">{formatCurrency(calculateTotal().totalThb)}</span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">รวมค่าขนส่ง (CNY):</span>
+              <span className="font-semibold">¥ {formatCurrency(shipmentCosts.reduce((s, c) => s + c.amount_cny, 0), 'CNY')}</span>
             </div>
+            <div className="border-t border-orange-200 my-3"></div>
+            <div className="flex justify-between items-center text-lg">
+              <span className="font-bold text-gray-800">💰 รวมทั้งสิ้น (THB):</span>
+              <span className="font-bold text-2xl text-orange-600">฿ {formatCurrency(calculateTotal().totalThb)}</span>
+            </div>
+            <div className="text-right text-xs text-gray-500 mt-1">
+              (อัตรา: 1 CNY = {formData.exchange_rate} THB)
+            </div>
+          </div>
           </div>
         </div>
       </Modal>
