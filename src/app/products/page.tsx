@@ -9,6 +9,7 @@ import { formatDate, getCategoryColor, getStatusColor, generateId } from '@/lib/
 import { Product, ProductCategory, ProductUnit } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { Plus, Search, Edit, Trash2, Eye, Upload, X, Image as ImageIcon, Package } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const categoryOptions = [
   { value: 'ASA', label: 'ASA' },
@@ -142,7 +143,7 @@ export default function ProductsPage() {
     const now = new Date().toISOString();
     
     const productData: Product = {
-      id: editingProduct?.id || generateId(),
+      
       sku: formData.sku,
       name_th: formData.name_th,
       name_en: formData.name_en || undefined,
@@ -165,7 +166,7 @@ export default function ProductsPage() {
     // Add image if new one uploaded
     if (imagePreview && !editingProduct?.images.find(i => i.url === imagePreview)) {
       productData.images = [{
-        id: generateId(),
+        id: uuidv4(),
         url: imagePreview,
         is_primary: true,
         created_at: now,
@@ -209,7 +210,7 @@ export default function ProductsPage() {
         const { error } = await supabase
           .from('products')
           .insert({
-            id: productData.id,
+            
             sku: productData.sku,
             name_th: productData.name_th,
             name_en: productData.name_en,
