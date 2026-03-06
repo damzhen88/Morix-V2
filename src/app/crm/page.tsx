@@ -7,6 +7,8 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Badge, Modal, EmptyState, PageLoader } from '@/components/ui';
 import { formatCurrency, generateId, getDealStageLabel, getCustomerTypeColor } from '@/lib/utils';
 import { CRNDeal, DealStage, CustomerType } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { Plus, Phone, Mail, MessageSquare, ArrowRight, DollarSign, Users, Calendar } from 'lucide-react';
 
 const stageColumns: { id: DealStage; label: string; color: string }[] = [
@@ -31,23 +33,60 @@ export default function CRMPage() {
     notes: '',
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     
     const deal: CRNDeal = {
-      id: editingDeal?.id || generateId(),
+      id: editingDeal?.id || uuidv4(),
       lead_id: editingDeal?.lead_id || `LEAD-${Date.now().toString().slice(-4)}`,
       customer_name: formData.customer_name,
-      customer_type: formData.customer_type,
-      contact_phone: formData.contact_phone || undefined,
-      contact_email: formData.contact_email || undefined,
+      
+      
+      
       deal_value: formData.deal_value,
       stage: formData.stage,
-      notes: formData.notes || undefined,
+      
       created_at: editingDeal?.created_at || now,
       updated_at: now,
       last_interaction_at: now,
     };
+
+    // SAVE TO SUPABASE
+    try {
+      const dealData = {
+        lead_id: deal.lead_id,
+        title: deal.customer_name,
+        expected_value_thb: deal.deal_value,
+        stage: deal.stage,
+      };
+
+      if (editingDeal) {
+        const { error } = await supabase
+          .from('crm_deals')
+          .update(dealData)
+          .eq('id', deal.id);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('crm_deals')
+          .insert({ ...dealData, id: deal.id, created_at: deal.created_at });
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+      return;
+    }
 
     if (editingDeal) {
       dispatch({ type: 'UPDATE_CRM_DEAL', payload: deal });
@@ -77,11 +116,11 @@ export default function CRMPage() {
     setEditingDeal(deal);
     setIsViewMode(false);
     setFormData({
-      customer_name: deal.customer_name,
-      customer_type: deal.customer_type,
+      customer_id: deal.customer_name,
+      
       contact_phone: deal.contact_phone || '',
       contact_email: deal.contact_email || '',
-      deal_value: deal.deal_value,
+      expected_value_thb: deal.deal_value,
       stage: deal.stage,
       notes: deal.notes || '',
     });
@@ -92,21 +131,35 @@ export default function CRMPage() {
     setEditingDeal(deal);
     setIsViewMode(true);
     setFormData({
-      customer_name: deal.customer_name,
-      customer_type: deal.customer_type,
+      customer_id: deal.customer_name,
+      
       contact_phone: deal.contact_phone || '',
       contact_email: deal.contact_email || '',
-      deal_value: deal.deal_value,
+      expected_value_thb: deal.deal_value,
       stage: deal.stage,
       notes: deal.notes || '',
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (dealId: string) => {
-    if (confirm('คุณแน่ใจที่จะลบดีลนี้หรือไม่?')) {
-      dispatch({ type: 'DELETE_CRM_DEAL', payload: dealId });
+  const handleDelete = async (dealId: string) => {
+    if (!confirm('คุณแน่ใจที่จะลบดีลนี้หรือไม่?')) {
+      return;
     }
+    
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('crm_deals')
+      .delete()
+      .eq('id', dealId);
+    
+    if (error) {
+      console.error('Delete error:', error);
+      alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+      return;
+    }
+    
+    dispatch({ type: 'DELETE_CRM_DEAL', payload: dealId });
   };
 
   const moveToStage = (deal: CRNDeal, newStage: DealStage) => {

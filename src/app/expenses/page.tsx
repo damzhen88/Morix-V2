@@ -7,6 +7,8 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader, TextArea } from '@/components/ui';
 import { formatDate, formatCurrency, generateId, getExpenseCategoryLabel } from '@/lib/utils';
 import { Expense, ExpenseCategory } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { Plus, Search, DollarSign, Receipt, Edit, Trash2, Calendar, TrendingDown } from 'lucide-react';
 
 const categoryOptions = [
@@ -62,23 +64,60 @@ export default function ExpensesPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     
     const expense: Expense = {
-      id: editingExpense?.id || generateId(),
+      id: editingExpense?.id || uuidv4(),
       description: formData.description,
       category: formData.category,
       amount_thb: formData.amount_thb,
       vendor: formData.vendor || undefined,
       date: formData.date,
-      is_recurring: formData.is_recurring,
+      
       recurring_type: formData.is_recurring ? formData.recurring_type : undefined,
       status: formData.status,
       notes: formData.notes || undefined,
       created_by: 'admin',
       created_at: editingExpense?.created_at || now,
     };
+
+    // SAVE TO SUPABASE
+    try {
+      const expenseData = {
+        description: expense.description,
+        category: expense.category,
+        amount_thb: expense.amount_thb,
+        date: expense.date,
+      };
+
+      if (editingExpense) {
+        const { error } = await supabase
+          .from('expenses')
+          .update(expenseData)
+          .eq('id', expense.id);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('expenses')
+          .insert({ ...expenseData, id: expense.id, created_at: expense.created_at });
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+      return;
+    }
 
     if (editingExpense) {
       dispatch({ type: 'UPDATE_EXPENSE', payload: expense });
@@ -115,7 +154,7 @@ export default function ExpensesPage() {
       amount_thb: expense.amount_thb,
       vendor: expense.vendor || '',
       date: expense.date.split('T')[0],
-      is_recurring: expense.is_recurring,
+      
       recurring_type: (expense.recurring_type || 'monthly') as 'monthly' | 'quarterly' | 'yearly',
       status: (expense.status || 'pending') as 'paid' | 'pending' | 'approved',
       notes: expense.notes || '',
@@ -132,7 +171,7 @@ export default function ExpensesPage() {
       amount_thb: expense.amount_thb,
       vendor: expense.vendor || '',
       date: expense.date.split('T')[0],
-      is_recurring: expense.is_recurring,
+      
       recurring_type: (expense.recurring_type || 'monthly') as 'monthly' | 'quarterly' | 'yearly',
       status: (expense.status || 'pending') as 'paid' | 'pending' | 'approved',
       notes: expense.notes || '',
@@ -140,10 +179,24 @@ export default function ExpensesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (expenseId: string) => {
-    if (confirm('คุณแน่ใจที่จะลบรายการนี้หรือไม่?')) {
-      dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
+  const handleDelete = async (expenseId: string) => {
+    if (!confirm('คุณแน่ใจที่จะลบรายการนี้หรือไม่?')) {
+      return;
     }
+    
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expenseId);
+    
+    if (error) {
+      console.error('Delete error:', error);
+      alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+      return;
+    }
+    
+    dispatch({ type: 'DELETE_EXPENSE', payload: expenseId });
   };
 
   if (state.isLoading) {
