@@ -352,38 +352,43 @@ export default function PurchasePage() {
                   
                   {/* Quantity and Price - Full Width Stacked on Mobile */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Quantity Field */}
                     <div>
                       <label className="text-sm font-bold text-gray-700 mb-2 block">🔢 จำนวน (หน่วย)</label>
-                    <input
-                    type="number"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-lg"
-                    placeholder="0"
-                    value={item.quantity || ''}
-                    onChange={(e) => {
-                      const newItems = [...items];
-                      newItems[idx].quantity = parseInt(e.target.value) || 0;
-                      setItems(newItems);
-                    }}
-                  />
+                      <input
+                        type="number"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg"
+                        placeholder="0"
+                        value={item.quantity || ''}
+                        onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].quantity = parseInt(e.target.value) || 0;
+                          setItems(newItems);
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Price Field */}
+                    <div>
+                      <label className="text-sm font-bold text-gray-700 mb-2 block">💰 ราคา/หน่วย (¥ CNY)</label>
+                      <input
+                        type="number"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg"
+                        placeholder="0"
+                        value={item.unit_price_cny || ''}
+                        onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[idx].unit_price_cny = parseFloat(e.target.value) || 0;
+                          setItems(newItems);
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1 block">ราคาต่อหน่วย (¥ CNY)</label>
-                  <input
-                    type="number"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-lg"
-                    placeholder="0"
-                    value={item.unit_price_cny || ''}
-                    onChange={(e) => {
-                      const newItems = [...items];
-                      newItems[idx].unit_price_cny = parseFloat(e.target.value) || 0;
-                      setItems(newItems);
-                    }}
-                  />
-                  </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 bg-gray-50 rounded-xl px-3 py-2">
-                    <span className="text-sm text-gray-600">รวม:</span>
-                    <span className="text-lg font-bold text-orange-600">
+                  
+                  {/* Total Row */}
+                  <div className="flex items-center justify-between pt-4 border-t-2 border-orange-200 bg-orange-50 rounded-xl px-4 py-3">
+                    <span className="text-base font-bold text-gray-700">💵 รวมราคา:</span>
+                    <span className="text-xl font-bold text-orange-600">
                       ¥ {formatCurrency(item.quantity * item.unit_price_cny, 'CNY')}
                     </span>
                   </div>
