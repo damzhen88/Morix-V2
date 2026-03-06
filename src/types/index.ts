@@ -5,7 +5,7 @@
 // =======================
 
 export type ProductCategory = 'ASA' | 'WPC' | 'SPC' | 'ACCESSORIES';
-export type ProductUnit = 'piece' | 'box' | 'meter' | 'sqm' | 'set';
+export type ProductUnit = 'sqm' | 'meter' | 'piece' | 'box' | 'set';
 export type ProductStatus = 'active' | 'inactive';
 
 export interface ProductSpec {
@@ -32,8 +32,16 @@ export interface Product {
   unit: ProductUnit;
   spec: ProductSpec;
   default_supplier?: string;
+  
+  // Cost & Pricing
+  cost_cny?: number;        // ต้นทุนต่อหน่วย (หยวน)
+  cost_thb?: number;        // ต้นทุนต่อหน่วย (บาท)
+  price_thb?: number;       // ราคาขายต่อหน่วย
+  
+  // Stock
   reorder_point: number;
   min_stock: number;
+  
   images: ProductImage[];
   status: ProductStatus;
   created_at: string;

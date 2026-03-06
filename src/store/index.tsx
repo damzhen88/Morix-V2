@@ -279,20 +279,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   
   useEffect(() => {
-    // Initialize with empty data (will load from Supabase later)
-    dispatch({
-      type: 'INIT_DATA',
-      payload: {
-        products: [],
-        inventory: [],
-        stockMovements: [],
-        purchaseOrders: [],
-        salesOrders: [],
-        crmDeals: [],
-        expenses: [],
-        warehouses: [],
-      },
-    });
+    // Load data from Supabase
+    async function loadData() {
+      try {
+        const api = (await import('@/lib/supabase')).default;
+        
+        const [products, customers, warehouses, salesOrders, crmDeals, expenses] = await Promise.all([
+          api.getProducts(),
+          api.getCustomers(),
+          api.getWarehouses(),
+          api.getSalesOrders(),
+          api.getCrmDeals(),
+          api.getExpenses(),
+        ]);
+
+        dispatch({
+          type: 'INIT_DATA',
+          payload: {
+            products: products || [],
+            customers: customers || [],
+            warehouses: warehouses || [],
+            salesOrders: salesOrders || [],
+            crmDeals: crmDeals || [],
+            expenses: expenses || [],
+            inventory: [],
+            stockMovements: [],
+            purchaseOrders: [],
+          },
+        });
+      } catch (error) {
+        console.error('Error loading data from Supabase:', error);
+        // Fall back to empty data
+        dispatch({
+          type: 'INIT_DATA',
+          payload: {
+            products: [],
+            customers: [],
+            warehouses: [],
+            salesOrders: [],
+            crmDeals: [],
+            expenses: [],
+            inventory: [],
+            stockMovements: [],
+            purchaseOrders: [],
+          },
+        });
+      }
+    }
+    
+    loadData();
   }, []);
   
   return (

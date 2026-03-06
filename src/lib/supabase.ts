@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ltciqzjcnlrkgbcdnegt.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0Y2lxempjbmxya2diY2RuZWd0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc5NzcyMiwiZXhwIjoyMDg4MzczNzIyfQ.0aw012tfNZLljQ5TaxNi5TQjIMde5rvSsRTLLK457wk';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ltciqzjcnlrkgbcdnegt.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0Y2lxempjbmxya2diY2RuZWd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTc3MjIsImV4cCI6MjA4ODM3MzcyMn0.8-K53YD4VqrXb1BbY4ZQkjWq2l8fRCLY3JIN4AiZbN8';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -15,12 +15,45 @@ export interface Product {
   unit: string;
   spec: Record<string, unknown>;
   default_supplier: string | null;
+  cost_cny: number | null;
+  cost_thb: number | null;
+  price_thb: number | null;
   reorder_point: number;
   min_stock: number;
   images: unknown[];
   status: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  po_number: string;
+  supplier_id: string | null;
+  order_date: string;
+  expected_arrival_date: string | null;
+  status: string;
+  currency: string;
+  exchange_rate_thb: number;
+  shipping_cny: number | null;
+  shipping_thb: number | null;
+  domestic_shipping_thb: number | null;
+  other_costs_thb: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SalesOrder {
+  id: string;
+  order_number: string;
+  customer_id: string | null;
+  order_date: string;
+  status: string;
+  total_thb: number;
+  profit_thb: number;
+  cost_thb: number | null;
+  shipping_thb: number | null;
+  created_at: string;
 }
 
 export interface Customer {
@@ -43,17 +76,6 @@ export interface Warehouse {
   created_at: string;
 }
 
-export interface SalesOrder {
-  id: string;
-  order_number: string;
-  customer_id: string;
-  order_date: string;
-  status: string;
-  total_thb: number;
-  profit_thb: number;
-  created_at: string;
-}
-
 export interface CrmDeal {
   id: string;
   title: string;
@@ -69,6 +91,8 @@ export interface Expense {
   category: string;
   description: string;
   amount_thb: number;
+  purchase_order_id: string | null;
+  sales_order_id: string | null;
   created_at: string;
 }
 
@@ -89,6 +113,17 @@ export const api = {
     const { data, error } = await supabase
       .from('products')
       .insert(product)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Product;
+  },
+
+  async updateProduct(id: string, product: Partial<Product>) {
+    const { data, error } = await supabase
+      .from('products')
+      .update(product)
+      .eq('id', id)
       .select()
       .single();
     if (error) throw error;
@@ -123,6 +158,26 @@ export const api = {
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as Warehouse[];
+  },
+
+  // Purchase Orders
+  async getPurchaseOrders() {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data as PurchaseOrder[];
+  },
+
+  async createPurchaseOrder(order: Partial<PurchaseOrder>) {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .insert(order)
+      .select()
+      .single();
+    if (error) throw error;
+    return data as PurchaseOrder;
   },
 
   // Sales Orders
