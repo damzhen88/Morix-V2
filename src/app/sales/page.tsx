@@ -8,6 +8,7 @@ import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody,
 import { formatDate, formatCurrency, generateId } from '@/lib/utils';
 import { SalesOrder, OrderItem, CustomerType } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { Plus, Search, FileText, DollarSign, Users, Edit, Trash2, Eye, Image as ImageIcon, Upload } from 'lucide-react';
 
 const customerTypeOptions = [
@@ -72,7 +73,7 @@ export default function SalesPage() {
     const { subtotal, productCost, total, grossProfit, netProfit } = calculateTotals();
 
     const orderItems: OrderItem[] = items.map(item => ({
-      id: generateId(),
+      id: uuidv4(),
       product_id: item.product_id,
       quantity: item.quantity,
       unit_price_thb: item.unit_price_thb,
@@ -83,9 +84,9 @@ export default function SalesPage() {
     }));
 
     const order: SalesOrder = {
-      id: editingOrder?.id || generateId(),
+      id: editingOrder?.id || uuidv4(),
       order_number: editingOrder?.order_number || `SO-2026-${Date.now().toString().slice(-4)}`,
-      customer_id: editingOrder?.customer_id || generateId(),
+      customer_id: editingOrder?.customer_id || uuidv4(),
       customer_name: formData.customer_name,
       customer_type: formData.customer_type,
       status: formData.status,

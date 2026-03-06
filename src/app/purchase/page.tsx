@@ -8,6 +8,7 @@ import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody,
 import { formatDate, formatCurrency, generateId, cnyToThb } from '@/lib/utils';
 import { PurchaseOrder, PurchaseOrderItem } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { Plus, Search, FileText, Truck, DollarSign, Calendar, Edit } from 'lucide-react';
 
 export default function PurchasePage() {
@@ -45,21 +46,21 @@ export default function PurchasePage() {
     const { totalCny, totalThb } = calculateTotal();
 
     const po: PurchaseOrder = {
-      id: editingPO?.id || generateId(),
+      id: editingPO?.id || uuidv4(),
       po_number: editingPO?.po_number || `PO-2026-${Date.now().toString().slice(-4)}`,
       supplier: formData.supplier,
       currency: 'CNY',
       exchange_rate: formData.exchange_rate,
       status: formData.status,
       items: items.map(item => ({
-        id: generateId(),
+        id: uuidv4(),
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price_cny: item.unit_price_cny,
         total_cny: item.quantity * item.unit_price_cny,
       })),
       shipment_costs: shipmentCosts.map(cost => ({
-        id: generateId(),
+        id: uuidv4(),
         description: cost.description,
         amount_cny: cost.amount_cny,
         amount_thb: cnyToThb(cost.amount_cny, formData.exchange_rate),
