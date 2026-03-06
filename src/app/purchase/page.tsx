@@ -264,46 +264,56 @@ export default function PurchasePage() {
         title={editingPO ? '📋 แก้ไขใบสั่งซื้อ' : '📋 สร้างใบสั่งซื้อใหม่'}
         size="xl"
         footer={
-          <div className="flex gap-3 w-full">
-            <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 py-3">❌ ยกเลิก</Button>
-            <Button onClick={handleSave} className="flex-1 py-3">💾 บันทึกใบสั่งซื้อ</Button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 py-4 text-lg">❌ ยกเลิก</Button>
+            <Button onClick={handleSave} className="flex-1 py-4 text-lg font-bold">💾 บันทึกใบสั่งซื้อ</Button>
           </div>
         }
       >
-        <div className="space-y-6">
-          {/* Header Info - Improved UX */}
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-8">
+          {/* SECTION 1: ข้อมูลผู้จัดจำหน่าย */}
+          <div className="bg-blue-50 rounded-2xl p-5">
+            <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+              🏭 ข้อมูลผู้จัดจำหน่าย
+            </h3>
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏭 ผู้จัดจำหน่าย (Supplier)
+                <label className="block text-base font-bold text-gray-800 mb-2">
+                  ชื่อผู้จัดจำหน่าย
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="เช่น บริษัท ซัพพลายเออร์ จีน"
+                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="เช่น บริษัท ซัพพลายเออร์ จีน จำกัด"
                   value={formData.supplier}
                   onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  💱 อัตราแลกเปลี่ยน (THB/CNY)
+                <label className="block text-base font-bold text-gray-800 mb-2">
+                  💱 อัตราแลกเปลี่ยน (บาท/หยวน)
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg text-center font-bold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   placeholder="5.12"
                   value={formData.exchange_rate}
                   onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 0 })}
                 />
+                <p className="text-sm text-gray-500 mt-1">กรอกอัตราหยวนเป็นบาท เช่น 5.12 บาท = 1 หยวน</p>
               </div>
             </div>
           </div>
 
-          {/* Products */}
-          <div>
+          {/* SECTION 2: รายการสินค้า */}
+          <div className="bg-green-50 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-green-900 flex items-center gap-2">
+                📦 รายการสินค้า
+              </h3>
+              <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
+            </div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-semibold text-gray-900 text-lg">📦 รายการสินค้า</h4>
               <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
@@ -400,11 +410,13 @@ export default function PurchasePage() {
             </div>
           </div>
 
-          {/* Shipment Costs */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-gray-900">🚚 ค่าขนส่งและค่าใช้จ่าย</h4>
-              <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่ม</Button>
+          {/* SECTION 3: ค่าขนส่ง */}
+          <div className="bg-purple-50 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                🚚 ค่าขนส่งจากจีน
+              </h3>
+              <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่มรายการ</Button>
             </div>
             <div className="space-y-2">
               {shipmentCosts.map((cost, idx) => (
@@ -442,8 +454,11 @@ export default function PurchasePage() {
             </div>
           </div>
 
-          {/* Total */}
-          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-2xl p-5 border-2 border-orange-200">
+          {/* SECTION 4: สรุปยอด */}
+          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-2xl p-6 border-2 border-orange-300">
+            <h3 className="text-xl font-bold text-orange-900 mb-4 flex items-center gap-2">
+              💰 สรุปยอดรวม
+            </h3>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">รวมค่าสินค้า (CNY):</span>
               <span className="font-semibold">¥ {formatCurrency(calculateTotal().totalCny, 'CNY')}</span>
