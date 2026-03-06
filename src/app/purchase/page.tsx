@@ -77,16 +77,14 @@ export default function PurchasePage() {
     try {
       const poData = {
         po_number: po.po_number,
-        supplier: po.supplier,
-        order_date: po.created_at,
+        supplier_id: po.supplier, // Using supplier as supplier_id
+        order_date: po.created_at.split('T')[0],
         status: po.status,
-        exchange_rate: po.exchange_rate,
-        items: po.items,
+        currency: po.currency,
+        exchange_rate_thb: po.exchange_rate,
         shipping_cny: po.shipment_costs?.reduce((s, c) => s + (c.amount_cny || 0), 0) || 0,
         shipping_thb: po.shipment_costs?.reduce((s, c) => s + (c.amount_thb || 0), 0) || 0,
         domestic_shipping_thb: 0,
-        total_thb: po.total_thb,
-        notes: null,
       };
 
       if (editingPO) {

@@ -111,15 +111,13 @@ export default function SalesPage() {
     try {
       const orderData = {
         order_number: order.order_number,
-        customer_id: order.customer_id,
-        order_date: order.created_at,
+        customer_id: order.customer_name, // Using customer_name as customer_id
+        order_date: order.created_at.split('T')[0],
         status: order.status,
-        items: order.items,
         total_thb: order.total,
         profit_thb: order.net_profit,
         cost_thb: order.product_cost_thb,
         shipping_thb: (order.transport_cost || 0) + (order.labor_cost || 0),
-        notes: order.notes,
       };
 
       if (editingOrder) {
