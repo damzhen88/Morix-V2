@@ -253,11 +253,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-    full: 'max-w-6xl',
+    sm: 'max-w-sm sm:max-w-md',
+    md: 'max-w-[90vw] sm:max-w-lg md:max-w-lg',
+    lg: 'max-w-[90vw] sm:max-w-2xl',
+    xl: 'max-w-[90vw] sm:max-w-4xl',
+    full: 'max-w-[95vw] sm:max-w-6xl',
   };
 
   return (

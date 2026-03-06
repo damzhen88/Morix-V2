@@ -77,7 +77,7 @@ export default function PurchasePage() {
     try {
       const poData = {
         po_number: po.po_number,
-        supplier_id: po.supplier, // Using supplier as supplier_id
+        supplier_id: po.supplier || null, // Can be null
         order_date: po.created_at.split('T')[0],
         status: po.status,
         currency: po.currency,
@@ -85,6 +85,13 @@ export default function PurchasePage() {
         shipping_cny: po.shipment_costs?.reduce((s, c) => s + (c.amount_cny || 0), 0) || 0,
         shipping_thb: po.shipment_costs?.reduce((s, c) => s + (c.amount_thb || 0), 0) || 0,
         domestic_shipping_thb: 0,
+        // Store items as JSON in notes field temporarily
+        notes: JSON.stringify({
+          items: po.items,
+          shipment_costs: po.shipment_costs,
+          total_cny: totalCny,
+          total_thb: totalThb
+        }),
       };
 
       if (editingPO) {
