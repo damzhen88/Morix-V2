@@ -328,11 +328,12 @@ export default function PurchasePage() {
                 };
                 const unitLabel = product ? getUnitLabel(product.unit) : 'หน่วย';
                 return (
-                <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-4 shadow-sm">
+                  {/* Product Selection - Clear Label */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1 block">เลือกสินค้า</label>
+                    <label className="text-sm font-bold text-gray-700 mb-2 block">📦 เลือกสินค้า</label>
                   <select
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm bg-white"
                     value={item.product_id}
                     onChange={(e) => {
                       const newItems = [...items];
@@ -343,28 +344,16 @@ export default function PurchasePage() {
                     <option value="">-- เลือกสินค้า --</option>
                     {state.products.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.sku} | {p.name_th} ({(() => {
-                          switch(p.unit) {
-                            case 'sqm': return 'ตร.ม.';
-                            case 'sqm_roll': return 'ตร.ม./ม้วน';
-                            case 'meter': return 'เมตร';
-                            case 'cm': return 'ซม.';
-                            case 'mm': return 'มม.';
-                            case 'piece': return 'ชิ้น';
-                            case 'box': return 'กล่อง';
-                            case 'pack': return 'แพ็ค';
-                            case 'roll': return 'ม้วน';
-                            case 'set': return 'ชุด';
-                            default: return p.unit;
-                          }
-                        })()})
+                        {p.sku} - {p.name_th} ({p.category})
                       </option>
                     ))}
                   </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  
+                  {/* Quantity and Price - Full Width Stacked on Mobile */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 mb-1 block">จำนวน ({unitLabel})</label>
+                      <label className="text-sm font-bold text-gray-700 mb-2 block">🔢 จำนวน (หน่วย)</label>
                     <input
                     type="number"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center text-lg"
