@@ -5,6 +5,68 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Storage helpers
+export const uploadImage = async (file: File, bucket: string = 'products', folder: string = 'images'): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+    
+    if (error) {
+      console.error('Storage upload error:', error);
+      // Fallback: return base64 data URL if storage fails
+      return await fileToBase64(file);
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+    
+    return publicUrl;
+  } catch (err) {
+    console.error('Upload error:', err);
+    // Fallback to base64
+    return await fileToBase64(file);
+  }
+};
+
+// Helper to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+export const deleteImage = async (imageUrl: string, bucket: string = 'products'): Promise<boolean> => {
+  try {
+    // Extract path from URL
+    const urlParts = imageUrl.split('/storage/v1/object/public/');
+    if (urlParts.length < 2) return false;
+    
+    const filePath = urlParts[1];
+    
+    const { error } = await supabase.storage
+      .from(bucket)
+      .remove([filePath]);
+    
+    return !error;
+  } catch (err) {
+    console.error('Delete error:', err);
+    return false;
+  }
+};
+
 // Database types
 export interface Product {
   id: string;

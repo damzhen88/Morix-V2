@@ -7,7 +7,7 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
 import { formatDate, getCategoryColor, getStatusColor, generateId } from '@/lib/utils';
 import { Product, ProductCategory, ProductUnit } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { supabase, uploadImage } from '@/lib/supabase';
 import { Plus, Search, Edit, Trash2, Eye, Upload, X, Image as ImageIcon, Package } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -53,6 +53,7 @@ export default function ProductsPage() {
     status: 'active' as const,
   });
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter products
@@ -83,6 +84,7 @@ export default function ProductsPage() {
       status: 'active',
     });
     setImagePreview('');
+    setImageFile(null);
     setIsModalOpen(true);
   };
 
@@ -131,6 +133,10 @@ export default function ProductsPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Store file for upload to Supabase Storage
+      setImageFile(file);
+      
+      // Also create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -163,19 +169,41 @@ export default function ProductsPage() {
       updated_at: now,
     };
 
-    // Add image if new one uploaded
-    if (imagePreview && !editingProduct?.images.find(i => i.url === imagePreview)) {
+    // Upload image to Supabase Storage if new file selected
+    if (imageFile) {
+      const uploadedUrl = await uploadImage(imageFile);
+      if (uploadedUrl) {
+        if (editingProduct) {
+          // Update existing - replace primary image
+          productData.images = editingProduct.images.map(img => 
+            img.is_primary ? { ...img, url: uploadedUrl } : img
+          );
+          if (!productData.images.length) {
+            productData.images = [{
+              id: uuidv4(),
+              url: uploadedUrl,
+              is_primary: true,
+              created_at: now,
+            }];
+          }
+        } else {
+          // New product - add new image
+          productData.images = [{
+            id: uuidv4(),
+            url: uploadedUrl,
+            is_primary: true,
+            created_at: now,
+          }];
+        }
+      }
+    } else if (imagePreview && !editingProduct?.images.find(i => i.url === imagePreview)) {
+      // Fallback: use base64 preview if no file uploaded (for existing preview)
       productData.images = [{
         id: uuidv4(),
         url: imagePreview,
         is_primary: true,
         created_at: now,
       }];
-    } else if (imagePreview && editingProduct) {
-      // Update existing primary image
-      productData.images = editingProduct.images.map(img => 
-        img.is_primary ? { ...img, url: imagePreview } : img
-      );
     }
 
     // SAVE TO SUPABASE
@@ -246,6 +274,8 @@ export default function ProductsPage() {
     }
 
     setIsModalOpen(false);
+    setImagePreview('');
+    setImageFile(null);
   };
 
   const handleDelete = async (productId: string) => {
