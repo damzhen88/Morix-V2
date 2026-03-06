@@ -7,6 +7,7 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader, TextArea } from '@/components/ui';
 import { formatDate, formatCurrency, generateId } from '@/lib/utils';
 import { SalesOrder, OrderItem, CustomerType } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { Plus, Search, FileText, DollarSign, Users, Edit, Trash2, Eye, Image as ImageIcon, Upload } from 'lucide-react';
 
 const customerTypeOptions = [
@@ -66,7 +67,7 @@ export default function SalesPage() {
     setItems([...items, { product_id: '', quantity: 0, unit_price_thb: 0, cost_thb: 0 }]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     const { subtotal, productCost, total, grossProfit, netProfit } = calculateTotals();
 
@@ -104,6 +105,49 @@ export default function SalesPage() {
       created_at: editingOrder?.created_at || now,
       updated_at: now,
     };
+
+    // SAVE TO SUPABASE
+    try {
+      const orderData = {
+        order_number: order.order_number,
+        customer_id: order.customer_id,
+        order_date: order.created_at,
+        status: order.status,
+        items: order.items,
+        total_thb: order.total,
+        profit_thb: order.net_profit,
+        cost_thb: order.product_cost_thb,
+        shipping_thb: (order.transport_cost || 0) + (order.labor_cost || 0),
+        notes: order.notes,
+      };
+
+      if (editingOrder) {
+        const { error } = await supabase
+          .from('sales_orders')
+          .update(orderData)
+          .eq('id', order.id);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('sales_orders')
+          .insert({ ...orderData, id: order.id, created_at: order.created_at });
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+      return;
+    }
 
     if (editingOrder) {
       dispatch({ type: 'UPDATE_SALES_ORDER', payload: order });

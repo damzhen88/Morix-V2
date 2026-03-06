@@ -7,6 +7,7 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
 import { formatDate, formatCurrency, generateId, cnyToThb } from '@/lib/utils';
 import { PurchaseOrder, PurchaseOrderItem } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { Plus, Search, FileText, Truck, DollarSign, Calendar, Edit } from 'lucide-react';
 
 export default function PurchasePage() {
@@ -39,7 +40,7 @@ export default function PurchasePage() {
     setShipmentCosts([...shipmentCosts, { description: '', amount_cny: 0 }]);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     const { totalCny, totalThb } = calculateTotal();
 
@@ -70,6 +71,50 @@ export default function PurchasePage() {
       created_at: editingPO?.created_at || now,
       updated_at: now,
     };
+
+    // SAVE TO SUPABASE
+    try {
+      const poData = {
+        po_number: po.po_number,
+        supplier: po.supplier,
+        order_date: po.created_at,
+        status: po.status,
+        exchange_rate: po.exchange_rate,
+        items: po.items,
+        shipping_cny: po.shipment_costs?.reduce((s, c) => s + (c.amount_cny || 0), 0) || 0,
+        shipping_thb: po.shipment_costs?.reduce((s, c) => s + (c.amount_thb || 0), 0) || 0,
+        domestic_shipping_thb: 0,
+        total_thb: po.total_thb,
+        notes: null,
+      };
+
+      if (editingPO) {
+        const { error } = await supabase
+          .from('purchase_orders')
+          .update(poData)
+          .eq('id', po.id);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('purchase_orders')
+          .insert({ ...poData, id: po.id, created_at: po.created_at });
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+      return;
+    }
 
     if (editingPO) {
       dispatch({ type: 'UPDATE_PURCHASE_ORDER', payload: po });

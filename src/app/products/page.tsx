@@ -7,6 +7,7 @@ import { useApp } from '@/store';
 import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
 import { formatDate, getCategoryColor, getStatusColor, generateId } from '@/lib/utils';
 import { Product, ProductCategory, ProductUnit } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { Plus, Search, Edit, Trash2, Eye, Upload, X, Image as ImageIcon, Package } from 'lucide-react';
 
 const categoryOptions = [
@@ -137,7 +138,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const now = new Date().toISOString();
     
     const productData: Product = {
@@ -176,6 +177,67 @@ export default function ProductsPage() {
       );
     }
 
+    // SAVE TO SUPABASE
+    try {
+      if (editingProduct) {
+        // Update existing
+        const { error } = await supabase
+          .from('products')
+          .update({
+            sku: productData.sku,
+            name_th: productData.name_th,
+            name_en: productData.name_en,
+            category: productData.category,
+            unit: productData.unit,
+            spec: productData.spec,
+            default_supplier: productData.default_supplier,
+            reorder_point: productData.reorder_point,
+            min_stock: productData.min_stock,
+            images: productData.images,
+            status: productData.status,
+            updated_at: productData.updated_at,
+          })
+          .eq('id', productData.id);
+        
+        if (error) {
+          console.error('Supabase update error:', error);
+          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
+          return;
+        }
+      } else {
+        // Insert new
+        const { error } = await supabase
+          .from('products')
+          .insert({
+            id: productData.id,
+            sku: productData.sku,
+            name_th: productData.name_th,
+            name_en: productData.name_en,
+            category: productData.category,
+            unit: productData.unit,
+            spec: productData.spec,
+            default_supplier: productData.default_supplier,
+            reorder_point: productData.reorder_point,
+            min_stock: productData.min_stock,
+            images: productData.images,
+            status: productData.status,
+            created_at: productData.created_at,
+            updated_at: productData.updated_at,
+          });
+        
+        if (error) {
+          console.error('Supabase insert error:', error);
+          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
+      return;
+    }
+
+    // Update local state
     if (editingProduct) {
       dispatch({ type: 'UPDATE_PRODUCT', payload: productData });
     } else {
@@ -185,10 +247,25 @@ export default function ProductsPage() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = (productId: string) => {
-    if (confirm('คุณแน่ใจที่จะลบสินค้านี้หรือไม่?')) {
-      dispatch({ type: 'DELETE_PRODUCT', payload: productId });
+  const handleDelete = async (productId: string) => {
+    if (!confirm('คุณแน่ใจที่จะลบสินค้านี้หรือไม่?')) {
+      return;
     }
+    
+    // Delete from Supabase
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+    
+    if (error) {
+      console.error('Delete error:', error);
+      alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
+      return;
+    }
+    
+    // Update local state
+    dispatch({ type: 'DELETE_PRODUCT', payload: productId });
   };
 
   if (state.isLoading) {
