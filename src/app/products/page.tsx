@@ -143,7 +143,7 @@ export default function ProductsPage() {
     const now = new Date().toISOString();
     
     const productData: Product = {
-      
+      id: editingProduct?.id || uuidv4(),
       sku: formData.sku,
       name_th: formData.name_th,
       name_en: formData.name_en || undefined,
