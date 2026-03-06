@@ -488,14 +488,15 @@ export default function SalesPage() {
             </div>
           </div>
 
-          {/* Costs */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Costs - Stack on Mobile */}
+          <div className="space-y-4">
             <Input
               label="ส่วนลด (THB)"
               type="number"
               value={formData.discount}
               onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })}
               disabled={isViewMode}
+              className="w-full"
             />
             <Input
               label="ค่าขนส่ง (THB)"
@@ -503,6 +504,7 @@ export default function SalesPage() {
               value={formData.transport_cost}
               onChange={(e) => setFormData({ ...formData, transport_cost: parseFloat(e.target.value) || 0 })}
               disabled={isViewMode}
+              className="w-full"
             />
             <Input
               label="ค่าแรง (THB)"
@@ -510,6 +512,7 @@ export default function SalesPage() {
               value={formData.labor_cost}
               onChange={(e) => setFormData({ ...formData, labor_cost: parseFloat(e.target.value) || 0 })}
               disabled={isViewMode}
+              className="w-full"
             />
           </div>
 

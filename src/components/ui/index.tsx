@@ -253,11 +253,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-sm sm:max-w-md',
-    md: 'max-w-[90vw] sm:max-w-lg md:max-w-lg',
-    lg: 'max-w-[90vw] sm:max-w-2xl',
-    xl: 'max-w-[90vw] sm:max-w-4xl',
-    full: 'max-w-[95vw] sm:max-w-6xl',
+    sm: 'max-w-full sm:max-w-md px-4',
+    md: 'max-w-full sm:max-w-lg px-4',
+    lg: 'max-w-full sm:max-w-2xl px-4',
+    xl: 'max-w-full sm:max-w-4xl px-4',
+    full: 'max-w-full px-2 sm:px-4',
   };
 
   return (
@@ -285,7 +285,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', footer }:
           </div>
           
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             {children}
           </div>
           
