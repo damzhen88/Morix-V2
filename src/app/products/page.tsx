@@ -22,6 +22,10 @@ const unitOptions = [
   { value: 'meter', label: 'เมตร' },
   { value: 'sqm', label: 'ตร.ม.' },
   { value: 'set', label: 'ชุด' },
+  { value: 'roll', label: 'ม้วน' },
+  { value: 'pack', label: 'แพ็ค' },
+  { value: 'cm', label: 'ซม.' },
+  { value: 'mm', label: 'มม.' },
 ];
 
 export default function ProductsPage() {

@@ -260,11 +260,22 @@ export default function PurchasePage() {
             <div className="space-y-3">
               {items.map((item, idx) => {
                 const product = state.products.find(p => p.id === item.product_id);
-                const unitLabel = product?.unit === 'sqm' ? 'ตร.ม.' : 
-                                  product?.unit === 'piece' ? 'ชิ้น' : 
-                                  product?.unit === 'box' ? 'กล่อง' : 
-                                  product?.unit === 'meter' ? 'เมตร' : 
-                                  product?.unit === 'set' ? 'ชุด' : 'หน่วย';
+                const getUnitLabel = (u: string) => {
+                  switch(u) {
+                    case 'sqm': return 'ตร.ม.';
+                    case 'sqm_roll': return 'ตร.ม./ม้วน';
+                    case 'meter': return 'เมตร';
+                    case 'cm': return 'ซม.';
+                    case 'mm': return 'มม.';
+                    case 'piece': return 'ชิ้น';
+                    case 'box': return 'กล่อง';
+                    case 'pack': return 'แพ็ค';
+                    case 'roll': return 'ม้วน';
+                    case 'set': return 'ชุด';
+                    default: return 'หน่วย';
+                  }
+                };
+                const unitLabel = product ? getUnitLabel(product.unit) : 'หน่วย';
                 return (
                 <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 shadow-sm">
                   <div>
@@ -281,7 +292,21 @@ export default function PurchasePage() {
                     <option value="">-- เลือกสินค้า --</option>
                     {state.products.map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.sku} | {p.name_th} ({p.unit === 'sqm' ? 'ตร.ม.' : p.unit === 'piece' ? 'ชิ้น' : p.unit === 'box' ? 'กล่อง' : p.unit === 'meter' ? 'เมตร' : p.unit === 'set' ? 'ชุด' : p.unit})
+                        {p.sku} | {p.name_th} ({(() => {
+                          switch(p.unit) {
+                            case 'sqm': return 'ตร.ม.';
+                            case 'sqm_roll': return 'ตร.ม./ม้วน';
+                            case 'meter': return 'เมตร';
+                            case 'cm': return 'ซม.';
+                            case 'mm': return 'มม.';
+                            case 'piece': return 'ชิ้น';
+                            case 'box': return 'กล่อง';
+                            case 'pack': return 'แพ็ค';
+                            case 'roll': return 'ม้วน';
+                            case 'set': return 'ชุด';
+                            default: return p.unit;
+                          }
+                        })()})
                       </option>
                     ))}
                   </select>

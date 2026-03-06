@@ -5,7 +5,7 @@
 // =======================
 
 export type ProductCategory = 'ASA' | 'WPC' | 'SPC' | 'ACCESSORIES';
-export type ProductUnit = 'sqm' | 'meter' | 'piece' | 'box' | 'set';
+export type ProductUnit = 'sqm' | 'sqm_roll' | 'meter' | 'cm' | 'mm' | 'piece' | 'box' | 'pack' | 'roll' | 'set';
 export type ProductStatus = 'active' | 'inactive';
 
 export interface ProductSpec {
