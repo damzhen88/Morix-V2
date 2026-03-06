@@ -70,8 +70,8 @@ function calculateKPIs(state: AppState): DashboardKPIs {
     ['confirmed', 'delivered', 'closed'].includes(o.status)
   );
   
-  const totalRevenue = confirmedOrders.reduce((sum, o) => sum + o.total, 0);
-  const totalCOGS = confirmedOrders.reduce((sum, o) => sum + o.product_cost_thb, 0);
+  const totalRevenue = confirmedOrders.reduce((sum, o) => sum + (o.total_thb || 0), 0);
+  const totalCOGS = confirmedOrders.reduce((sum, o) => sum + (o.cost_thb || 0), 0);
   const grossProfit = totalRevenue - totalCOGS;
   const netProfit = confirmedOrders.reduce((sum, o) => sum + o.net_profit, 0);
   
