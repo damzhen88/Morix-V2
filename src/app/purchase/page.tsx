@@ -30,7 +30,9 @@ export default function PurchasePage() {
   };
 
   const handleAddItem = () => {
-    setItems([...items, { product_id: '', quantity: 0, unit_price_cny: 0 }]);
+    // Get first product if available
+    const firstProduct = state.products[0];
+    setItems([...items, { product_id: firstProduct?.id || '', quantity: 1, unit_price_cny: 0 }]);
   };
 
   const handleAddShipmentCost = () => {
@@ -237,14 +239,21 @@ export default function PurchasePage() {
           {/* Products */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">รายการสินค้า</h4>
+              <h4 className="font-medium text-gray-900">📦 รายการสินค้า</h4>
               <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
             </div>
-            <div className="space-y-2">
-              {items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-4 gap-2">
+            <div className="space-y-3">
+              {items.map((item, idx) => {
+                const product = state.products.find(p => p.id === item.product_id);
+                const unitLabel = product?.unit === 'sqm' ? 'ตร.ม.' : 
+                                  product?.unit === 'piece' ? 'ชิ้น' : 
+                                  product?.unit === 'box' ? 'กล่อง' : 
+                                  product?.unit === 'meter' ? 'เมตร' : 
+                                  product?.unit === 'set' ? 'ชุด' : 'หน่วย';
+                return (
+                <div key={idx} className="bg-gray-50 rounded-xl p-3 space-y-2">
                   <select
-                    className="px-3 py-2 border border-gray-200 rounded-xl text-sm"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
                     value={item.product_id}
                     onChange={(e) => {
                       const newItems = [...items];
@@ -254,12 +263,17 @@ export default function PurchasePage() {
                   >
                     <option value="">เลือกสินค้า</option>
                     {state.products.map(p => (
-                      <option key={p.id} value={p.id}>{p.sku} - {p.name_th}</option>
+                      <option key={p.id} value={p.id}>
+                        {p.sku} - {p.name_th} ({p.unit === 'sqm' ? 'ตร.ม.' : p.unit === 'piece' ? 'ชิ้น' : p.unit === 'box' ? 'กล่อง' : p.unit === 'meter' ? 'เมตร' : p.unit === 'set' ? 'ชุด' : p.unit})
+                      </option>
                     ))}
                   </select>
-                  <Input
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">จำนวน ({unitLabel})</label>
+                    <Input
                     type="number"
-                    placeholder="จำนวน"
+                    placeholder="0"
                     value={item.quantity}
                     onChange={(e) => {
                       const newItems = [...items];
@@ -267,9 +281,12 @@ export default function PurchasePage() {
                       setItems(newItems);
                     }}
                   />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">ราคาต่อหน่วย (CNY)</label>
                   <Input
                     type="number"
-                    placeholder="ราคาต่อหน่วย (CNY)"
+                    placeholder="0"
                     value={item.unit_price_cny}
                     onChange={(e) => {
                       const newItems = [...items];
@@ -277,27 +294,30 @@ export default function PurchasePage() {
                       setItems(newItems);
                     }}
                   />
-                  <div className="flex items-center justify-end">
-                    <span className="text-sm font-medium text-gray-600">
+                  </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-500">รวม:</span>
+                    <span className="text-sm font-bold text-orange-600">
                       {formatCurrency(item.quantity * item.unit_price_cny, 'CNY')}
                     </span>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
           {/* Shipment Costs */}
-          <div>
+          <div className="bg-blue-50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">ค่าขนส่งและค่าใช้จ่าย</h4>
-              <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่มค่าใช้จ่าย</Button>
+              <h4 className="font-medium text-gray-900">🚚 ค่าขนส่งและค่าใช้จ่าย</h4>
+              <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่ม</Button>
             </div>
             <div className="space-y-2">
               {shipmentCosts.map((cost, idx) => (
-                <div key={idx} className="grid grid-cols-3 gap-2">
+                <div key={idx} className="flex gap-2 items-center">
                   <Input
-                    placeholder="รายการ"
+                    placeholder="เช่น ค่าขนส่งท่าเรือ"
                     value={cost.description}
                     onChange={(e) => {
                       const newCosts = [...shipmentCosts];
@@ -307,7 +327,8 @@ export default function PurchasePage() {
                   />
                   <Input
                     type="number"
-                    placeholder="จำนวน (CNY)"
+                    placeholder="CNY"
+                    className="w-24"
                     value={cost.amount_cny}
                     onChange={(e) => {
                       const newCosts = [...shipmentCosts];
@@ -315,13 +336,14 @@ export default function PurchasePage() {
                       setShipmentCosts(newCosts);
                     }}
                   />
-                  <div className="flex items-center justify-end">
-                    <span className="text-sm font-medium text-gray-600">
-                      {formatCurrency(cnyToThb(cost.amount_cny, formData.exchange_rate))}
-                    </span>
-                  </div>
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
+                    ≈ {formatCurrency(cnyToThb(cost.amount_cny, formData.exchange_rate))}
+                  </span>
                 </div>
               ))}
+              {shipmentCosts.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-2">ยังไม่มีค่าใช้จ่าย</p>
+              )}
             </div>
           </div>
 
