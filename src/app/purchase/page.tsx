@@ -394,7 +394,6 @@ export default function PurchasePage() {
               (อัตรา: 1 CNY = {formData.exchange_rate} THB)
             </div>
           </div>
-          </div>
         </div>
       </Modal>
     </div>
