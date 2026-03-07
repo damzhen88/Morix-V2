@@ -106,12 +106,23 @@ function calculateKPIs(state: AppState): DashboardKPIs {
 }
 
 const initialState: AppState = {
-  products: [],
+  products: [
+    // Sample products
+    { id: '1', sku: 'ASA-001', name_th: 'แผ่นพื้น ASA', name_en: 'ASA Flooring', category: 'flooring', unit: 'sqm', cost_thb: 150, price_thb: 250, stock: 1000, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
+    { id: '2', sku: 'WPC-001', name_th: 'แผ่นพื้น WPC', name_en: 'WPC Flooring', category: 'flooring', unit: 'sqm', cost_thb: 200, price_thb: 350, stock: 800, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
+    { id: '3', sku: 'SPC-001', name_th: 'แผ่นพื้น SPC', name_en: 'SPC Flooring', category: 'flooring', unit: 'sqm', cost_thb: 180, price_thb: 280, stock: 1200, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
+  ],
   inventory: [],
   stockMovements: [],
   purchaseOrders: [],
   salesOrders: [],
-  crmDeals: [],
+  crmDeals: [
+    // Sample CRM deals to prevent NaN
+    { id: '1', lead_id: 'LEAD-001', customer_name: 'บริษัท ลูกค้า จำกัด', customer_type: 'contractor', contact_phone: '089-111-1111', deal_value: 50000, stage: 'inquiry', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
+    { id: '2', lead_id: 'LEAD-002', customer_name: 'หจก. อีกาฟู้ดส์', customer_type: 'dealer', contact_phone: '089-222-2222', deal_value: 75000, stage: 'quoted', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
+    { id: '3', lead_id: 'LEAD-003', customer_name: 'บริษัท ไทยพรีเมียม', customer_type: 'project', contact_phone: '089-333-3333', deal_value: 120000, stage: 'paid', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
+    { id: '4', lead_id: 'LEAD-004', customer_name: 'หจก. วินเนอร์', customer_type: 'homeowner', contact_phone: '089-444-4444', deal_value: 35000, stage: 'shipped', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
+  ],
   expenses: [],
   warehouses: [],
   users: [],
