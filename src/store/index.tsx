@@ -115,7 +115,10 @@ const initialState: AppState = {
   inventory: [],
   stockMovements: [],
   purchaseOrders: [],
-  salesOrders: [],
+  salesOrders: [
+    { id: "1", order_number: "SO-001", customer_id: "1", customer_name: "บริษัท ลูกค้า จำกัด", status: "delivered", items: [{ id: "1", product_id: "1", quantity: 100, unit_price_thb: 250, total_thb: 25000, cost_thb: 150, profit_thb: 100 }], subtotal: 25000, discount: 0, transport_cost: 0, labor_cost: 0, total: 25000, product_cost_thb: 15000, gross_profit: 10000, net_profit: 10000, payment_status: "paid", notes: "", images: [], created_by: "admin", created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: "2", order_number: "SO-002", customer_id: "2", customer_name: "หจก. อีกาฟู้ดส์", status: "confirmed", items: [{ id: "2", product_id: "2", quantity: 50, unit_price_thb: 350, total_thb: 17500, cost_thb: 200, profit_thb: 150 }], subtotal: 17500, discount: 0, transport_cost: 500, labor_cost: 0, total: 18000, product_cost_thb: 10000, gross_profit: 7500, net_profit: 7000, payment_status: "paid", notes: "", images: [], created_by: "admin", created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ],
   crmDeals: [
     // Sample CRM deals to prevent NaN
     { id: '1', lead_id: 'LEAD-001', customer_name: 'บริษัท ลูกค้า จำกัด', customer_type: 'contractor', contact_phone: '089-111-1111', deal_value: 50000, stage: 'inquiry', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
@@ -327,7 +330,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             products: [],
             customers: [],
             warehouses: [],
-            salesOrders: [],
+            salesOrders: [
+    { id: "1", order_number: "SO-001", customer_id: "1", customer_name: "บริษัท ลูกค้า จำกัด", status: "delivered", items: [{ id: "1", product_id: "1", quantity: 100, unit_price_thb: 250, total_thb: 25000, cost_thb: 150, profit_thb: 100 }], subtotal: 25000, discount: 0, transport_cost: 0, labor_cost: 0, total: 25000, product_cost_thb: 15000, gross_profit: 10000, net_profit: 10000, payment_status: "paid", notes: "", images: [], created_by: "admin", created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { id: "2", order_number: "SO-002", customer_id: "2", customer_name: "หจก. อีกาฟู้ดส์", status: "confirmed", items: [{ id: "2", product_id: "2", quantity: 50, unit_price_thb: 350, total_thb: 17500, cost_thb: 200, profit_thb: 150 }], subtotal: 17500, discount: 0, transport_cost: 500, labor_cost: 0, total: 18000, product_cost_thb: 10000, gross_profit: 7500, net_profit: 7000, payment_status: "paid", notes: "", images: [], created_by: "admin", created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  ],
             crmDeals: [],
             expenses: [],
             inventory: [],
