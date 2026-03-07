@@ -112,7 +112,9 @@ const initialState: AppState = {
     { id: '2', sku: 'WPC-001', name_th: 'แผ่นพื้น WPC', name_en: 'WPC Flooring', category: 'flooring', unit: 'sqm', cost_thb: 200, price_thb: 350, stock: 800, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
     { id: '3', sku: 'SPC-001', name_th: 'แผ่นพื้น SPC', name_en: 'SPC Flooring', category: 'flooring', unit: 'sqm', cost_thb: 180, price_thb: 280, stock: 1200, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
   ],
-  inventory: [],
+  inventory: [
+    { id: "1", product_id: "1", warehouse_id: "1", quantity: 500, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
+  ],
   stockMovements: [],
   purchaseOrders: [],
   salesOrders: [
@@ -142,7 +144,11 @@ const initialState: AppState = {
     pendingOrders: 0,
     activeDeals: 0,
   },
-  trends: [],
+  trends: [
+    { month: "ส.ค.", revenue: 150000, profit: 50000 },
+    { month: "ก.ย.", revenue: 180000, profit: 60000 },
+    { month: "ต.ค.", revenue: 200000, profit: 75000 },
+  ],
 };
 
 // =======================
@@ -316,7 +322,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             salesOrders: salesOrders || [],
             crmDeals: crmDeals || [],
             expenses: expenses || [],
-            inventory: [],
+            inventory: [
+    { id: "1", product_id: "1", warehouse_id: "1", quantity: 500, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
+  ],
             stockMovements: [],
             purchaseOrders: [],
           },
@@ -336,7 +344,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ],
             crmDeals: [],
             expenses: [],
-            inventory: [],
+            inventory: [
+    { id: "1", product_id: "1", warehouse_id: "1", quantity: 500, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
+  ],
             stockMovements: [],
             purchaseOrders: [],
           },
