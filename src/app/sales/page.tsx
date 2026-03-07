@@ -1,30 +1,143 @@
-// Sales Page for MORIX CRM v2 - REDESIGNED
+// Sales Page for MORIX CRM v2 - MOBILE FIRST DESIGN
 'use client';
 
 import { useState } from 'react';
 import { useApp } from '@/store';
-import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell } from '@/components/ui';
-import { formatDate, formatCurrency, generateId } from '@/lib/utils';
-import { SalesOrder, OrderItem, CustomerType } from '@/types';
+import { formatDate, formatCurrency } from '@/lib/utils';
+import { SalesOrder, CustomerType } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Search, FileText, DollarSign, Users, Edit, Trash2, Eye, X, Calculator, ShoppingCart } from 'lucide-react';
+import { Plus, Search, FileText, DollarSign, Users, Eye, X, Calculator, ShoppingCart, ChevronRight, ArrowLeft, Check, Trash2 } from 'lucide-react';
 
-const customerTypeOptions = [
-  { value: 'contractor', label: 'ผู้รับเหมา' },
-  { value: 'homeowner', label: 'เจ้าของบ้าน' },
-  { value: 'dealer', label: 'ตัวแทนจำหน่าย' },
-  { value: 'project', label: 'โครงการ' },
-];
+// ============================================
+// MOBILE-FIRST UI COMPONENTS
+// ============================================
 
-const statusOptions = [
-  { value: 'draft', label: 'ฉบับร่าง' },
-  { value: 'quoted', label: 'เสนอราคา' },
-  { value: 'confirmed', label: 'ยืนยันแล้ว' },
-  { value: 'delivered', label: 'จัดส่งแล้ว' },
-  { value: 'closed', label: 'ปิดงาน' },
-  { value: 'cancelled', label: 'ยกเลิก' },
-];
+// Clean Card Component
+function Card({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-gray-100 shadow-sm ${onClick ? 'cursor-pointer active:scale-[0.99] transition-transform' : ''} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Floating Action Button - iOS Style
+function FAB({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full shadow-xl shadow-orange-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 z-50"
+    >
+      <Plus className="w-7 h-7 text-white" />
+    </button>
+  );
+}
+
+// Input Field - Mobile Optimized
+function InputField({ 
+  label, value, onChange, type = 'text', placeholder = '', icon, suffix, disabled = false 
+}: { 
+  label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; icon?: React.ReactNode; suffix?: string; disabled?: boolean 
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+      <div className="relative">
+        {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>}
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={`w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all text-base ${icon ? 'pl-10' : ''} ${suffix ? 'pr-12' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        />
+        {suffix && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{suffix}</div>}
+      </div>
+    </div>
+  );
+}
+
+// Select Field - Mobile Optimized
+function SelectField({ label, value, onChange, options, disabled = false }: { 
+  label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; disabled?: boolean 
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all text-base appearance-none cursor-pointer"
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// Status Badge
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft: 'bg-gray-100 text-gray-600',
+    quoted: 'bg-blue-100 text-blue-600',
+    confirmed: 'bg-green-100 text-green-600',
+    delivered: 'bg-emerald-100 text-emerald-600',
+    closed: 'bg-gray-100 text-gray-500',
+    cancelled: 'bg-red-100 text-red-600',
+  };
+  const labels: Record<string, string> = {
+    draft: 'ร่าง',
+    quoted: 'เสนอราคา',
+    confirmed: 'ยืนยันแล้ว',
+    delivered: 'จัดส่งแล้ว',
+    closed: 'ปิดงาน',
+    cancelled: 'ยกเลิก',
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100'}`}>
+      {labels[status] || status}
+    </span>
+  );
+}
+
+// Order Card - Mobile Optimized
+function OrderCard({ order, onClick }: { order: SalesOrder; onClick: () => void }) {
+  return (
+    <Card onClick={onClick} className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 text-base truncate">{order.order_number}</p>
+            <p className="text-sm text-gray-500 truncate">{order.customer_name}</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <StatusBadge status={order.status} />
+          <p className="text-xs text-gray-400">{formatDate(order.created_at)}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs text-gray-400">{order.items?.length || 0} รายการ</p>
+        <p className="font-bold text-orange-600 text-lg">{formatCurrency(order.total || 0)}</p>
+      </div>
+    </Card>
+  );
+}
+
+// ============================================
+// MAIN PAGE
+// ============================================
 
 export default function SalesPage() {
   const { state, dispatch } = useApp();
@@ -45,6 +158,7 @@ export default function SalesPage() {
   });
   const [items, setItems] = useState<{product_id: string; quantity: number; unit_price_thb: number; cost_thb: number}[]>([]);
 
+  // Filter orders
   const filteredOrders = state.salesOrders.filter(order => {
     const matchesSearch = !search || 
       order.order_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,28 +167,45 @@ export default function SalesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // Calculate totals
+  const calculateTotals = () => {
+    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price_thb), 0);
+    const total = subtotal + formData.transport_cost + formData.labor_cost - formData.discount;
+    return { subtotal, total };
+  };
+  const { subtotal, total } = calculateTotals();
+
+  // Add item row
   const handleAddItem = () => {
     setItems([...items, { product_id: '', quantity: 0, unit_price_thb: 0, cost_thb: 0 }]);
   };
 
+  // Remove item row
   const handleRemoveItem = (idx: number) => {
     setItems(items.filter((_, i) => i !== idx));
   };
 
-  const calculateTotals = () => {
-    const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price_thb), 0);
-    const productCost = items.reduce((sum, item) => sum + (item.quantity * item.cost_thb), 0);
-    const total = subtotal + formData.transport_cost + formData.labor_cost - formData.discount;
-    const grossProfit = subtotal - productCost;
-    const netProfit = total - productCost;
-    return { subtotal, productCost, total, grossProfit, netProfit };
+  // Update item
+  const handleUpdateItem = (idx: number, field: string, value: any) => {
+    const newItems = [...items];
+    (newItems[idx] as any)[field] = field === 'quantity' ? parseInt(value) || 0 : parseFloat(value) || 0;
+    setItems(newItems);
   };
 
+  // Save order
   const handleSave = async () => {
-    const now = new Date().toISOString();
-    const { subtotal, productCost, total, grossProfit, netProfit } = calculateTotals();
+    if (!formData.customer_name.trim()) {
+      alert('กรุณากรอกชื่อลูกค้า');
+      return;
+    }
+    if (items.length === 0 || !items[0].product_id) {
+      alert('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ');
+      return;
+    }
 
-    const orderItems: OrderItem[] = items.map(item => ({
+    const now = new Date().toISOString();
+    
+    const orderItems = items.map(item => ({
       id: uuidv4(),
       product_id: item.product_id,
       quantity: item.quantity,
@@ -88,7 +219,7 @@ export default function SalesPage() {
     const order: SalesOrder = {
       id: editingOrder?.id || uuidv4(),
       order_number: editingOrder?.order_number || `SO-2026-${Date.now().toString().slice(-4)}`,
-      customer_id: editingOrder?.customer_id || generateId(),
+      customer_id: editingOrder?.customer_id || uuidv4(),
       customer_name: formData.customer_name,
       customer_type: formData.customer_type,
       status: formData.status,
@@ -98,9 +229,9 @@ export default function SalesPage() {
       transport_cost: formData.transport_cost,
       labor_cost: formData.labor_cost,
       total,
-      product_cost_thb: productCost,
-      gross_profit: grossProfit,
-      net_profit: netProfit,
+      product_cost_thb: orderItems.reduce((s, i) => s + (i.cost_thb || 0), 0),
+      gross_profit: orderItems.reduce((s, i) => s + (i.profit_thb || 0), 0),
+      net_profit: orderItems.reduce((s, i) => s + (i.profit_thb || 0), 0),
       payment_status: formData.payment_status,
       notes: formData.notes,
       images: editingOrder?.images || [],
@@ -124,10 +255,10 @@ export default function SalesPage() {
 
       if (editingOrder) {
         const { error } = await supabase.from('sales_orders').update(orderData).eq('id', order.id);
-        if (error) { alert('Error: ' + error.message); return; }
+        if (error) console.error('Update error:', error);
       } else {
         const { error } = await supabase.from('sales_orders').insert({ ...orderData, id: order.id, created_at: order.created_at });
-        if (error) { alert('Error: ' + error.message); return; }
+        if (error) console.error('Insert error:', error);
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -143,6 +274,7 @@ export default function SalesPage() {
     resetForm();
   };
 
+  // Reset form
   const resetForm = () => {
     setEditingOrder(null);
     setIsViewMode(false);
@@ -159,6 +291,7 @@ export default function SalesPage() {
     setItems([]);
   };
 
+  // Open view
   const openView = (order: SalesOrder) => {
     setEditingOrder(order);
     setIsViewMode(true);
@@ -181,218 +314,281 @@ export default function SalesPage() {
     setIsModalOpen(true);
   };
 
-  const { subtotal, total, netProfit } = calculateTotals();
+  const statusOptions = [
+    { value: 'draft', label: 'ฉบับร่าง' },
+    { value: 'quoted', label: 'เสนอราคา' },
+    { value: 'confirmed', label: 'ยืนยันแล้ว' },
+    { value: 'delivered', label: 'จัดส่งแล้ว' },
+    { value: 'closed', label: 'ปิดงาน' },
+  ];
+
+  const customerTypeOptions = [
+    { value: 'contractor', label: 'ผู้รับเหมา' },
+    { value: 'homeowner', label: 'เจ้าของบ้าน' },
+    { value: 'dealer', label: 'ตัวแทนจำหน่าย' },
+    { value: 'project', label: 'โครงการ' },
+  ];
 
   return (
-    <div className="min-h-screen mesh-gradient pb-24 lg:pb-8">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 lg:px-6 sticky top-0 z-20">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-20">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">ขายสินค้า</h1>
-            <p className="text-sm text-gray-500">จัดการใบสั่งขาย</p>
+            <h1 className="text-xl font-bold text-gray-900">ใบขาย</h1>
+            <p className="text-xs text-gray-500">{filteredOrders.length} รายการ</p>
           </div>
+        </div>
+      </div>
+
+      {/* Search - Mobile Optimized */}
+      <div className="p-4 pb-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="ค้นหาใบขาย..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-base focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Status Filter - Horizontal Scroll */}
+      <div className="px-4 pb-3 flex gap-2 overflow-x-auto">
+        <button
+          onClick={() => setStatusFilter('')}
+          className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${!statusFilter ? 'bg-orange-500 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}
+        >
+          ทั้งหมด
+        </button>
+        {statusOptions.map(opt => (
           <button
-            onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="flex items-center justify-center gap-2 bg-accent text-white px-6 py-3 rounded-xl font-medium hover:bg-accent-dark transition-colors shadow-lg"
+            key={opt.value}
+            onClick={() => setStatusFilter(opt.value)}
+            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${statusFilter === opt.value ? 'bg-orange-500 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}`}
           >
-            <Plus className="w-5 h-5" />
-            <span>+ สร้างใบขาย</span>
+            {opt.label}
           </button>
-        </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="p-4 lg:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="ค้นหาเลขที่ใบขาย ชื่อลูกค้า..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
-            />
+      {/* Orders List - Mobile Cards */}
+      <div className="p-4 space-y-3">
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <ShoppingCart className="w-14 h-14 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 font-medium">ยังไม่มีใบขาย</p>
+            <p className="text-sm text-gray-400 mt-1">กดปุ่ม + เพื่อสร้างใบขายใหม่</p>
           </div>
-        </div>
-
-        {/* Status Chips */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button onClick={() => setStatusFilter('')} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${!statusFilter ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600'}`}>ทั้งหมด</button>
-          {statusOptions.map(opt => (
-            <button key={opt.value} onClick={() => setStatusFilter(opt.value)} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${statusFilter === opt.value ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600'}`}>{opt.label}</button>
-          ))}
-        </div>
-
-        {/* Orders List */}
-        <div className="space-y-3">
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center">
-              <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">ยังไม่มีใบขาย</p>
-              <p className="text-sm text-gray-400">กดปุ่ม "+ สร้างใบขาย" เพื่อสร้างใบขายใหม่</p>
-            </div>
-          ) : (
-            filteredOrders.map(order => (
-              <div key={order.id} onClick={() => openView(order)} className="bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-gray-900">{order.order_number}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${order.status === 'confirmed' ? 'bg-green-100 text-green-700' : order.status === 'draft' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {statusOptions.find(s => s.value === order.status)?.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 truncate">{order.customer_name}</p>
-                    <p className="text-xs text-gray-400 mt-1">{formatDate(order.created_at)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-accent text-lg">{formatCurrency(order.total || 0)}</p>
-                    <p className="text-xs text-gray-500">{order.items?.length || 0} รายการ</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        ) : (
+          filteredOrders.map(order => (
+            <OrderCard key={order.id} order={order} onClick={() => openView(order)} />
+          ))
+        )}
       </div>
 
-      {/* Create/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title={isViewMode ? 'รายละเอียดใบขาย' : editingOrder ? 'แก้ไขใบขาย' : 'สร้างใบขายใหม่'} size="full" footer={
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
-          <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 py-4 text-lg">❌ ยกเลิก</Button>
-          {!isViewMode && <Button onClick={handleSave} className="flex-1 py-4 text-lg font-bold">💾 บันทึกใบขาย</Button>}
-        </div>
-      }>
-        <div className="space-y-6">
-          {/* Section 1: ข้อมูลลูกค้า */}
-          <div className="bg-blue-50 rounded-2xl p-5">
-            <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">👤 ข้อมูลลูกค้า</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">🏷️ ชื่อลูกค้า *</label>
-                <input type="text" className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-lg focus:outline-none focus:border-accent" placeholder="ชื่อลูกค้า / บริษัท" value={formData.customer_name} onChange={(e) => setFormData({...formData, customer_name: e.target.value})} disabled={isViewMode} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">📋 ประเภทลูกค้า</label>
-                  <select className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-lg focus:outline-none focus:border-accent" value={formData.customer_type} onChange={(e) => setFormData({...formData, customer_type: e.target.value as CustomerType})} disabled={isViewMode}>
-                    {customerTypeOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">📊 สถานะใบขาย</label>
-                  <select className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl text-lg focus:outline-none focus:border-accent" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as SalesOrder['status']})} disabled={isViewMode}>
-                    {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Floating Action Button */}
+      <FAB onClick={() => { resetForm(); setIsModalOpen(true); }} />
 
-          {/* Section 2: รายการสินค้า */}
-          <div className="bg-green-50 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-green-900 flex items-center gap-2">📦 รายการสินค้า</h3>
-              {!isViewMode && <button onClick={handleAddItem} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium text-sm">+ เพิ่มสินค้า</button>}
-            </div>
-            <div className="space-y-4">
-              {items.length === 0 ? (
-                <div className="bg-white rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
-                  <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500">ยังไม่มีสินค้า</p>
-                  <p className="text-sm text-gray-400">กด "+ เพิ่มสินค้า" เพื่อเพิ่มรายการ</p>
+      {/* Modal - Full Screen on Mobile */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setIsModalOpen(false); resetForm(); }} />
+          
+          {/* Modal Content */}
+          <div className="relative w-full h-[90vh] sm:h-auto sm:max-h-[90vh] sm:max-w-2xl bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-4 border-b bg-gray-50">
+              <div className="flex items-center gap-3">
+                {isViewMode ? (
+                  <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-2 -ml-2">
+                    <ArrowLeft className="w-5 h-5 text-gray-600" />
+                  </button>
+                ) : null}
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {isViewMode ? 'รายละเอียด' : editingOrder ? 'แก้ไขใบขาย' : 'ใบขายใหม่'}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {isViewMode ? formatDate(editingOrder?.created_at || '') : 'กรอกข้อมูลใบขาย'}
+                  </p>
                 </div>
-              ) : (
-                items.map((item, idx) => (
-                  <div key={idx} className="bg-white rounded-xl p-4 border-2 border-gray-100">
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-sm font-bold text-gray-500">รายการที่ {idx + 1}</span>
-                      {!isViewMode && <button onClick={() => handleRemoveItem(idx)} className="text-red-500 p-1 hover:bg-red-50 rounded"><X className="w-4 h-4" /></button>}
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">🏷️ เลือกสินค้า</label>
-                        <select className="w-full px-3 py-3 border border-gray-200 rounded-lg" value={item.product_id} onChange={(e) => { const newItems = [...items]; newItems[idx].product_id = e.target.value; setItems(newItems); }} disabled={isViewMode}>
-                          <option value="">-- เลือกสินค้า --</option>
-                          {state.products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name_th}</option>)}
+              </div>
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="p-2">
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Form Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Customer Section */}
+              <Card className="p-4">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-orange-500" /> ข้อมูลลูกค้า
+                </h3>
+                <div className="space-y-3">
+                  <InputField
+                    label="ชื่อลูกค้า"
+                    value={formData.customer_name}
+                    onChange={(v) => setFormData({...formData, customer_name: v})}
+                    placeholder="ชื่อลูกค้า / บริษัท"
+                    disabled={isViewMode}
+                  />
+                  <SelectField
+                    label="ประเภทลูกค้า"
+                    value={formData.customer_type}
+                    onChange={(v) => setFormData({...formData, customer_type: v as CustomerType})}
+                    options={customerTypeOptions}
+                    disabled={isViewMode}
+                  />
+                </div>
+              </Card>
+
+              {/* Products Section */}
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-orange-500" /> รายการสินค้า
+                  </h3>
+                  {!isViewMode && (
+                    <button onClick={handleAddItem} className="text-xs text-orange-500 font-semibold">+ เพิ่ม</button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {items.length === 0 ? (
+                    <p className="text-center text-gray-400 py-4 text-sm">ยังไม่มีสินค้า</p>
+                  ) : (
+                    items.map((item, idx) => (
+                      <div key={idx} className="p-3 bg-gray-50 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-500">รายการ {idx + 1}</span>
+                          {!isViewMode && (
+                            <button onClick={() => handleRemoveItem(idx)} className="text-red-500 p-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        <select
+                          className="w-full px-2 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                          value={item.product_id}
+                          onChange={(e) => handleUpdateItem(idx, 'product_id', e.target.value)}
+                          disabled={isViewMode}
+                        >
+                          <option value="">เลือกสินค้า</option>
+                          {state.products.map(p => (
+                            <option key={p.id} value={p.id}>{p.sku} - {p.name_th}</option>
+                          ))}
                         </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">🔢 จำนวน (หน่วย)</label>
-                          <input type="number" className="w-full px-3 py-3 border border-gray-200 rounded-lg text-center text-lg font-bold" placeholder="0" value={item.quantity || ''} onChange={(e) => { const newItems = [...items]; newItems[idx].quantity = parseInt(e.target.value) || 0; setItems(newItems); }} disabled={isViewMode} />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            placeholder="จำนวน"
+                            className="px-2 py-2 bg-white border border-gray-200 rounded-lg text-sm text-center"
+                            value={item.quantity || ''}
+                            onChange={(e) => handleUpdateItem(idx, 'quantity', e.target.value)}
+                            disabled={isViewMode}
+                          />
+                          <input
+                            type="number"
+                            placeholder="ราคา/หน่วย"
+                            className="px-2 py-2 bg-white border border-gray-200 rounded-lg text-sm text-center"
+                            value={item.unit_price_thb || ''}
+                            onChange={(e) => handleUpdateItem(idx, 'unit_price_thb', e.target.value)}
+                            disabled={isViewMode}
+                          />
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">💰 ราคาต่อหน่วย (บาท)</label>
-                          <input type="number" className="w-full px-3 py-3 border border-gray-200 rounded-lg text-center text-lg font-bold" placeholder="0" value={item.unit_price_thb || ''} onChange={(e) => { const newItems = [...items]; newItems[idx].unit_price_thb = parseFloat(e.target.value) || 0; setItems(newItems); }} disabled={isViewMode} />
-                        </div>
+                        {item.quantity > 0 && item.unit_price_thb > 0 && (
+                          <p className="text-xs text-right text-orange-600 font-medium">
+                            = {formatCurrency(item.quantity * item.unit_price_thb)}
+                          </p>
+                        )}
                       </div>
-                      <div className="bg-orange-50 rounded-lg px-3 py-2 flex justify-between items-center">
-                        <span className="text-sm text-gray-600">รวมรายการนี้:</span>
-                        <span className="font-bold text-accent text-lg">{formatCurrency(item.quantity * item.unit_price_thb)}</span>
-                      </div>
-                    </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+
+              {/* Costs Section */}
+              <Card className="p-4">
+                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-orange-500" /> ค่าใช้จ่าย
+                </h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <InputField
+                    label="ค่าขนส่ง"
+                    value={formData.transport_cost}
+                    onChange={(v) => setFormData({...formData, transport_cost: parseFloat(v) || 0})}
+                    type="number"
+                    suffix="฿"
+                    disabled={isViewMode}
+                  />
+                  <InputField
+                    label="ค่าแรง"
+                    value={formData.labor_cost}
+                    onChange={(v) => setFormData({...formData, labor_cost: parseFloat(v) || 0})}
+                    type="number"
+                    suffix="฿"
+                    disabled={isViewMode}
+                  />
+                  <InputField
+                    label="ส่วนลด"
+                    value={formData.discount}
+                    onChange={(v) => setFormData({...formData, discount: parseFloat(v) || 0})}
+                    type="number"
+                    suffix="฿"
+                    disabled={isViewMode}
+                  />
+                </div>
+              </Card>
+
+              {/* Summary */}
+              <Card className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500">ยอดรวม</p>
+                    <p className="text-2xl font-bold text-orange-600">{formatCurrency(total)}</p>
                   </div>
-                ))
+                  <Calculator className="w-8 h-8 text-orange-300" />
+                </div>
+              </Card>
+
+              {/* Notes */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">หมายเหตุ</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  disabled={isViewMode}
+                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl mt-1.5 text-base focus:bg-white focus:border-orange-500"
+                  rows={2}
+                  placeholder="หมายเหตุ..."
+                />
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="px-4 py-4 border-t bg-gray-50 flex gap-3">
+              <button
+                onClick={() => { setIsModalOpen(false); resetForm(); }}
+                className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold active:bg-gray-300 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              {!isViewMode && (
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-semibold active:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Check className="w-5 h-5" /> บันทึก
+                </button>
               )}
             </div>
           </div>
-
-          {/* Section 3: ค่าใช้จ่าย */}
-          <div className="bg-purple-50 rounded-2xl p-5">
-            <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">💵 ค่าใช้จ่ายเพิ่มเติม</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">🚚 ค่าขนส่ง (บาท)</label>
-                <input type="number" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg" placeholder="0" value={formData.transport_cost || ''} onChange={(e) => setFormData({...formData, transport_cost: parseFloat(e.target.value) || 0})} disabled={isViewMode} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">🔧 ค่าแรง (บาท)</label>
-                <input type="number" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg" placeholder="0" value={formData.labor_cost || ''} onChange={(e) => setFormData({...formData, labor_cost: parseFloat(e.target.value) || 0})} disabled={isViewMode} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">🎯 ส่วนลด (บาท)</label>
-                <input type="number" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg" placeholder="0" value={formData.discount || ''} onChange={(e) => setFormData({...formData, discount: parseFloat(e.target.value) || 0})} disabled={isViewMode} />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: หมายเหตุ */}
-          <div className="bg-gray-50 rounded-2xl p-5">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">📝 หมายเหตุ</h3>
-            <textarea className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" rows={3} placeholder="หมายเหตุ..." value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} disabled={isViewMode} />
-          </div>
-
-          {/* Section 5: สรุปยอด */}
-          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-2xl p-6 border-2 border-orange-300">
-            <h3 className="text-xl font-bold text-orange-900 mb-4 flex items-center gap-2">🧮 สรุปยอดรวม</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-orange-200">
-                <span className="text-gray-700">รวมราคาสินค้า:</span>
-                <span className="font-bold text-lg">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-orange-200">
-                <span className="text-gray-700">+ ค่าขนส่ง:</span>
-                <span className="font-bold">{formatCurrency(formData.transport_cost)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-orange-200">
-                <span className="text-gray-700">+ ค่าแรง:</span>
-                <span className="font-bold">{formatCurrency(formData.labor_cost)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-orange-200">
-                <span className="text-gray-700">- ส่วนลด:</span>
-                <span className="font-bold text-red-600">-{formatCurrency(formData.discount)}</span>
-              </div>
-              <div className="flex justify-between items-center py-3 bg-orange-200 rounded-xl px-4 mt-2">
-                <span className="text-xl font-bold text-orange-900">💵 ยอดรวมทั้งสิ้น:</span>
-                <span className="text-2xl font-bold text-accent">{formatCurrency(total)}</span>
-              </div>
-            </div>
-          </div>
         </div>
-      </Modal>
+      )}
     </div>
   );
 }
