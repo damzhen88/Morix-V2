@@ -45,9 +45,9 @@ type AppAction =
 
 const initialState: AppState = {
   products: [
-    { id: '1', sku: 'ASA-001', name_th: 'แผ่นพื้น ASA', name_en: 'ASA Flooring', category: 'ASA', unit: 'sqm', cost_thb: 150, price_thb: 250, stock: 1000, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
-    { id: '2', sku: 'WPC-001', name_th: 'แผ่นพื้น WPC', name_en: 'WPC Flooring', category: 'WPC', unit: 'sqm', cost_thb: 200, price_thb: 350, stock: 800, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
-    { id: '3', sku: 'SPC-001', name_th: 'แผ่นพื้น SPC', name_en: 'SPC Flooring', category: 'SPC', unit: 'sqm', cost_thb: 180, price_thb: 280, stock: 1200, reorder_point: 100, status: 'active', supplier_id: '1', created_at: new Date().toISOString() },
+    { id: '1', sku: 'ASA-001', name_th: 'แผ่นพื้น ASA', name_en: 'ASA Flooring', category: 'ASA', unit: 'sqm', cost_thb: 150, price_thb: 250, stock: 1000, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
+    { id: '2', sku: 'WPC-001', name_th: 'แผ่นพื้น WPC', name_en: 'WPC Flooring', category: 'WPC', unit: 'sqm', cost_thb: 200, price_thb: 350, stock: 800, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
+    { id: '3', sku: 'SPC-001', name_th: 'แผ่นพื้น SPC', name_en: 'SPC Flooring', category: 'SPC', unit: 'sqm', cost_thb: 180, price_thb: 280, stock: 1200, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
   ],
   inventory: [
     { id: '1', product_id: '1', warehouse_id: '1', quantity_on_hand: 500, weighted_average_cost_thb: 150, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
