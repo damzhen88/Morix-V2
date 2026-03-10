@@ -1,4 +1,4 @@
-// Dashboard Layout for MORIX CRM v2 - ANTI-SLOP EDITION
+// Dashboard Layout for MORIX CRM v2 - ANTI-SLOP EDITION (MOBILE OPTIMIZED)
 
 'use client';
 
@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Package, Warehouse, ShoppingCart, 
   Users, Receipt, TrendingUp, Settings, Menu, X,
-  Home, FileText
+  Home, Plus
 } from 'lucide-react';
 
 const menuItems = [
@@ -19,13 +19,15 @@ const menuItems = [
   { id: 'sales', label: 'ขายสินค้า', icon: Users, href: '/sales' },
   { id: 'crm', label: 'ลูกค้า (CRM)', icon: TrendingUp, href: '/crm' },
   { id: 'expenses', label: 'ค่าใช้จ่าย', icon: Receipt, href: '/expenses' },
-  { id: 'reports', label: 'รายงาน', icon: FileText, href: '/reports' },
+  { id: 'reports', label: 'รายงาน', icon: TrendingUp, href: '/reports' },
   { id: 'settings', label: 'ตั้งค่า', icon: Settings, href: '/settings' },
 ];
 
+// Mobile bottom nav - minimal essential items
 const mobileNavItems = [
   { id: 'home', label: 'หน้าหลัก', icon: Home, href: '/' },
   { id: 'products', label: 'สินค้า', icon: Package, href: '/products' },
+  { id: 'add', label: '', icon: Plus, href: '/products', isFAB: true },
   { id: 'sales', label: 'ขาย', icon: Users, href: '/sales' },
   { id: 'crm', label: 'CRM', icon: TrendingUp, href: '/crm' },
 ];
@@ -66,17 +68,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`group relative flex items-center gap-3 px-4 py-3.5 text-sm font-medium rounded-2xl transition-all duration-200 animate-fade-in-up stagger-${idx + 1} ${
+                  className={`group relative flex items-center gap-3 px-4 py-3.5 text-sm font-medium rounded-2xl transition-all duration-200 animate-fade-in-up ${
                     isActive 
                       ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25' 
                       : 'text-gray-600 hover:bg-orange-50/80 hover:text-orange-700'
                   }`}
                 >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                  )}
-                  <Icon className={`w-5 h-5 relative z-10 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-orange-500'}`} />
-                  <span className="relative z-10">{item.label}</span>
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-orange-500'}`} />
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
@@ -102,19 +101,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex items-center justify-between h-14 px-4">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-xl hover:bg-gray-100 transition-colors"
+            className="p-2.5 -ml-2 rounded-xl hover:bg-gray-100 transition-colors active:scale-95"
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
           
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
               <span className="text-white font-bold text-sm">M</span>
             </div>
             <span className="font-bold text-gray-900 font-[var(--font-display)]">MORIX</span>
           </div>
 
-          <div className="w-9" />
+          <Link
+            href="/products"
+            className="p-2.5 -mr-2 rounded-xl hover:bg-orange-50 transition-colors active:scale-95"
+          >
+            <Plus className="w-5 h-5 text-orange-500" />
+          </Link>
         </div>
       </header>
 
@@ -122,20 +126,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div 
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm" 
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm" 
             onClick={() => setSidebarOpen(false)} 
           />
-          <div className="absolute inset-y-0 left-0 w-80 bg-white shadow-2xl animate-fade-in-left">
+          <div className="absolute inset-y-0 left-0 w-[280px] bg-white shadow-2xl animate-fade-in-left">
             <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                   <span className="text-white font-bold text-sm">M</span>
                 </div>
                 <span className="font-bold text-gray-900">MORIX</span>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-xl hover:bg-gray-100"
+                className="p-2.5 rounded-xl hover:bg-gray-100 active:scale-95 transition-transform"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -150,7 +154,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     key={item.id}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl transition-all ${
+                    className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium rounded-2xl transition-all active:scale-[0.98] ${
                       isActive 
                         ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' 
                         : 'text-gray-600 hover:bg-gray-50'
@@ -168,7 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <div className="lg:pl-80">
-        <main className="min-h-screen pb-20 lg:pb-0">
+        <main className="min-h-screen pb-24 lg:pb-0">
           {/* Spacer for mobile header */}
           <div className="lg:hidden h-14" />
           
@@ -178,22 +182,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 z-30 pb-6">
-        <div className="flex items-center justify-around h-14">
-          {mobileNavItems.map(item => {
+      {/* Mobile Bottom Navigation - Better Touch Targets */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 z-30 safe-area-pb">
+        <div className="flex items-center justify-around h-16 px-2">
+          {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+            const isFAB = (item as any).isFAB;
+            
+            if (isFAB) {
+              return (
+                <Link
+                  key={item.id}
+                  href="/products"
+                  className="flex flex-col items-center justify-center -mt-6"
+                >
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-transform border-4 border-white">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                </Link>
+              );
+            }
+            
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 py-1 ${
+                className={`flex flex-col items-center justify-center flex-1 py-2 min-h-[48px] ${
                   isActive ? 'text-orange-500' : 'text-gray-400'
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
+                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
               </Link>
             );
           })}

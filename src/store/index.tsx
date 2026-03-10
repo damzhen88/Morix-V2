@@ -1,5 +1,6 @@
 // State Management for MORIX CRM v2
 // Using React Context + useReducer for global state
+// NOW WITH SUPABASE SYNC
 
 'use client';
 
@@ -8,6 +9,7 @@ import {
   Product, Inventory, StockMovement, PurchaseOrder, SalesOrder,
   CRNDeal, Expense, Warehouse, User, DashboardKPIs, MonthlyTrend
 } from '@/types';
+import { api, Product as SupabaseProduct, Customer, Warehouse as SupabaseWarehouse, SalesOrder as SupabaseSalesOrder, CrmDeal, Expense as SupabaseExpense } from '@/lib/supabase';
 
 interface AppState {
   products: Product[];
@@ -21,6 +23,7 @@ interface AppState {
   users: User[];
   currentUser: User | null;
   isLoading: boolean;
+  error: string | null;
   kpis: DashboardKPIs;
   trends: MonthlyTrend[];
 }
@@ -41,42 +44,24 @@ type AppAction =
   | { type: 'UPDATE_CRM_DEAL'; payload: CRNDeal }
   | { type: 'ADD_EXPENSE'; payload: Expense }
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_USER'; payload: User | null };
 
 const initialState: AppState = {
-  products: [
-    { id: '1', sku: 'ASA-001', name_th: 'แผ่นพื้น ASA', name_en: 'ASA Flooring', category: 'ASA', unit: 'sqm', cost_thb: 150, price_thb: 250, stock: 1000, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
-    { id: '2', sku: 'WPC-001', name_th: 'แผ่นพื้น WPC', name_en: 'WPC Flooring', category: 'WPC', unit: 'sqm', cost_thb: 200, price_thb: 350, stock: 800, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
-    { id: '3', sku: 'SPC-001', name_th: 'แผ่นพื้น SPC', name_en: 'SPC Flooring', category: 'SPC', unit: 'sqm', cost_thb: 180, price_thb: 280, stock: 1200, reorder_point: 100, status: 'active', supplier_id: '1', images: [], created_at: new Date().toISOString() },
-  ],
-  inventory: [
-    { id: '1', product_id: '1', warehouse_id: '1', quantity_on_hand: 500, weighted_average_cost_thb: 150, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
-    { id: '2', product_id: '2', warehouse_id: '1', quantity_on_hand: 300, weighted_average_cost_thb: 200, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
-    { id: '3', product_id: '3', warehouse_id: '1', quantity_on_hand: 800, weighted_average_cost_thb: 180, min_level: 100, max_level: 2000, created_at: new Date().toISOString() },
-  ],
+  products: [],
+  inventory: [],
   stockMovements: [],
   purchaseOrders: [],
-  salesOrders: [
-    { id: '1', order_number: 'SO-001', customer_id: '1', customer_name: 'บริษัท ลูกค้า จำกัด', status: 'delivered', items: [{ id: '1', product_id: '1', quantity: 100, unit_price_thb: 250, total_thb: 25000, cost_thb: 150, profit_thb: 100 }], subtotal: 25000, discount: 0, transport_cost: 0, labor_cost: 0, total: 25000, product_cost_thb: 15000, gross_profit: 10000, net_profit: 10000, payment_status: 'paid', notes: '', images: [], created_by: 'admin', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-    { id: '2', order_number: 'SO-002', customer_id: '2', customer_name: 'หจก. อีกาฟู้ดส์', status: 'confirmed', items: [{ id: '2', product_id: '2', quantity: 50, unit_price_thb: 350, total_thb: 17500, cost_thb: 200, profit_thb: 150 }], subtotal: 17500, discount: 0, transport_cost: 500, labor_cost: 0, total: 18000, product_cost_thb: 10000, gross_profit: 7500, net_profit: 7000, payment_status: 'paid', notes: '', images: [], created_by: 'admin', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-  ],
-  crmDeals: [
-    { id: '1', lead_id: 'LEAD-001', customer_name: 'บริษัท ลูกค้า จำกัด', customer_type: 'contractor', contact_phone: '089-111-1111', deal_value: 50000, stage: 'inquiry', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
-    { id: '2', lead_id: 'LEAD-002', customer_name: 'หจก. อีกาฟู้ดส์', customer_type: 'dealer', contact_phone: '089-222-2222', deal_value: 75000, stage: 'quoted', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
-    { id: '3', lead_id: 'LEAD-003', customer_name: 'บริษัท ไทยพรีเมียม', customer_type: 'project', contact_phone: '089-333-3333', deal_value: 120000, stage: 'paid', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
-    { id: '4', lead_id: 'LEAD-004', customer_name: 'หจก. วินเนอร์', customer_type: 'homeowner', contact_phone: '089-444-4444', deal_value: 35000, stage: 'shipped', notes: '', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), last_interaction_at: new Date().toISOString() },
-  ],
+  salesOrders: [],
+  crmDeals: [],
   expenses: [],
-  warehouses: [{ id: '1', name: 'คลังหลัก', location: 'กรุงเทพฯ', created_at: new Date().toISOString() }],
+  warehouses: [],
   users: [],
   currentUser: null,
   isLoading: true,
+  error: null,
   kpis: { totalRevenue: 0, totalCOGS: 0, grossProfit: 0, netProfit: 0, profitMargin: 0, inventoryValue: 0, lowStockCount: 0, pendingOrders: 0, activeDeals: 0 },
-  trends: [
-    { month: 'ส.ค.', revenue: 150000, profit: 50000 },
-    { month: 'ก.ย.', revenue: 180000, profit: 60000 },
-    { month: 'ต.ค.', revenue: 200000, profit: 75000 },
-  ],
+  trends: [],
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -111,6 +96,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, expenses: [...state.expenses, action.payload] };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
     case 'SET_USER':
       return { ...state, currentUser: action.payload };
     default:
@@ -118,13 +105,160 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
+// Transform Supabase Product to local Product
+function transformProduct(p: SupabaseProduct): Product {
+  const images = Array.isArray(p.images) ? p.images as any[] : [];
+  return {
+    id: p.id,
+    sku: p.sku,
+    name_th: p.name_th,
+    name_en: p.name_en || undefined,
+    category: p.category as Product['category'],
+    unit: p.unit as Product['unit'],
+    spec: p.spec as Product['spec'],
+    default_supplier: p.default_supplier || undefined,
+    reorder_point: p.reorder_point,
+    min_stock: p.min_stock,
+    images: images,
+    status: p.status as Product['status'],
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+  };
+}
+
+// Transform Supabase Customer to local format (for CRM)
+function transformCustomerToDeal(c: any): CRNDeal {
+  return {
+    id: c.id,
+    lead_id: c.code || `LEAD-${c.id.slice(0, 6)}`,
+    customer_name: c.name,
+    customer_type: (c.customer_type || 'homeowner') as CRNDeal['customer_type'],
+    contact_phone: c.phone || undefined,
+    contact_email: c.email || undefined,
+    deal_value: 0,
+    stage: 'inquiry' as CRNDeal['stage'],
+    notes: '',
+    created_at: c.created_at,
+    updated_at: c.created_at,
+    last_interaction_at: c.created_at,
+  };
+}
+
+// Transform Supabase Warehouse to local Warehouse
+function transformWarehouse(w: SupabaseWarehouse): Warehouse {
+  return {
+    id: w.id,
+    name: w.name,
+    location: w.location || undefined,
+    is_default: w.is_default,
+    created_at: w.created_at,
+  };
+}
+
+// Transform Supabase SalesOrder to local SalesOrder
+function transformSalesOrder(s: SupabaseSalesOrder): SalesOrder {
+  return {
+    id: s.id,
+    order_number: s.order_number,
+    customer_id: s.customer_id || '',
+    customer_name: '',
+    customer_type: 'homeowner' as SalesOrder['customer_type'],
+    status: s.status as SalesOrder['status'],
+    items: [],
+    subtotal: s.total_thb || 0,
+    discount: 0,
+    transport_cost: s.shipping_thb || 0,
+    labor_cost: 0,
+    total: s.total_thb || 0,
+    product_cost_thb: s.cost_thb || 0,
+    gross_profit: s.profit_thb || 0,
+    net_profit: s.profit_thb || 0,
+    payment_status: (s.status === 'delivered' ? 'paid' : 'unpaid') as SalesOrder['payment_status'],
+    notes: undefined,
+    images: [],
+    created_by: 'system',
+    created_at: s.created_at,
+    updated_at: s.created_at,
+  };
+}
+
+// Transform Supabase CRM Deal to local CRNDeal
+function transformCrmDeal(d: CrmDeal): CRNDeal {
+  return {
+    id: d.id,
+    lead_id: `DEAL-${d.id.slice(0, 6)}`,
+    customer_name: '',
+    customer_type: 'homeowner' as CRNDeal['customer_type'],
+    stage: d.stage as CRNDeal['stage'],
+    expected_value_thb: d.expected_value_thb || 0,
+    deal_value: d.expected_value_thb || 0,
+    notes: '',
+    created_at: d.created_at,
+    updated_at: d.created_at,
+    last_interaction_at: d.created_at,
+  };
+}
+
+// Transform Supabase Expense to local Expense
+function transformExpense(e: SupabaseExpense): Expense {
+  return {
+    id: e.id,
+    date: e.date,
+    category: e.category as Expense['category'],
+    description: e.description,
+    amount_thb: e.amount_thb,
+    vendor: undefined,
+    is_recurring: false,
+    status: 'approved' as Expense['status'],
+    notes: e.notes || undefined,
+    created_by: 'system',
+    created_at: e.created_at,
+  };
+}
+
 const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<AppAction> } | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Load data from Supabase on mount
   useEffect(() => {
-    dispatch({ type: 'SET_LOADING', payload: false });
+    async function loadData() {
+      try {
+        console.log('🔄 Loading data from Supabase...');
+        
+        const [products, customers, warehouses, salesOrders, crmDeals, expenses] = await Promise.all([
+          api.getProducts().catch(e => { console.error('Products error:', e); return []; }),
+          api.getCustomers().catch(e => { console.error('Customers error:', e); return []; }),
+          api.getWarehouses().catch(e => { console.error('Warehouses error:', e); return []; }),
+          api.getSalesOrders().catch(e => { console.error('SalesOrders error:', e); return []; }),
+          api.getCrmDeals().catch(e => { console.error('CrmDeals error:', e); return []; }),
+          api.getExpenses().catch(e => { console.error('Expenses error:', e); return []; }),
+        ]);
+
+        console.log(`✅ Loaded: ${products.length} products, ${customers.length} customers, ${warehouses.length} warehouses`);
+
+        dispatch({
+          type: 'SET_STATE',
+          payload: {
+            products: products.map(transformProduct),
+            warehouses: warehouses.map(transformWarehouse),
+            salesOrders: salesOrders.map(transformSalesOrder),
+            crmDeals: [...crmDeals.map(transformCrmDeal), ...customers.map(transformCustomerToDeal)],
+            expenses: expenses.map(transformExpense),
+            inventory: [], // No inventory table yet
+            isLoading: false,
+            error: null,
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error loading data:', error);
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to load data from database' });
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    }
+
+    loadData();
   }, []);
 
   return (

@@ -55,8 +55,9 @@ export interface Product {
 export interface Warehouse {
   id: string;
   name: string;
-  location: string;
+  location?: string;
   is_default: boolean;
+  created_at?: string;
 }
 
 export interface StockMovement {
