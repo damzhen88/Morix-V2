@@ -117,6 +117,9 @@ export default function LoginPage() {
         const { error } = await signIn(email, password);
         
         if (error) {
+          // Check for specific error codes
+          const errorMessage = error.message || '';
+          
           // Increment attempt count for rate limiting
           const newCount = attemptCount + 1;
           setAttemptCount(newCount);
@@ -125,6 +128,9 @@ export default function LoginPage() {
           if (newCount >= 5) {
             setLockoutUntil(Date.now() + 30000);
             setError('มีการพยายามเข้าหลายครั้ง กรุณารอ 30 วินาที');
+          } else if (errorMessage.toLowerCase().includes('email') && errorMessage.toLowerCase().includes('confirm')) {
+            // Email not confirmed
+            setError('⚠️ กรุณายืนยันอีเมลก่อนเข้าใช้ (เช็ค Inbox/Spam)');
           } else {
             // Generic error message - don't reveal if email or password is wrong
             setError(`อีเมลหรือรหัสผ่านไม่ถูกต้อง (ครั้งที่ ${newCount}/5)`);
