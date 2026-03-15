@@ -5,6 +5,58 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Auth helpers
+export const authApi = {
+  // Sign up with email/password
+  async signUp(email: string, password: string) {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    return { data, error };
+  },
+
+  // Sign in with email/password
+  async signIn(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    return { data, error };
+  },
+
+  // Sign out
+  async signOut() {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  },
+
+  // Get current user
+  async getUser() {
+    const { data, error } = await supabase.auth.getUser();
+    return { user: data?.user, error };
+  },
+
+  // Get session
+  async getSession() {
+    const { data, error } = await supabase.auth.getSession();
+    return { session: data?.session, error };
+  },
+
+  // Listen to auth changes
+  onAuthStateChange(callback: (event: string, session: any) => void) {
+    return supabase.auth.onAuthStateChange(callback);
+  },
+
+  // Reset password
+  async resetPassword(email: string) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { data, error };
+  },
+
+  // Update password
+  async updatePassword(password: string) {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    return { data, error };
+  },
+};
+
 // Storage helpers
 export const uploadImage = async (file: File, bucket: string = 'products', folder: string = 'images'): Promise<string | null> => {
   try {

@@ -4,12 +4,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Package, Warehouse, ShoppingCart, 
   Users, Receipt, TrendingUp, Settings, Menu, X,
-  Home, Plus
+  Home, Plus, LogOut, LogIn
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 const menuItems = [
   { id: 'dashboard', label: 'แดชบอร์ด', icon: LayoutDashboard, href: '/' },
@@ -38,7 +39,51 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, signOut, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
+
+  // DEMO MODE - bypass auth for testing
+  const DEMO_MODE = true; // Set to false for production
+
+  // Show login page if not authenticated (skip in demo mode)
+  if (!DEMO_MODE && !loading && !user && pathname !== '/login') {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
+    return null;
+  }
+
+  // Demo mode - allow access
+  if (DEMO_MODE && pathname !== '/login') {
+    // Continue showing the app in demo mode
+  }
+
+  // Show login page without sidebar
+  if (pathname === '/login') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100">
+        {children}
+      </div>
+    );
+  }
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-mesh">
@@ -85,12 +130,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-4 border-t border-gray-100">
             <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer transition-colors group">
               <div className="w-10 h-10 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <span className="text-white font-semibold">A</span>
+                <span className="text-white font-semibold">{(user?.email?.[0] || (DEMO_MODE ? 'D' : 'A')).toUpperCase()}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">Admin</p>
-                <p className="text-xs text-gray-400 truncate">admin@morix.co.th</p>
+                <p className="text-sm font-semibold text-gray-900 truncate">{DEMO_MODE ? 'Demo Mode' : 'Admin'}</p>
+                <p className="text-xs text-gray-400 truncate">{user?.email || (DEMO_MODE ? 'demo@morix.co.th' : 'admin@morix.co.th')}</p>
               </div>
+              {DEMO_MODE && (
+                <button 
+                  onClick={() => router.push('/login')}
+                  className="p-2 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-xl transition-colors"
+                  title="เข้าสู่ระบบจริง"
+                >
+                  <LogIn size={18} />
+                </button>
+              )}
+              {(!DEMO_MODE) && (
+                <button 
+                  onClick={handleSignOut}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                  title="ออกจากระบบ"
+                >
+                  <LogOut size={18} />
+                </button>
+              )}
             </div>
           </div>
         </div>

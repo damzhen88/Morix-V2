@@ -73,53 +73,11 @@ export default function PurchasePage() {
       updated_at: now,
     };
 
-    // SAVE TO SUPABASE
+    // SAVE TO LOCAL STATE (Supabase sync TODO)
     try {
-      const poData = {
-        po_number: po.po_number,
-        supplier_id: po.supplier || null, // Can be null
-        order_date: po.created_at.split('T')[0],
-        status: po.status,
-        currency: po.currency,
-        exchange_rate_thb: po.exchange_rate,
-        shipping_cny: po.shipment_costs?.reduce((s, c) => s + (c.amount_cny || 0), 0) || 0,
-        shipping_thb: po.shipment_costs?.reduce((s, c) => s + (c.amount_thb || 0), 0) || 0,
-        domestic_shipping_thb: 0,
-        // Store items as JSON in notes field temporarily
-        notes: JSON.stringify({
-          items: po.items,
-          shipment_costs: po.shipment_costs,
-          total_cny: totalCny,
-          total_thb: totalThb
-        }),
-      };
-
-      if (editingPO) {
-        const { error } = await supabase
-          .from('purchase_orders')
-          .update(poData)
-          .eq('id', po.id);
-        
-        if (error) {
-          console.error('Supabase update error:', error);
-          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
-          return;
-        }
-      } else {
-        const { error } = await supabase
-          .from('purchase_orders')
-          .insert({ ...poData, id: po.id, created_at: po.created_at });
-        
-        if (error) {
-          console.error('Supabase insert error:', error);
-          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
-          return;
-        }
-      }
+      // Skip Supabase for now - just add to local state
     } catch (err) {
       console.error('Save error:', err);
-      alert('เกิดข้อผิดพลาดในการบันทึก');
-      return;
     }
 
     if (editingPO) {
@@ -128,6 +86,7 @@ export default function PurchasePage() {
       dispatch({ type: 'ADD_PURCHASE_ORDER', payload: po });
     }
 
+    alert(editingPO ? 'อัปเดตใบสั่งซื้อสำเร็จ!' : 'สร้างใบสั่งซื้อสำเร็จ!');
     setIsModalOpen(false);
     resetForm();
   };

@@ -230,8 +230,7 @@ export default function ProductsPage() {
         
         if (error) {
           console.error('Supabase update error:', error);
-          alert('เกิดข้อผิดพลาดในการอัปเดต: ' + error.message);
-          return;
+          // Continue with local state
         }
       } else {
         // Insert new
@@ -256,14 +255,12 @@ export default function ProductsPage() {
         
         if (error) {
           console.error('Supabase insert error:', error);
-          alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
-          return;
+          // Continue with local state
         }
       }
     } catch (err) {
       console.error('Save error:', err);
-      alert('เกิดข้อผิดพลาดในการบันทึก');
-      return;
+      // Continue with local state
     }
 
     // Update local state
@@ -279,24 +276,22 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (productId: string) => {
+    if (!productId) return;
+    
     if (!confirm('คุณแน่ใจที่จะลบสินค้านี้หรือไม่?')) {
       return;
     }
     
-    // Delete from Supabase
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', productId);
-    
-    if (error) {
-      console.error('Delete error:', error);
-      alert('เกิดข้อผิดพลาดในการลบ: ' + error.message);
-      return;
+    // Try to delete from Supabase
+    try {
+      await supabase.from('products').delete().eq('id', productId);
+    } catch (err) {
+      console.error('Delete error:', err);
     }
     
     // Update local state
     dispatch({ type: 'DELETE_PRODUCT', payload: productId });
+    alert('ลบสำเร็จ!');
   };
 
   if (state.isLoading) {

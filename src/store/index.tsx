@@ -9,7 +9,7 @@ import {
   Product, Inventory, StockMovement, PurchaseOrder, SalesOrder,
   CRNDeal, Expense, Warehouse, User, DashboardKPIs, MonthlyTrend
 } from '@/types';
-import { api, Product as SupabaseProduct, Customer, Warehouse as SupabaseWarehouse, SalesOrder as SupabaseSalesOrder, CrmDeal, Expense as SupabaseExpense } from '@/lib/supabase';
+import { api, Product as SupabaseProduct, Customer, Warehouse as SupabaseWarehouse, SalesOrder as SupabaseSalesOrder, CrmDeal, Expense as SupabaseExpense, PurchaseOrder as SupabasePurchaseOrder } from '@/lib/supabase';
 
 interface AppState {
   products: Product[];
@@ -227,16 +227,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         console.log('🔄 Loading data from Supabase...');
         
-        const [products, customers, warehouses, salesOrders, crmDeals, expenses] = await Promise.all([
+        const [products, customers, warehouses, salesOrders, crmDeals, expenses, purchaseOrders] = await Promise.all([
           api.getProducts().catch(e => { console.error('Products error:', e); return []; }),
           api.getCustomers().catch(e => { console.error('Customers error:', e); return []; }),
           api.getWarehouses().catch(e => { console.error('Warehouses error:', e); return []; }),
           api.getSalesOrders().catch(e => { console.error('SalesOrders error:', e); return []; }),
           api.getCrmDeals().catch(e => { console.error('CrmDeals error:', e); return []; }),
           api.getExpenses().catch(e => { console.error('Expenses error:', e); return []; }),
+          api.getPurchaseOrders().catch(e => { console.error('PurchaseOrders error:', e); return []; }),
         ]);
 
-        console.log(`✅ Loaded: ${products.length} products, ${customers.length} customers, ${warehouses.length} warehouses`);
+        console.log(`✅ Loaded: ${products.length} products, ${customers.length} customers, ${warehouses.length} warehouses, ${purchaseOrders.length} purchase orders`);
 
         dispatch({
           type: 'SET_STATE',
@@ -246,7 +247,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
             salesOrders: salesOrders.map(transformSalesOrder),
             crmDeals: [...crmDeals.map(transformCrmDeal), ...customers.map(transformCustomerToDeal)],
             expenses: expenses.map(transformExpense),
-            inventory: [], // No inventory table yet
+            purchaseOrders: purchaseOrders.map((po: any) => ({
+              id: po.id,
+              po_number: po.po_number,
+              supplier_id: po.supplier_id,
+              order_date: po.order_date,
+              expected_arrival_date: po.expected_arrival_date,
+              status: po.status,
+              currency: po.currency || 'CNY',
+              exchange_rate_thb: po.exchange_rate_thb || 5.12,
+              shipping_cny: po.shipping_cny || 0,
+              shipping_thb: po.shipping_thb || 0,
+              domestic_shipping_thb: po.domestic_shipping_thb || 0,
+              other_costs_thb: po.other_costs_thb || 0,
+              notes: po.notes,
+              items: [],
+              total_cny: po.shipping_cny || 0, // Add default value
+              total_thb: (po.shipping_cny || 0) * (po.exchange_rate_thb || 5.12), // Add default value
+              created_at: po.created_at,
+            })),
+            inventory: [],
             isLoading: false,
             error: null,
           }
@@ -286,9 +306,11 @@ export function useKPIs() {
   const grossProfit = totalRevenue - totalCOGS;
   const netProfit = confirmedOrders.reduce((sum, o) => sum + (o.net_profit || 0), 0);
   
-  const inventoryValue = state.inventory.reduce((sum, inv) => 
-    sum + ((inv.quantity_on_hand || 0) * (inv.weighted_average_cost_thb || 0)), 0
-  );
+  const inventoryValue = state.inventory.length > 0 
+    ? state.inventory.reduce((sum, inv) => 
+        sum + ((inv.quantity_on_hand || 0) * (inv.weighted_average_cost_thb || 0)), 0
+      )
+    : state.products.reduce((sum, p) => sum + ((p.reorder_point || 0) * 100), 0); // Estimate from products if no inventory data
   
   const lowStockCount = state.products.filter(p => p.status === 'active').filter(p => {
     const inv = state.inventory.find(i => i.product_id === p.id);
