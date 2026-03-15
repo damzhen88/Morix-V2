@@ -147,19 +147,21 @@ export default function InventoryPage() {
         </div>
       </Card>
 
-      {/* Inventory Table */}
+      {/* Inventory Table - Mobile Responsive */}
       <Card padding="none">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeadCell>SKU</TableHeadCell>
-              <TableHeadCell>สินค้า</TableHeadCell>
-              <TableHeadCell>หมวด</TableHeadCell>
-              <TableHeadCell>คงคลัง</TableHeadCell>
-              <TableHeadCell>จุดสั่งซื้อ</TableHeadCell>
-              <TableHeadCell>มูลค่า</TableHeadCell>
-              <TableHeadCell>สถานะ</TableHeadCell>
-              <TableHeadCell>จัดการ</TableHeadCell>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>SKU</TableHeadCell>
+                <TableHeadCell>สินค้า</TableHeadCell>
+                <TableHeadCell>หมวด</TableHeadCell>
+                <TableHeadCell>คงคลัง</TableHeadCell>
+                <TableHeadCell>จุดสั่งซื้อ</TableHeadCell>
+                <TableHeadCell>มูลค่า</TableHeadCell>
+                <TableHeadCell>สถานะ</TableHeadCell>
+                <TableHeadCell>จัดการ</TableHeadCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -209,6 +211,37 @@ export default function InventoryPage() {
             })}
           </TableBody>
         </Table>
+        </div>
+        
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {filteredInventory.map(inv => (
+            <div key={inv.id} className="p-4 bg-white">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <p className="font-medium text-gray-900">{inv.product?.name_th || 'ไม่ระบุ'}</p>
+                  <p className="text-xs text-gray-500 font-mono">{inv.product?.sku}</p>
+                </div>
+                <Badge className={inv.quantity_on_hand > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                  {inv.quantity_on_hand > 0 ? 'มีสินค้า' : 'Out of Stock'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                <div>
+                  <p className="text-gray-500">คงคลัง</p>
+                  <p className="font-medium">{inv.quantity_on_hand || 0}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">มูลค่า</p>
+                  <p className="font-medium text-orange-600">฿{((inv.quantity_on_hand || 0) * (inv.weighted_average_cost_thb || 0)).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredInventory.length === 0 && (
+            <div className="p-8 text-center text-gray-500">ไม่พบข้อมูลคงคลัง</div>
+          )}
+        </div>
       </Card>
 
       {/* Movement Modal */}

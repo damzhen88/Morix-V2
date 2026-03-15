@@ -267,20 +267,22 @@ export default function ExpensesPage() {
         </div>
       </Card>
 
-      {/* Expenses Table */}
+      {/* Expenses Table - Mobile Responsive */}
       <Card padding="none">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeadCell>รายการ</TableHeadCell>
-              <TableHeadCell>ประเภท</TableHeadCell>
-              <TableHeadCell>ผู้ขาย/ผู้จัด</TableHeadCell>
-              <TableHeadCell>จำนวน</TableHeadCell>
-              <TableHeadCell>สถานะ</TableHeadCell>
-              <TableHeadCell>วันที่</TableHeadCell>
-              <TableHeadCell>จัดการ</TableHeadCell>
-            </TableRow>
-          </TableHead>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>รายการ</TableHeadCell>
+                <TableHeadCell>ประเภท</TableHeadCell>
+                <TableHeadCell>ผู้ขาย/ผู้จัด</TableHeadCell>
+                <TableHeadCell>จำนวน</TableHeadCell>
+                <TableHeadCell>สถานะ</TableHeadCell>
+                <TableHeadCell>วันที่</TableHeadCell>
+                <TableHeadCell>จัดการ</TableHeadCell>
+              </TableRow>
+            </TableHead>
           <TableBody>
             {filteredExpenses.map(expense => (
               <TableRow key={expense.id}>
@@ -323,6 +325,37 @@ export default function ExpensesPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
+        
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {filteredExpenses.map(expense => (
+            <div key={expense.id} className="p-4 bg-white">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="font-medium text-gray-900">{expense.description}</p>
+                <Badge className={expense.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                  {expense.status === 'paid' ? 'จ่ายแล้ว' : 'รอจ่าย'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-500 mb-2">
+                <span>{expense.category}</span>
+                <span>•</span>
+                <span>{expense.date?.split('T')[0]}</span>
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <p className="font-bold text-orange-600">฿{expense.amount_thb?.toLocaleString()}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => handleView(expense)} className="px-3 py-1.5 text-blue-600 bg-blue-50 rounded-lg text-sm">ดู</button>
+                  <button onClick={() => handleEdit(expense)} className="px-3 py-1.5 text-orange-600 bg-orange-50 rounded-lg text-sm">แก้ไข</button>
+                  <button onClick={() => handleDelete(expense.id)} className="px-3 py-1.5 text-red-600 bg-red-50 rounded-lg text-sm">ลบ</button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {filteredExpenses.length === 0 && (
+            <div className="p-8 text-center text-gray-500">ไม่พบรายการค่าใช้จ่าย</div>
+          )}
+        </div>
       </Card>
 
       {/* Modal */}

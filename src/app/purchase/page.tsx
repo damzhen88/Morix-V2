@@ -171,21 +171,23 @@ export default function PurchasePage() {
         </Card>
       </div>
 
-      {/* Purchase Orders Table */}
+      {/* Purchase Orders Table - Mobile Responsive */}
       <Card padding="none">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeadCell>เลขที่ PO</TableHeadCell>
-              <TableHeadCell>ผู้จัดจำหน่าย</TableHeadCell>
-              <TableHeadCell>อัตราแลก</TableHeadCell>
-              <TableHeadCell>มูลค่า (CNY)</TableHeadCell>
-              <TableHeadCell>มูลค่า (THB)</TableHeadCell>
-              <TableHeadCell>สถานะ</TableHeadCell>
-              <TableHeadCell>วันที่</TableHeadCell>
-              <TableHeadCell>จัดการ</TableHeadCell>
-            </TableRow>
-          </TableHead>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>เลขที่ PO</TableHeadCell>
+                <TableHeadCell>ผู้จัดจำหน่าย</TableHeadCell>
+                <TableHeadCell>อัตราแลก</TableHeadCell>
+                <TableHeadCell>มูลค่า (CNY)</TableHeadCell>
+                <TableHeadCell>มูลค่า (THB)</TableHeadCell>
+                <TableHeadCell>สถานะ</TableHeadCell>
+                <TableHeadCell>วันที่</TableHeadCell>
+                <TableHeadCell>จัดการ</TableHeadCell>
+              </TableRow>
+            </TableHead>
           <TableBody>
             {state.purchaseOrders.map(po => (
               <TableRow key={po.id}>
@@ -214,6 +216,31 @@ export default function PurchasePage() {
             ))}
           </TableBody>
         </Table>
+        </div>
+        
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {state.purchaseOrders.map(po => (
+            <div key={po.id} className="p-4 bg-white">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="font-medium text-gray-900">{po.po_number}</p>
+                <Badge className={po.status === 'received' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                  {po.status === 'received' ? 'รับแล้ว' : 'รอรับ'}
+                </Badge>
+              </div>
+              <div className="text-sm text-gray-500 mb-2">
+                <span>อัตรา: {po.exchange_rate_thb} ฿</span>
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <p className="font-bold text-orange-600">฿{((po.total_cny || 0) * (po.exchange_rate_thb || 0)).toLocaleString()}</p>
+                <button onClick={() => handleEdit(po)} className="px-3 py-1.5 text-orange-600 bg-orange-50 rounded-lg text-sm">แก้ไข</button>
+              </div>
+            </div>
+          ))}
+          {state.purchaseOrders.length === 0 && (
+            <div className="p-8 text-center text-gray-500">ไม่พบใบสั่งซื้อ</div>
+          )}
+        </div>
       </Card>
 
       {/* Create/Edit Modal */}
