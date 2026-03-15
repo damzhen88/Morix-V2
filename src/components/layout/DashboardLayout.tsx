@@ -48,8 +48,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push('/login');
   };
 
-  // DEMO MODE - bypass auth for testing
-  const DEMO_MODE = true; // Set to false for production
+  // PRODUCTION MODE - auth required
+  const DEMO_MODE = false; // Set to false for production - requires login
 
   // Show login page if not authenticated (skip in demo mode)
   if (!DEMO_MODE && !loading && !user && pathname !== '/login') {
