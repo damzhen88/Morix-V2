@@ -353,20 +353,22 @@ export default function ProductsPage() {
         </div>
       </Card>
 
-      {/* Products Table */}
+      {/* Products Table - Mobile Responsive */}
       <Card padding="none">
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeadCell>รูปภาพ</TableHeadCell>
-              <TableHeadCell>SKU</TableHeadCell>
-              <TableHeadCell>ชื่อสินค้า</TableHeadCell>
-              <TableHeadCell>หมวดหมู่</TableHeadCell>
-              <TableHeadCell>คงคลัง</TableHeadCell>
-              <TableHeadCell>สถานะ</TableHeadCell>
-              <TableHeadCell>จัดการ</TableHeadCell>
-            </TableRow>
-          </TableHead>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>รูปภาพ</TableHeadCell>
+                <TableHeadCell>SKU</TableHeadCell>
+                <TableHeadCell>ชื่อสินค้า</TableHeadCell>
+                <TableHeadCell>หมวดหมู่</TableHeadCell>
+                <TableHeadCell>คงคลัง</TableHeadCell>
+                <TableHeadCell>สถานะ</TableHeadCell>
+                <TableHeadCell>จัดการ</TableHeadCell>
+              </TableRow>
+            </TableHead>
           <TableBody>
             {filteredProducts.map(product => {
               const inv = state.inventory.find(i => i.product_id === product.id);
@@ -429,14 +431,73 @@ export default function ProductsPage() {
             })}
           </TableBody>
         </Table>
+        </div>
         
-        {filteredProducts.length === 0 && (
-          <EmptyState 
-            icon={<Package className="w-12 h-12" />}
-            title="ไม่พบสินค้า"
-            description="ลองค้นหาด้วยคำอื่น"
-          />
-        )}
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {filteredProducts.map((product) => {
+            const stock = product.spec?.stock || 0;
+            const isLowStock = stock <= (product.reorder_point || 0);
+            
+            return (
+              <div key={product.id} className="p-4 bg-white">
+                <div className="flex items-start gap-3">
+                  {/* Product Image */}
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    {product.images?.[0]?.url ? (
+                      <img src={product.images[0].url} alt={product.name_th} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="w-6 h-6 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{product.name_th}</p>
+                        <p className="text-xs text-gray-500 font-mono">{product.sku}</p>
+                      </div>
+                      <Badge className={getStatusColor(product.status)}>
+                        {product.status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 mt-2">
+                      <Badge className={getCategoryColor(product.category)}>{product.category}</Badge>
+                      <span className={`text-sm ${isLowStock ? 'text-red-600' : 'text-gray-600'}`}>
+                        {isLowStock && '⚠️ '}
+                        คงคลัง: {stock}
+                      </span>
+                    </div>
+                    
+                    {/* Mobile Actions */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <button onClick={() => handleView(product)} className="flex-1 py-2 text-blue-600 bg-blue-50 rounded-lg text-sm font-medium" title="ดู">
+                        ดู
+                      </button>
+                      <button onClick={() => handleEdit(product)} className="flex-1 py-2 text-orange-600 bg-orange-50 rounded-lg text-sm font-medium" title="แก้ไข">
+                        แก้ไข
+                      </button>
+                      <button onClick={() => handleDelete(product.id)} className="flex-1 py-2 text-red-600 bg-red-50 rounded-lg text-sm font-medium" title="ลบ">
+                        ลบ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {filteredProducts.length === 0 && (
+            <div className="p-8 text-center">
+              <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">ไม่พบสินค้า</p>
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Modal */}

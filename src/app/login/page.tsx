@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,7 +12,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { signIn, signUp } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,12 +22,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
-      
-      if (error) {
-        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      if (isSignUp) {
+        const { error } = await signUp(email, password);
+        if (error) {
+          setError(error.message || 'สมัครไม่สำเร็จ');
+        } else {
+          alert('สมัครสำเร็จ! กรุณาเช็คอีเมลเพื่อยืนด้วย');
+          setIsSignUp(false);
+        }
       } else {
-        router.push('/');
+        const { error } = await signIn(email, password);
+        if (error) {
+          setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+        } else {
+          router.push('/');
+        }
       }
     } catch (err) {
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่');
@@ -47,7 +57,7 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            เข้าสู่ระบบ
+            {isSignUp ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
           </h2>
 
           {error && (
@@ -85,6 +95,7 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition pr-12"
                   placeholder="••••••••"
                   required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -103,21 +114,38 @@ export default function LoginPage() {
               className="w-full bg-orange-500 text-white py-3 px-4 rounded-xl font-medium hover:bg-orange-600 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
-                'กำลังเข้าสู่ระบบ...'
+                'กำลังดำเนินการ...'
               ) : (
                 <>
-                  <LogIn size={20} />
-                  เข้าสู่ระบบ
+                  {isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />}
+                  {isSignUp ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-amber-50 rounded-lg">
-            <p className="text-sm text-amber-800 font-medium mb-2">📋 ข้อมูลสำหรับทดสอบ:</p>
-            <p className="text-sm text-amber-700">อีเมล: admin@morix.co.th</p>
-            <p className="text-sm text-amber-700">รหัส: admin123</p>
+          {/* Toggle Sign In / Sign Up */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              className="text-orange-600 hover:text-orange-700 font-medium"
+            >
+              {isSignUp 
+                ? 'มี account อยู่แล้ว? เข้าสู่ระบบ' 
+                : 'ยังไม่มี account? สมัครสมาชิก'}
+            </button>
+          </div>
+
+          {/* Help text */}
+          <div className="mt-4 p-4 bg-amber-50 rounded-lg">
+            <p className="text-sm text-amber-800">
+              {isSignUp 
+                ? 'สมัคร account ใหม่เพื่อใช้งานระบบ' 
+                : 'ต้องมี account ก่อน - คลิก "สมัครสมาชิก" ด้านบน'}
+            </p>
           </div>
         </div>
 
