@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Package, Plus, Search, Grid, List, MoreVertical, Edit, Copy, Archive, Trash2, Eye } from 'lucide-react';
+import ProductFormModal from '@/components/ui/ProductFormModal';
 import { formatTHB } from '@/lib/format';
 
 const products = [
@@ -49,6 +50,7 @@ export default function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [viewMode, setViewMode]     = useState<'grid' | 'list'>('grid');
   const [openMenu, setOpenMenu]     = useState<number | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Category counts
   const catCounts: Record<string, number> = { All: products.length };
@@ -83,7 +85,7 @@ export default function ProductsPage() {
             {filtered.length} of {products.length} items
           </p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4" />
           Add Product
         </button>

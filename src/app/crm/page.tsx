@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ClientFormModal from '@/components/ui/ClientFormModal';
 import { Users, Plus, Search, Mail, Phone, MapPin, Building2, MoreVertical, ChevronRight, Star, Edit } from 'lucide-react';
 
 const clients = [
@@ -78,6 +79,7 @@ const clients = [
 
 export default function CrmPage() {
   const [search, setSearch]   = useState('');
+  const [showAdd, setShowAdd] = useState(false);
   const [tier, setTier]       = useState('all');
 
   const filtered = clients.filter(c => {
@@ -112,7 +114,7 @@ export default function CrmPage() {
           <h1 className="page-header-title">Clients</h1>
           <p className="page-header-subtitle">{clients.length} active business partners</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setShowAdd(true)}>
           <Plus className="w-4 h-4" />
           Add Client
         </button>
@@ -245,9 +247,10 @@ export default function CrmPage() {
           </div>
           <h3 className="empty-state-title">No clients found</h3>
           <p className="empty-state-desc">Try adjusting your search or add a new client.</p>
-          <button className="btn-primary"><Plus className="w-4 h-4" />Add Client</button>
+          <button className="btn-primary" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4" />Add Client</button>
         </div>
       )}
+      <ClientFormModal isOpen={showAdd} onClose={() => setShowAdd(false)} />
     </div>
   );
 }
