@@ -1,37 +1,30 @@
-// Dashboard Layout for MORIX CRM v2 - ANTI-SLOP EDITION (MOBILE OPTIMIZED)
-
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, Package, Warehouse, ShoppingCart, 
+import {
+  LayoutDashboard, Package, Warehouse, ShoppingCart,
   Users, Receipt, TrendingUp, Settings, Menu, X,
-  Home, Plus, LogOut, LogIn
+  Home, Plus, LogOut, Search, Bell, ChevronLeft, ChevronRight, FileText,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import SearchModal from '@/components/ui/SearchModal';
+import CreateMenu from '@/components/ui/CreateMenu';
 
 const menuItems = [
-  { id: 'dashboard', label: 'แดชบอร์ด', icon: LayoutDashboard, href: '/' },
-  { id: 'products', label: 'สินค้า', icon: Package, href: '/products' },
-  { id: 'inventory', label: 'คลังสินค้า', icon: Warehouse, href: '/inventory' },
-  { id: 'purchase', label: 'นำเข้า', icon: ShoppingCart, href: '/purchase' },
-  { id: 'sales', label: 'ขายสินค้า', icon: Users, href: '/sales' },
-  { id: 'crm', label: 'ลูกค้า (CRM)', icon: TrendingUp, href: '/crm' },
-  { id: 'expenses', label: 'ค่าใช้จ่าย', icon: Receipt, href: '/expenses' },
-  { id: 'reports', label: 'รายงาน', icon: TrendingUp, href: '/reports' },
-  { id: 'settings', label: 'ตั้งค่า', icon: Settings, href: '/settings' },
+  { id: 'dashboard',  label: 'Overview',        icon: LayoutDashboard, href: '/' },
+  { id: 'products',   label: 'Products',          icon: Package,        href: '/products' },
+  { id: 'inventory',  label: 'Inventory',         icon: Warehouse,     href: '/inventory' },
+  { id: 'purchase',   label: 'Purchase Orders', icon: ShoppingCart,   href: '/purchase' },
+  { id: 'sales',     label: 'Sales',             icon: TrendingUp,    href: '/sales' },
+  { id: 'crm',       label: 'Clients',            icon: Users,         href: '/crm' },
+  { id: 'expenses',  label: 'Expenses',          icon: Receipt,      href: '/expenses' },
+  { id: 'reports',   label: 'Reports',            icon: FileText,      href: '/reports' },
+  { id: 'settings',  label: 'Settings',          icon: Settings,      href: '/settings' },
 ];
 
-// Mobile bottom nav - minimal essential items
-const mobileNavItems = [
-  { id: 'home', label: 'หน้าหลัก', icon: Home, href: '/' },
-  { id: 'products', label: 'สินค้า', icon: Package, href: '/products' },
-  { id: 'add', label: '', icon: Plus, href: '/products', isFAB: true },
-  { id: 'sales', label: 'ขาย', icon: Users, href: '/sales' },
-  { id: 'crm', label: 'CRM', icon: TrendingUp, href: '/crm' },
-];
+const SIDEBAR_KEY = 'morix-sidebar-collapsed';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -39,249 +32,435 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router  = useRouter();
+
+  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [collapsed,  setCollapsed]    = useState(false);
+  const [searchOpen, setSearchOpen]   = useState(false);
+  const [createOpen, setCreateOpen]   = useState(false);
+  const [notifCount, setNotifCount]  = useState(3);
+
   const { user, signOut, loading } = useAuth();
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem(SIDEBAR_KEY);
+      if (s !== null) setCollapsed(JSON.parse(s));
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleCollapse = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem(SIDEBAR_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/login');
   };
 
-  // PRODUCTION MODE - auth required
-  const DEMO_MODE = false; // Set to false for production - requires login
+  // Cmd+K for search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
-  // Show login page if not authenticated (skip in demo mode)
-  if (!DEMO_MODE && !loading && !user && pathname !== '/login') {
-    if (typeof window !== 'undefined') {
-      router.push('/login');
-    }
-    return null;
-  }
-
-  // Demo mode - allow access
-  if (DEMO_MODE && pathname !== '/login') {
-    // Continue showing the app in demo mode
-  }
-
-  // Show login page without sidebar
   if (pathname === '/login') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100">
-        {children}
-      </div>
-    );
+    return <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>{children}</div>;
   }
 
-  // Show loading while checking auth
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังโหลด...</p>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid var(--primary)', borderTopColor: 'transparent', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
+          <p style={{ color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)' }}>Loading…</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-mesh">
-      {/* Desktop Sidebar - Asymmetric, floating */}
-      <aside className="hidden lg:flex lg:fixed lg:inset-y-4 lg:left-4 lg:z-40 lg:w-72 lg:flex-col">
-        <div className="flex flex-col flex-1 h-full bg-white/90 backdrop-blur-2xl rounded-3xl border border-white/50 shadow-float overflow-hidden">
-          {/* Logo - distinctive design */}
-          <div className="relative px-6 pt-8 pb-6 border-b border-orange-100/50">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent" />
-            <div className="relative flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 -rotate-3">
-                <span className="text-white font-bold text-xl font-[var(--font-display)]">M</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 font-[var(--font-display)] tracking-tight">MORIX</h1>
-                <p className="text-xs text-orange-600/70 font-medium tracking-widest uppercase">DECORATIVE</p>
-              </div>
-            </div>
-          </div>
+  const cw = collapsed ? 'w-20' : 'w-72';
+  const pad = collapsed ? 'lg:pl-20' : 'lg:pl-72';
+  const hdr = collapsed ? 'lg:left-20' : 'lg:left-72';
 
-          {/* Navigation - with hover effects */}
-          <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-            {menuItems.map((item, idx) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className={`group relative flex items-center gap-3 px-4 py-3.5 text-sm font-medium rounded-2xl transition-all duration-200 animate-fade-in-up ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25' 
-                      : 'text-gray-600 hover:bg-orange-50/80 hover:text-orange-700'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-orange-500'}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* User - minimal design */}
-          <div className="p-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 cursor-pointer transition-colors group">
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <span className="text-white font-semibold">{(user?.email?.[0] || (DEMO_MODE ? 'D' : 'A')).toUpperCase()}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{DEMO_MODE ? 'Demo Mode' : 'Admin'}</p>
-                <p className="text-xs text-gray-400 truncate">{user?.email || (DEMO_MODE ? 'demo@morix.co.th' : 'admin@morix.co.th')}</p>
-              </div>
-              {DEMO_MODE && (
-                <button 
-                  onClick={() => router.push('/login')}
-                  className="p-2 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded-xl transition-colors"
-                  title="เข้าสู่ระบบจริง"
-                >
-                  <LogIn size={18} />
-                </button>
-              )}
-              {(!DEMO_MODE) && (
-                <button 
-                  onClick={handleSignOut}
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                  title="ออกจากระบบ"
-                >
-                  <LogOut size={18} />
-                </button>
-              )}
-            </div>
-          </div>
+  // ── DESKTOP SIDEBAR ──────────────────────────────
+  const sidebarDesktop = (
+    <aside
+      style={{
+        position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 40,
+        width: collapsed ? '5rem' : '18rem', transition: 'width 300ms ease',
+        backgroundColor: 'var(--surface-container-low)',
+        borderRight: '1px solid var(--outline-variant)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      }}
+    >
+      {/* Brand */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '1rem 0' : '1.25rem 1.5rem', gap: '0.75rem',
+        borderBottom: '1px solid var(--outline-variant)', minHeight: 72,
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 12,
+          background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
+        }}>
+          <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.125rem' }}>M</span>
         </div>
-      </aside>
+        {!collapsed && (
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--on-surface)', lineHeight: 1 }}>MORIX</p>
+            <p style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.2em', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>PRO v2</p>
+          </div>
+        )}
+      </div>
 
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="flex items-center justify-between h-14 px-4">
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0.75rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+        {menuItems.map(item => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                borderRadius: 12, fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 500,
+                transition: 'all 150ms',
+                color: isActive ? 'var(--primary)' : 'var(--on-surface-variant)',
+                backgroundColor: isActive ? 'var(--surface-container-lowest)' : 'transparent',
+                fontWeight: isActive ? 600 : 500,
+                boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                position: 'relative',
+                textDecoration: 'none',
+              }}
+            >
+              {isActive && (
+                <span style={{
+                  position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
+                  width: 4, height: '2rem', borderRadius: '0 4px 4px 0',
+                  backgroundColor: 'var(--primary)',
+                }} />
+              )}
+              <Icon style={{ width: 20, height: 20, flexShrink: 0 }} />
+              {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* FAB */}
+      {!collapsed && (
+        <div style={{ padding: '0.75rem 0.75rem 0.5rem' }}>
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2.5 -ml-2 rounded-xl hover:bg-gray-100 transition-colors active:scale-95"
+            onClick={() => setCreateOpen(true)}
+            style={{
+              width: '100%', padding: '0.875rem',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
+              color: 'white', borderRadius: 9999, border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem',
+              boxShadow: '0 4px 12px rgba(249,115,22,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            }}
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Plus style={{ width: 20, height: 20 }} />
+            Create New
           </button>
-          
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <span className="text-white font-bold text-sm">M</span>
-            </div>
-            <span className="font-bold text-gray-900 font-[var(--font-display)]">MORIX</span>
-          </div>
-
-          <Link
-            href="/products"
-            className="p-2.5 -mr-2 rounded-xl hover:bg-orange-50 transition-colors active:scale-95"
-          >
-            <Plus className="w-5 h-5 text-orange-500" />
-          </Link>
-        </div>
-      </header>
-
-      {/* Mobile Sidebar */}
-      {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div 
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm" 
-            onClick={() => setSidebarOpen(false)} 
-          />
-          <div className="absolute inset-y-0 left-0 w-[280px] bg-white shadow-2xl animate-fade-in-left">
-            <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">M</span>
-                </div>
-                <span className="font-bold text-gray-900">MORIX</span>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2.5 rounded-xl hover:bg-gray-100 active:scale-95 transition-transform"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            
-            <nav className="p-3 space-y-1 overflow-y-auto">
-              {menuItems.map(item => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 text-sm font-medium rounded-2xl transition-all active:scale-[0.98] ${
-                      isActive 
-                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' 
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="lg:pl-80">
-        <main className="min-h-screen pb-24 lg:pb-0">
-          {/* Spacer for mobile header */}
-          <div className="lg:hidden h-14" />
-          
-          <div className="p-4 lg:p-6 lg:pt-8">
-            {children}
-          </div>
-        </main>
+      {/* Bottom */}
+      <div style={{ borderTop: '1px solid var(--outline-variant)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+        <button
+          onClick={toggleCollapse}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer',
+            color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)', fontSize: '0.875rem',
+            width: '100%',
+          }}
+        >
+          {collapsed
+            ? <ChevronRight style={{ width: 20, height: 20 }} />
+            : <><ChevronLeft style={{ width: 20, height: 20 }} /><span>Collapse</span></>
+          }
+        </button>
+        <button
+          onClick={handleSignOut}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer',
+            color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)', fontSize: '0.875rem',
+            width: '100%',
+          }}
+        >
+          <LogOut style={{ width: 20, height: 20, flexShrink: 0 }} />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </div>
+    </aside>
+  );
 
-      {/* Mobile Bottom Navigation - Better Touch Targets */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 z-30 safe-area-pb">
-        <div className="flex items-center justify-around h-16 px-2">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
+  // ── DESKTOP HEADER ─────────────────────────────
+  const headerDesktop = (
+    <header
+      style={{
+        position: 'fixed', top: 0, zIndex: 30,
+        left: collapsed ? '5rem' : '18rem', right: 0, height: 64,
+        transition: 'left 300ms ease',
+        display: 'flex', alignItems: 'center',
+        padding: '0 1.5rem',
+        background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(24px)',
+        borderBottom: '1px solid var(--outline-variant)',
+        gap: '1rem',
+      }}
+    >
+      {/* Search — stretches to fill available space */}
+      <button
+        onClick={() => setSearchOpen(true)}
+        style={{
+          flex: 1,
+          display: 'flex', alignItems: 'center', gap: '0.625rem',
+          padding: '0.5rem 1rem',
+          backgroundColor: 'var(--surface-container-low)', borderRadius: 9999,
+          border: '1px solid var(--outline-variant)', cursor: 'pointer',
+          fontFamily: 'var(--font-body)', fontSize: '0.8125rem',
+          color: 'var(--on-surface-variant)', transition: 'all 150ms', maxWidth: 640,
+          margin: '0 auto',
+        }}
+      >
+        <Search style={{ width: 16, height: 16, flexShrink: 0 }} />
+        <span style={{ flex: 1, textAlign: 'left' }}>Search products, clients, orders…</span>
+        <kbd style={{
+          fontSize: '0.625rem', padding: '0.125rem 0.5rem', borderRadius: 6,
+          backgroundColor: 'var(--surface-container-high)',
+          fontFamily: 'monospace', flexShrink: 0,
+        }}>⌘K</kbd>
+      </button>
+
+      {/* Right actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <button
+          onClick={() => setNotifCount(0)}
+          style={{ position: 'relative', padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-surface-variant)' }}
+        >
+          <Bell style={{ width: 20, height: 20 }} />
+          {notifCount > 0 && (
+            <span style={{
+              position: 'absolute', top: 4, right: 4,
+              width: 16, height: 16, borderRadius: '50%',
+              backgroundColor: 'var(--error)', color: 'white',
+              fontSize: '0.5625rem', fontWeight: 900,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{notifCount > 9 ? '9+' : notifCount}</span>
+          )}
+        </button>
+        <div style={{ width: 1, height: 24, backgroundColor: 'var(--outline-variant)', margin: '0 0.25rem' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--primary-dark)' }}>{(user?.email?.[0] || 'A').toUpperCase()}</span>
+          </div>
+          {!collapsed && (
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--on-surface)' }}>
+              {user?.email?.split('@')[0] || 'Admin'}
+            </span>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+
+  // ── MOBILE SIDEBAR ──────────────────────────────
+  const sidebarMobile = mobileOpen ? (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+      <div
+        style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(4px)' }}
+        onClick={() => setMobileOpen(false)}
+      />
+      <div style={{
+        position: 'absolute', left: 0, top: 0, height: '100%', width: '18rem',
+        backgroundColor: 'var(--surface-container-low)',
+        padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem',
+        animation: 'slideInLeft 200ms ease-out',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 900 }}>M</span>
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.25rem', color: 'var(--on-surface)' }}>MORIX</p>
+              <p style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.2em', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>PRO</p>
+            </div>
+          </div>
+          <button onClick={() => setMobileOpen(false)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-surface-variant)' }}>
+            <X style={{ width: 20, height: 20 }} />
+          </button>
+        </div>
+
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+          {menuItems.map(item => {
             const isActive = pathname === item.href;
-            const isFAB = (item as any).isFAB;
-            
-            if (isFAB) {
-              return (
-                <Link
-                  key={item.id}
-                  href="/products"
-                  className="flex flex-col items-center justify-center -mt-6"
-                >
-                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 active:scale-95 transition-transform border-4 border-white">
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </Link>
-              );
-            }
-            
+            const Icon = item.icon;
             return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 py-2 min-h-[48px] ${
-                  isActive ? 'text-orange-500' : 'text-gray-400'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+              <Link key={item.id} href={item.href} onClick={() => setMobileOpen(false)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  padding: '0.75rem 1rem', borderRadius: 12,
+                  color: isActive ? 'var(--primary)' : 'var(--on-surface-variant)',
+                  backgroundColor: isActive ? 'var(--surface-container-lowest)' : 'transparent',
+                  fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: isActive ? 600 : 500,
+                  textDecoration: 'none',
+                  position: 'relative',
+                }}>
+                {isActive && <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 4, height: '2rem', borderRadius: '0 4px 4px 0', backgroundColor: 'var(--primary)' }} />}
+                <Icon style={{ width: 20, height: 20 }} />
+                {item.label}
               </Link>
             );
           })}
-        </div>
-      </nav>
+        </nav>
+
+        <button
+          onClick={handleSignOut}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '0.75rem 1rem', borderRadius: 12,
+            border: 'none', background: 'transparent', cursor: 'pointer',
+            color: 'var(--error)', fontFamily: 'var(--font-body)', fontSize: '0.875rem',
+            borderTop: '1px solid var(--outline-variant)', marginTop: '0.5rem', paddingTop: '1rem',
+          }}>
+          <LogOut style={{ width: 20, height: 20 }} />
+          Logout
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  // ── MOBILE HEADER ───────────────────────────────
+  const headerMobile = (
+    <header
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, height: 64, zIndex: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 1rem',
+        background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(24px)',
+        borderBottom: '1px solid var(--outline-variant)',
+      }}
+      className="lg:hidden"
+    >
+      <button onClick={() => setMobileOpen(true)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+        <Menu style={{ width: 20, height: 20 }} />
+      </button>
+      <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>MORIX</span>
+      <button onClick={() => setSearchOpen(true)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+        <Search style={{ width: 20, height: 20 }} />
+      </button>
+    </header>
+  );
+
+  // ── MOBILE BOTTOM NAV ────────────────────────────
+  const mobileNav = (
+    <nav
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, height: 80, zIndex: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '0 1rem',
+        backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)',
+        borderTop: '1px solid var(--outline-variant)',
+      }}
+      className="lg:hidden"
+    >
+      {[
+        { label: 'Home',     icon: Home,        href: '/' },
+        { label: 'Products', icon: Package,     href: '/products' },
+        { label: '',         icon: Plus,         href: '/products', fab: true },
+        { label: 'Sales',    icon: TrendingUp,  href: '/sales' },
+        { label: 'Suite',    icon: Settings,    href: '/settings' },
+      ].map((item, i) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.href;
+        if ((item as any).fab) {
+          return (
+            <button key={i} onClick={() => setCreateOpen(true)}
+              style={{ position: 'relative', top: -20, width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', boxShadow: '0 4px 16px rgba(249,115,22,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon style={{ width: 24, height: 24, color: 'white' }} />
+            </button>
+          );
+        }
+        return (
+          <Link key={i} href={item.href}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              color: isActive ? 'var(--primary)' : 'var(--on-surface-variant)',
+              textDecoration: 'none',
+            }}>
+            <Icon style={{ width: 20, height: 20 }} />
+            <span style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>
+      {/* Desktop sidebar — hidden on mobile */}
+      <div className="hidden lg:block">{sidebarDesktop}</div>
+
+      {/* Desktop header */}
+      <div className="hidden lg:block" style={{ paddingLeft: collapsed ? '5rem' : '18rem', transition: 'padding-left 300ms ease' }}>
+        {headerDesktop}
+      </div>
+
+      {/* Mobile header */}
+      {headerMobile}
+
+      {/* Mobile sidebar overlay */}
+      {sidebarMobile}
+
+      {/* Main content */}
+      <div style={{ paddingLeft: collapsed ? '5rem' : '18rem', paddingTop: 64, transition: 'padding-left 300ms ease' }} className="hidden lg:block">
+        <main style={{ minHeight: 'calc(100vh - 64px)', paddingBottom: '6rem' }}>
+          <div style={{ padding: '2.5rem' }}>{children}</div>
+        </main>
+      </div>
+      <div style={{ paddingTop: 64, paddingBottom: '6rem' }} className="lg:hidden">
+        <main style={{ minHeight: 'calc(100vh - 64px - 80px)' }}>
+          <div style={{ padding: '1.5rem' }}>{children}</div>
+        </main>
+      </div>
+
+      {/* Mobile bottom nav */}
+      {mobileNav}
+
+      {/* Global modals */}
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CreateMenu  isOpen={createOpen}  onClose={() => setCreateOpen(false)} />
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+      `}</style>
     </div>
   );
 }

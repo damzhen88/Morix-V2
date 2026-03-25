@@ -1,383 +1,181 @@
-// Dashboard Page for MORIX CRM v2 - ANTI-SLOP EDITION
-
 'use client';
 
-import { useApp, useKPIs } from '@/store';
-import { Card, Badge, PageLoader } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils';
-import { 
-  DollarSign, TrendingUp, Package, Users, 
-  AlertTriangle, ShoppingCart, ArrowUpRight, ArrowRight
-} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import Link from 'next/link';
+import { Package, TrendingUp, Users, Receipt, Warehouse, ShoppingCart, Plus, ArrowRight, Clock, TrendingDown } from 'lucide-react';
+import { formatTHB } from '@/lib/format';
 
-// =======================
-// KPI CARD - Distinctive Design
-// =======================
-
-function KPICard({ 
-  title, value, subtitle, change, changeType = 'up', icon: Icon, color, href, delay = 0
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-  change?: string;
-  changeType?: 'up' | 'down';
-  icon: React.ElementType;
-  color: string;
-  href?: string;
-  delay?: number;
-}) {
-  const content = (
-    <div 
-      className="relative group bg-white rounded-3xl p-6 border border-gray-100 shadow-soft hover:shadow-float transition-all duration-300 hover:-translate-y-1 animate-fade-in-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {/* Decorative element */}
-      <div className={`absolute -top-4 -right-4 w-24 h-24 ${color} opacity-10 rounded-full blur-2xl group-hover:opacity-15 transition-opacity`} />
-      
-      <div className="flex items-start justify-between relative z-10">
-        <div className="flex-1">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 font-[var(--font-display)]">{value}</p>
-          
-          {(change || subtitle) && (
-            <div className="flex items-center gap-3 mt-3">
-              {change && (
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
-                  changeType === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                }`}>
-                  {changeType === 'up' ? '↑' : '↓'} {change}
-                </span>
-              )}
-              {subtitle && (
-                <span className="text-xs text-gray-400">{subtitle}</span>
-              )}
-            </div>
-          )}
-        </div>
-        
-        <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="w-7 h-7 text-white" />
-        </div>
-      </div>
-
-      {href && (
-        <Link 
-          href={href}
-          className="absolute bottom-4 right-4 text-gray-300 hover:text-orange-500 transition-colors opacity-0 group-hover:opacity-100"
-        >
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      )}
-    </div>
-  );
-
-  return href ? <Link href={href}>{content}</Link> : content;
-}
-
-// =======================
-// TREND CHART - Clean Design
-// =======================
-
-function TrendChart() {
-  const { state } = useApp();
-  
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-soft animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-900 font-[var(--font-display)]">แนวโน้มรายเดือน</h3>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2 text-xs">
-            <span className="w-3 h-3 rounded-full bg-orange-500" />
-            <span className="text-gray-500">ยอดขาย</span>
-          </span>
-          <span className="flex items-center gap-2 text-xs">
-            <span className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-gray-500">กำไร</span>
-          </span>
-        </div>
-      </div>
-      
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={state.trends}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F5F5F4" vertical={false} />
-            <XAxis 
-              dataKey="month" 
-              stroke="#A8A29E" 
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              dy={10}
-            />
-            <YAxis 
-              stroke="#A8A29E" 
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `${(v/1000).toFixed(0)}K`}
-              dx={-10}
-            />
-            <Tooltip 
-              formatter={(value) => formatCurrency(value as number)}
-              contentStyle={{ 
-                backgroundColor: 'white',
-                border: 'none',
-                borderRadius: '16px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                padding: '12px 16px',
-              }}
-              labelStyle={{ color: '#78716C', fontSize: '12px', marginBottom: '4px' }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="revenue" 
-              stroke="#F97316" 
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ r: 6, fill: '#F97316', stroke: 'white', strokeWidth: 2 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="profit" 
-              stroke="#22C55E" 
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ r: 6, fill: '#22C55E', stroke: 'white', strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-// =======================
-// COST BREAKDOWN
-// =======================
-
-const costData = [
-  { name: 'COGS', value: 312000, color: '#F97316' },
-  { name: 'ขนส่งต่างประเทศ', value: 45000, color: '#8B5CF6' },
-  { name: 'ขนส่งในประเทศ', value: 28000, color: '#06B6D4' },
-  { name: 'โอเวอร์เฮด', value: 35000, color: '#F59E0B' },
-  { name: 'แรงงาน', value: 18000, color: '#10B981' },
-  { name: 'โฆษณา', value: 22000, color: '#EF4444' },
+const kpis = [
+  { label: 'Total Products',  value: '248',  change: '+12%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
+  { label: 'Pending Orders',  value: '18',  change: '-5%',  icon: ShoppingCart, href: '/sales',    polarity: 'lower_is_better' as const },
+  { label: 'Revenue MTD',     value: '฿3.8M', change: '+23%', icon: TrendingUp,  href: '/sales',    polarity: 'higher_is_better' as const },
+  { label: 'Active Clients',   value: '23',  change: '+8%',  icon: Users,       href: '/crm',      polarity: 'higher_is_better' as const },
 ];
 
-function CostBreakdown() {
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-soft animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-      <h3 className="text-lg font-bold text-gray-900 font-[var(--font-display)] mb-4">โครงสร้างต้นทุน</h3>
-      
-      <div className="h-40">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={costData}
-              cx="50%"
-              cy="50%"
-              innerRadius={45}
-              outerRadius={70}
-              paddingAngle={3}
-              dataKey="value"
-            >
-              {costData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value) => formatCurrency(value as number)} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2 mt-4">
-        {costData.slice(0, 4).map(item => (
-          <div key={item.name} className="flex items-center gap-2 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-gray-600">{item.name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const recentActivity = [
+  { type: 'purchase',  title: 'PO #2847 Confirmed',  desc: 'Global Logistics Pro', amount: '฿397,943', time: '2 hours ago', href: '/purchase', trend: 'up' },
+  { type: 'sale',     title: 'SALE-1247',           desc: 'AEC Living Co.',         amount: '฿89,400',  time: '5 hours ago', href: '/sales',    trend: 'up' },
+  { type: 'inventory',title: 'Stock Alert',          desc: 'HPL Sheet — Low Stock',  quantity: '12 pcs', time: '1 day ago',  href: '/inventory',trend: 'down' },
+  { type: 'crm',      title: 'New Client Added',     desc: 'Modern Build Corp.',     amount: 'Gold Tier',time: '1 day ago', href: '/crm',     trend: 'up' },
+  { type: 'expense',  title: 'Expense Recorded',    desc: 'China Domestic Freight', amount: '฿12,000', time: '2 days ago', href: '/expenses', trend: 'down' },
+];
 
-// =======================
-// LOW STOCK ALERTS
-// =======================
-
-function LowStockAlerts() {
-  const { state } = useApp();
-  
-  const lowStockProducts = state.products
-    .filter(p => p.status === 'active')
-    .filter(p => {
-      const inv = state.inventory.find(i => i.product_id === p.id);
-      return inv && inv.quantity_on_hand < p.reorder_point;
-    })
-    .slice(0, 5);
-
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-soft animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900 font-[var(--font-display)] flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-red-500" />
-          สินค้าคงคลังต่ำ
-        </h3>
-        <Badge className="bg-red-100 text-red-700 font-semibold px-3 py-1">{lowStockProducts.length}</Badge>
-      </div>
-      
-      {lowStockProducts.length > 0 ? (
-        <div className="space-y-2">
-          {lowStockProducts.map(p => {
-            const inv = state.inventory.find(i => i.product_id === p.id);
-            return (
-              <div 
-                key={p.id}
-                className="flex items-center justify-between p-3 bg-red-50/50 rounded-2xl border border-red-100/50"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{p.name_th}</p>
-                  <p className="text-xs text-gray-400 font-mono">{p.sku}</p>
-                </div>
-                <div className="text-right ml-4">
-                  <p className="text-sm font-bold text-red-600">{inv?.quantity_on_hand || 0}</p>
-                  <p className="text-xs text-gray-400">min: {p.reorder_point}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500 text-center py-8">ไม่มีสินค้าคงคลังต่ำ</p>
-      )}
-    </div>
-  );
-}
-
-// =======================
-// CRM DEALS PREVIEW
-// =======================
-
-function CRMPreview() {
-  const { state } = useApp();
-  
-  const deals = state.crmDeals.slice(0, 4);
-
-  return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-soft animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900 font-[var(--font-display)] flex items-center gap-2">
-          <Users className="w-5 h-5 text-orange-500" />
-          ลูกค้าเป้าหมาย
-        </h3>
-        <Link href="/crm" className="text-xs text-orange-500 hover:text-orange-600 font-medium flex items-center gap-1">
-          ดูทั้งหมด <ArrowRight className="w-3 h-3" />
-        </Link>
-      </div>
-      
-      <div className="space-y-2">
-        {deals.map(deal => (
-          <div 
-            key={deal.id}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl hover:bg-orange-50/50 transition-colors cursor-pointer"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{deal.customer_name}</p>
-              <p className="text-xs text-gray-400">{deal.lead_id}</p>
-            </div>
-            <div className="text-right ml-4">
-              <p className="text-sm font-bold text-gray-900">{formatCurrency(deal.deal_value)}</p>
-              <Badge className="text-[10px] bg-gray-200 text-gray-600">{deal.stage}</Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// =======================
-// MAIN DASHBOARD
-// =======================
-
-export default function DashboardPage() {
-  const { state } = useApp();
-  const kpis = useKPIs();
-
-  if (state.isLoading) {
-    return <PageLoader />;
+function getBadgeColor(change: string, polarity: 'higher_is_better' | 'lower_is_better') {
+  const isPositive = change.startsWith('+');
+  const isNegative = change.startsWith('-');
+  if (isNegative) {
+    return polarity === 'lower_is_better'
+      ? 'bg-[var(--success-container)] text-[var(--success)]'
+      : 'bg-[var(--error-container)] text-[var(--error)]';
   }
+  if (isPositive) {
+    return polarity === 'higher_is_better'
+      ? 'bg-[var(--success-container)] text-[var(--success)]'
+      : 'bg-[var(--error-container)] text-[var(--error)]';
+  }
+  return 'bg-[var(--surface-container-high)] text-[var(--on-surface-variant)]';
+}
 
+export default function Dashboard() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="animate-fade-in-up">
-        <h1 className="text-3xl font-bold text-gray-900 font-[var(--font-display)] tracking-tight">แดชบอร์ด</h1>
-        <p className="text-gray-500 mt-1 font-medium">ภาพรวมธุรกิจ MORIX DECORATIVE</p>
-      </div>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard 
-          title="ยอดขายรวม"
-          value={formatCurrency(kpis.totalRevenue)}
-          change="+12.5%"
-          changeType="up"
-          icon={DollarSign}
-          color="bg-orange-500"
-          href="/sales"
-          delay={0}
-        />
-        <KPICard 
-          title="กำไรขั้นต้น"
-          value={formatCurrency(kpis.grossProfit)}
-          change="+8.2%"
-          changeType="up"
-          icon={TrendingUp}
-          color="bg-green-500"
-          delay={50}
-        />
-        <KPICard 
-          title="มูลค่าสินค้าคงคลัง"
-          value={formatCurrency(kpis.inventoryValue)}
-          subtitle={`LOW: ${kpis.lowStockCount}`}
-          icon={Package}
-          color="bg-purple-500"
-          href="/inventory"
-          delay={100}
-        />
-        <KPICard 
-          title="ดีลที่รอดำเนินการ"
-          value={kpis.activeDeals.toString()}
-          subtitle="รอดำเนินการ"
-          icon={Users}
-          color="bg-blue-500"
-          href="/crm"
-          delay={150}
-        />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <TrendChart />
+      {/* Page Header */}
+      <div className="page-header mb-8">
+        <div className="page-header-eyebrow">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+          Executive Briefing
         </div>
-        <div>
-          <CostBreakdown />
-        </div>
+        <h1 className="page-header-title">Dashboard Overview</h1>
+        <p className="page-header-subtitle">Wednesday, March 25, 2026 — Bangkok, Thailand</p>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LowStockAlerts />
-        <CRMPreview />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10 stagger-children">
+        {kpis.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <Link key={i} href={stat.href}
+              className="kpi-card group cursor-pointer block relative">
+              {/* Left border on hover */}
+              <span className="absolute left-0 top-4 bottom-4 w-0.5 rounded-r-full bg-[var(--primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex items-start justify-between mb-4">
+                <div className="kpi-icon-wrap">
+                  <Icon className="w-5 h-5" style={{ color: 'var(--primary)' }} />
+                </div>
+                <span className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-full ${getBadgeColor(stat.change, stat.polarity)}`}>
+                  {stat.change.startsWith('+') ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {stat.change}
+                </span>
+              </div>
+              <div className="kpi-value">{stat.value}</div>
+              <div className="kpi-label">{stat.label}</div>
+              <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-[var(--primary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                View <ArrowRight className="w-3 h-3" />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Recent Activity */}
+        <div className="lg:col-span-7 card-elevated p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-headline font-bold text-[var(--on-surface)]">Recent Activity</h2>
+            <Link href="/reports"
+              className="text-xs font-bold text-[var(--primary)] hover:underline">
+              View All
+            </Link>
+          </div>
+
+          <div className="space-y-2">
+            {recentActivity.map((item, i) => (
+              <Link key={i} href={item.href}
+                className="flex items-center justify-between p-4 rounded-xl hover:bg-[var(--surface-container-low)] transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      backgroundColor: item.type === 'purchase'  ? '#FEF3C7' :
+                                       item.type === 'sale'      ? '#DBEAFE' :
+                                       item.type === 'inventory' ? '#D1FAE5' :
+                                       item.type === 'crm'       ? '#EDE9FE' :
+                                                                '#F3F4F6',
+                    }}>
+                    {item.type === 'purchase'  && <ShoppingCart className="w-5 h-5 text-amber-600" />}
+                    {item.type === 'sale'      && <TrendingUp   className="w-5 h-5 text-blue-600" />}
+                    {item.type === 'inventory' && <Warehouse    className="w-5 h-5 text-green-600" />}
+                    {item.type === 'crm'       && <Users        className="w-5 h-5 text-purple-600" />}
+                    {item.type === 'expense'   && <Receipt      className="w-5 h-5 text-slate-600" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--on-surface)]">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-[var(--on-surface-variant)]">{item.desc}</span>
+                      <span className="text-[var(--outline)]">·</span>
+                      <Clock className="w-3 h-3 text-[var(--on-surface-variant)]" />
+                      <span className="text-xs text-[var(--on-surface-variant)]">{item.time}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-headline font-bold text-sm text-[var(--on-surface)]">
+                    {item.amount || item.quantity}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Quick Actions */}
+          <div className="card-elevated p-6">
+            <h2 className="font-headline font-bold text-[var(--on-surface)] mb-5">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Purchase Order', icon: ShoppingCart, href: '/purchase', color: '#2563EB' },
+                { label: 'New Sale',      icon: TrendingUp,   href: '/sales',    color: 'var(--primary)' },
+                { label: 'Add Product',   icon: Package,      href: '/products', color: '#7C3AED' },
+                { label: 'Add Client',    icon: Users,        href: '/crm',      color: '#059669' },
+              ].map((action, i) => {
+                const Icon = action.icon;
+                return (
+                  <Link key={i} href={action.href}
+                    className="flex flex-col items-center gap-3 p-4 rounded-xl border border-[var(--outline-variant)]
+                      hover:border-transparent hover:shadow-md transition-all text-center group">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                      style={{ backgroundColor: `${action.color}18` }}>
+                      <Icon className="w-6 h-6" style={{ color: action.color === 'var(--primary)' ? 'var(--primary)' : action.color }} />
+                    </div>
+                    <span className="text-xs font-bold text-[var(--on-surface)]">{action.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* This Month */}
+          <div className="card-surface p-6">
+            <h3 className="font-headline font-bold text-sm text-[var(--on-surface)] mb-4">This Month</h3>
+            <div className="space-y-3">
+              {[
+                { label: 'Purchase Orders', value: '24', sub: '+8 vs last month' },
+                { label: 'Expenses',        value: '฿423K', sub: 'Logistics: 60%' },
+                { label: 'Avg. Delivery',   value: '18 days', sub: 'China → Bangkok' },
+              ].map((row, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--on-surface-variant)]">{row.label}</span>
+                  <div className="text-right">
+                    <p className="font-headline font-bold text-sm text-[var(--on-surface)]">{row.value}</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)]">{row.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-// Trigger redeploy Sat Mar  7 01:07:34 +07 2026
-// rebuilt

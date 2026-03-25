@@ -3,6 +3,7 @@ import "./globals.css";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AppProvider } from "@/store";
 import { AuthProvider } from "@/lib/auth-context";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "MORIX DECORATIVE - CRM & Inventory",
@@ -19,7 +20,9 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <AuthProvider>
           <AppProvider>
-            <DashboardLayout>{children}</DashboardLayout>
+            <ToastProvider>
+              <DashboardLayout>{children}</DashboardLayout>
+            </ToastProvider>
           </AppProvider>
         </AuthProvider>
       </body>

@@ -1,656 +1,310 @@
-// Products Page for MORIX CRM v2
-
 'use client';
 
-import { useState, useRef } from 'react';
-import { useApp } from '@/store';
-import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
-import { formatDate, getCategoryColor, getStatusColor, generateId } from '@/lib/utils';
-import { Product, ProductCategory, ProductUnit } from '@/types';
-import { supabase, uploadImage } from '@/lib/supabase';
-import { Plus, Search, Edit, Trash2, Eye, Upload, X, Image as ImageIcon, Package } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import { useState } from 'react';
+import { Package, Plus, Search, Grid, List, MoreVertical, Edit, Copy, Archive, Trash2, Eye } from 'lucide-react';
+import { formatTHB } from '@/lib/format';
 
-const categoryOptions = [
-  { value: 'ASA', label: 'ASA' },
-  { value: 'WPC', label: 'WPC' },
-  { value: 'SPC', label: 'SPC' },
-  { value: 'ACCESSORIES', label: 'อุปกรณ์เสริม' },
+const products = [
+  { id: 1, name: 'Aluminum Panel 120x240cm',    sku: 'AL-PNL-001',   category: 'Wall Panels', stock: 48,  unit: 'pcs', price: 2850, status: 'active' },
+  { id: 2, name: 'WPC Decking Board 145x21mm', sku: 'WPC-DK-014',   category: 'Flooring',    stock: 120, unit: 'pcs', price: 4200, status: 'active' },
+  { id: 3, name: 'HPL Sheet 1220x2440mm',      sku: 'HPL-SH-122',   category: 'Surface',    stock: 12,  unit: 'pcs', price: 5600, status: 'low'    },
+  { id: 4, name: 'Aluminum Trim Strip 2.5m',   sku: 'AL-TRM-025',   category: 'Accessories', stock: 200, unit: 'pcs', price: 380,  status: 'active' },
+  { id: 5, name: 'PVC Ceiling Panel 60x60cm',  sku: 'PVC-CL-060',   category: 'Ceiling',    stock: 0,   unit: 'pcs', price: 120,  status: 'out'    },
+  { id: 6, name: 'Composite Cladding 160x12mm',sku: 'CP-CLD-160',   category: 'Wall Panels', stock: 72,  unit: 'pcs', price: 1850, status: 'active' },
 ];
 
-const unitOptions = [
-  { value: 'piece', label: 'ชิ้น' },
-  { value: 'box', label: 'กล่อง' },
-  { value: 'meter', label: 'เมตร' },
-  { value: 'sqm', label: 'ตร.ม.' },
-  { value: 'set', label: 'ชุด' },
-  { value: 'roll', label: 'ม้วน' },
-  { value: 'pack', label: 'แพ็ค' },
-  { value: 'cm', label: 'ซม.' },
-  { value: 'mm', label: 'มม.' },
-];
+const categories = ['All', 'Wall Panels', 'Flooring', 'Surface', 'Accessories', 'Ceiling'];
+
+// Product placeholder images using initials
+function ProductImage({ name, sku }: { name: string; sku: string }) {
+  const colors: Record<string, string> = {
+    'Wall Panels': '#3B82F6',
+    'Flooring':    '#10B981',
+    'Surface':     '#8B5CF6',
+    'Accessories': '#F59E0B',
+    'Ceiling':     '#EC4899',
+  };
+  const color = colors[name.split(' ')[0]] || 'var(--primary)';
+  return (
+    <div
+      className="w-full h-full flex flex-col items-center justify-center rounded-xl"
+      style={{ background: `linear-gradient(135deg, ${color}20, ${color}08)` }}
+    >
+      <span className="font-headline text-3xl font-black" style={{ color }}>{sku.charAt(0)}</span>
+      <span className="text-[10px] font-mono mt-1" style={{ color }}>{sku}</span>
+    </div>
+  );
+}
+
+function getStatusStyle(status: string) {
+  return {
+    active: { bg: 'bg-[var(--success-container)]', text: 'text-[var(--success)]', label: 'In Stock' },
+    low:    { bg: 'bg-[var(--warning-container)]', text: 'text-[var(--warning)]', label: 'Low Stock' },
+    out:    { bg: 'bg-[var(--surface-container-high)]', text: 'text-[var(--on-surface-variant)]', label: 'Out of Stock' },
+  }[status];
+}
 
 export default function ProductsPage() {
-  const { state, dispatch } = useApp();
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isViewMode, setIsViewMode] = useState(false);
-  const [formData, setFormData] = useState({
-    sku: '',
-    name_th: '',
-    name_en: '',
-    category: 'ASA' as ProductCategory,
-    unit: 'sqm' as ProductUnit,
-    spec_size: '',
-    spec_thickness: '',
-    spec_color: '',
-    default_supplier: '',
-    reorder_point: 100,
-    min_stock: 50,
-    status: 'active' as const,
-  });
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [search, setSearch]         = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [viewMode, setViewMode]     = useState<'grid' | 'list'>('grid');
+  const [openMenu, setOpenMenu]     = useState<number | null>(null);
 
-  // Filter products
-  const filteredProducts = state.products.filter(p => {
-    const matchesSearch = !search || 
-      p.name_th.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !categoryFilter || p.category === categoryFilter;
-    const matchesStatus = !statusFilter || p.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+  // Category counts
+  const catCounts: Record<string, number> = { All: products.length };
+  categories.slice(1).forEach(cat => {
+    catCounts[cat] = products.filter(p => p.category === cat).length;
   });
 
-  const handleAddNew = () => {
-    setEditingProduct(null);
-    setIsViewMode(false);
-    setFormData({
-      sku: `PRD-${Date.now().toString().slice(-6)}`,
-      name_th: '',
-      name_en: '',
-      category: 'ASA',
-      unit: 'sqm',
-      spec_size: '',
-      spec_thickness: '',
-      spec_color: '',
-      default_supplier: '',
-      reorder_point: 100,
-      min_stock: 50,
-      status: 'active',
-    });
-    setImagePreview('');
-    setImageFile(null);
-    setIsModalOpen(true);
+  const filtered = products.filter(p => {
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+    const matchCat    = activeCategory === 'All' || p.category === activeCategory;
+    return matchSearch && matchCat;
+  });
+
+  const handleMenuAction = (action: string, productId: number) => {
+    setOpenMenu(null);
+    // TODO: implement actual actions
+    console.log(`[Products] ${action} on product #${productId}`);
   };
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setIsViewMode(false);
-    setFormData({
-      sku: product.sku,
-      name_th: product.name_th,
-      name_en: product.name_en || '',
-      category: product.category,
-      unit: product.unit,
-      spec_size: product.spec?.size || '',
-      spec_thickness: product.spec?.thickness || '',
-      spec_color: product.spec?.color || '',
-      default_supplier: product.default_supplier || '',
-      reorder_point: product.reorder_point,
-      min_stock: product.min_stock,
-      status: product.status as any,
-    });
-    setImagePreview(product.images[0]?.url || '');
-    setIsModalOpen(true);
-  };
-
-  const handleView = (product: Product) => {
-    setEditingProduct(product);
-    setIsViewMode(true);
-    setFormData({
-      sku: product.sku,
-      name_th: product.name_th,
-      name_en: product.name_en || '',
-      category: product.category,
-      unit: product.unit,
-      spec_size: product.spec?.size || '',
-      spec_thickness: product.spec?.thickness || '',
-      spec_color: product.spec?.color || '',
-      default_supplier: product.default_supplier || '',
-      reorder_point: product.reorder_point,
-      min_stock: product.min_stock,
-      status: product.status as any,
-    });
-    setImagePreview(product.images[0]?.url || '');
-    setIsModalOpen(true);
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Store file for upload to Supabase Storage
-      setImageFile(file);
-      
-      // Also create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSave = async () => {
-    const now = new Date().toISOString();
-    
-    const productData: Product = {
-      id: editingProduct?.id || uuidv4(),
-      sku: formData.sku,
-      name_th: formData.name_th,
-      name_en: formData.name_en || undefined,
-      category: formData.category,
-      unit: formData.unit,
-      spec: {
-        size: formData.spec_size || undefined,
-        thickness: formData.spec_thickness || undefined,
-        color: formData.spec_color || undefined,
-      },
-      default_supplier: formData.default_supplier || undefined,
-      reorder_point: formData.reorder_point,
-      min_stock: formData.min_stock,
-      images: editingProduct?.images || [],
-      status: formData.status,
-      created_at: editingProduct?.created_at || now,
-      updated_at: now,
-    };
-
-    // Upload image to Supabase Storage if new file selected
-    if (imageFile) {
-      const uploadedUrl = await uploadImage(imageFile);
-      if (uploadedUrl) {
-        if (editingProduct) {
-          // Update existing - replace primary image
-          productData.images = editingProduct.images.map(img => 
-            img.is_primary ? { ...img, url: uploadedUrl } : img
-          );
-          if (!productData.images.length) {
-            productData.images = [{
-              id: uuidv4(),
-              url: uploadedUrl,
-              is_primary: true,
-              created_at: now,
-            }];
-          }
-        } else {
-          // New product - add new image
-          productData.images = [{
-            id: uuidv4(),
-            url: uploadedUrl,
-            is_primary: true,
-            created_at: now,
-          }];
-        }
-      }
-    } else if (imagePreview && !editingProduct?.images.find(i => i.url === imagePreview)) {
-      // Fallback: use base64 preview if no file uploaded (for existing preview)
-      productData.images = [{
-        id: uuidv4(),
-        url: imagePreview,
-        is_primary: true,
-        created_at: now,
-      }];
-    }
-
-    // SAVE TO SUPABASE
-    try {
-      if (editingProduct) {
-        // Update existing
-        const { error } = await supabase
-          .from('products')
-          .update({
-            sku: productData.sku,
-            name_th: productData.name_th,
-            name_en: productData.name_en,
-            category: productData.category,
-            unit: productData.unit,
-            spec: productData.spec,
-            default_supplier: productData.default_supplier,
-            reorder_point: productData.reorder_point,
-            min_stock: productData.min_stock,
-            images: productData.images,
-            status: productData.status,
-            updated_at: productData.updated_at,
-          })
-          .eq('id', productData.id);
-        
-        if (error) {
-          console.error('Supabase update error:', error);
-          // Continue with local state
-        }
-      } else {
-        // Insert new
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            
-            sku: productData.sku,
-            name_th: productData.name_th,
-            name_en: productData.name_en,
-            category: productData.category,
-            unit: productData.unit,
-            spec: productData.spec,
-            default_supplier: productData.default_supplier,
-            reorder_point: productData.reorder_point,
-            min_stock: productData.min_stock,
-            images: productData.images,
-            status: productData.status,
-            created_at: productData.created_at,
-            updated_at: productData.updated_at,
-          });
-        
-        if (error) {
-          console.error('Supabase insert error:', error);
-          // Continue with local state
-        }
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-      // Continue with local state
-    }
-
-    // Update local state
-    if (editingProduct) {
-      dispatch({ type: 'UPDATE_PRODUCT', payload: productData });
-    } else {
-      dispatch({ type: 'ADD_PRODUCT', payload: productData });
-    }
-
-    setIsModalOpen(false);
-    setImagePreview('');
-    setImageFile(null);
-  };
-
-  const handleDelete = async (productId: string) => {
-    if (!productId) return;
-    
-    if (!confirm('คุณแน่ใจที่จะลบสินค้านี้หรือไม่?')) {
-      return;
-    }
-    
-    // Try to delete from Supabase
-    try {
-      await supabase.from('products').delete().eq('id', productId);
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
-    
-    // Update local state
-    dispatch({ type: 'DELETE_PRODUCT', payload: productId });
-    alert('ลบสำเร็จ!');
-  };
-
-  if (state.isLoading) {
-    return <PageLoader />;
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
+
+      {/* Page Header */}
+      <div className="page-header flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">สินค้า</h1>
-          <p className="text-gray-500 mt-1">จัดการข้อมูลสินค้า {state.products.length} รายการ</p>
+          <div className="page-header-eyebrow">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+            Product Catalog
+          </div>
+          <h1 className="page-header-title">Products</h1>
+          <p className="page-header-subtitle">
+            {filtered.length} of {products.length} items
+          </p>
         </div>
-        <Button onClick={handleAddNew}>
-          <Plus className="w-4 h-4 mr-2" />
-          เพิ่มสินค้าใหม่
-        </Button>
+        <button className="btn-primary">
+          <Plus className="w-4 h-4" />
+          Add Product
+        </button>
       </div>
 
-      {/* Filters */}
-      <Card padding="sm">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="ค้นหาชื่อหรือ SKU..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
-          </div>
-          <select
-            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="">ทุกหมวดหมู่</option>
-            {categoryOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <select
-            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">ทุกสถานะ</option>
-            <option value="active">ใช้งาน</option>
-            <option value="inactive">ไม่ใช้งาน</option>
-          </select>
-          <Button 
-            variant="secondary" 
-            onClick={() => { setSearch(''); setCategoryFilter(''); setStatusFilter(''); }}
-          >
-            ล้างตัวกรอง
-          </Button>
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+        {/* Live search — full width on mobile, fixed width on desktop */}
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
+          <input
+            className="input-field-search w-full"
+            placeholder="Search by name or SKU…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-      </Card>
 
-      {/* Products Table - Mobile Responsive */}
-      <Card padding="none">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeadCell>รูปภาพ</TableHeadCell>
-                <TableHeadCell>SKU</TableHeadCell>
-                <TableHeadCell>ชื่อสินค้า</TableHeadCell>
-                <TableHeadCell>หมวดหมู่</TableHeadCell>
-                <TableHeadCell>คงคลัง</TableHeadCell>
-                <TableHeadCell>สถานะ</TableHeadCell>
-                <TableHeadCell>จัดการ</TableHeadCell>
-              </TableRow>
-            </TableHead>
-          <TableBody>
-            {filteredProducts.map(product => {
-              const inv = state.inventory.find(i => i.product_id === product.id);
-              const stock = inv?.quantity_on_hand || 0;
-              const isLowStock = stock < product.reorder_point;
-              
-              return (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100">
-                      {product.images[0]?.url ? (
-                        <img src={product.images[0].url} alt={product.name_th} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="w-6 h-6 text-gray-300" />
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm text-gray-600">{product.sku}</span>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-gray-900">{product.name_th}</p>
-                      {product.name_en && <p className="text-xs text-gray-500">{product.name_en}</p>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getCategoryColor(product.category)}>{product.category}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {isLowStock && <span className="text-red-500">⚠️</span>}
-                      <span className={`font-medium ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
-                        {stock}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(product.status)}>
-                      {product.status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => handleView(product)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="ดู">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleEdit(product)} className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg" title="แก้ไข">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(product.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="ลบ">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        {/* Category filter with counts */}
+        <div className="flex gap-2 flex-wrap flex-shrink-0">
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setActiveCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                activeCategory === cat
+                  ? 'signature-gradient text-white shadow-sm'
+                  : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]'
+              }`}>
+              {cat}
+              {catCounts[cat] > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                  activeCategory === cat ? 'bg-white/20 text-white' : 'bg-[var(--surface-container-high)]'
+                }`}>
+                  {catCounts[cat]}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-        
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-gray-100">
-          {filteredProducts.map((product) => {
-            const stock = product.spec?.stock || 0;
-            const isLowStock = stock <= (product.reorder_point || 0);
-            
+
+        {/* View toggle */}
+        <div className="flex items-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-xl flex-shrink-0">
+          <button onClick={() => setViewMode('grid')}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[var(--surface-container-lowest)] shadow-sm text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`}>
+            <Grid className="w-4 h-4" />
+          </button>
+          <button onClick={() => setViewMode('list')}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-[var(--surface-container-lowest)] shadow-sm text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`}>
+            <List className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 stagger-children">
+          {filtered.map(product => {
+            const statusStyle = getStatusStyle(product.status);
             return (
-              <div key={product.id} className="p-4 bg-white">
-                <div className="flex items-start gap-3">
-                  {/* Product Image */}
-                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    {product.images?.[0]?.url ? (
-                      <img src={product.images[0].url} alt={product.name_th} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-6 h-6 text-gray-300" />
+              <div key={product.id} className="card-elevated p-5 group relative">
+                {/* 3-dot menu */}
+                <div className="absolute top-4 right-4 z-10">
+                  <button
+                    onClick={() => setOpenMenu(openMenu === product.id ? null : product.id)}
+                    className="p-1.5 rounded-lg text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)] transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {openMenu === product.id && (
+                    <>
+                      <div className="fixed inset-0 z-0" onClick={() => setOpenMenu(null)} />
+                      <div className="absolute right-0 top-8 bg-[var(--surface-container-lowest)] rounded-xl shadow-xl border border-[var(--outline-variant)] py-1 min-w-[160px] z-20 overflow-hidden">
+                        {[
+                          { icon: Eye,       label: 'View Details',   action: 'view'      },
+                          { icon: Edit,      label: 'Edit Product',   action: 'edit'      },
+                          { icon: Copy,      label: 'Duplicate',      action: 'duplicate' },
+                          { icon: Archive,   label: 'Archive',        action: 'archive'   },
+                          { icon: Trash2,    label: 'Delete',         action: 'delete',   danger: true },
+                        ].map(item => {
+                          const ItemIcon = item.icon;
+                          return (
+                            <button key={item.action}
+                              onClick={() => handleMenuAction(item.action, product.id)}
+                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                                (item as any).danger
+                                  ? 'text-[var(--error)] hover:bg-[var(--error-container)]'
+                                  : 'text-[var(--on-surface)] hover:bg-[var(--surface-container-low)]'
+                              }`}>
+                              <ItemIcon className="w-4 h-4" />
+                              {item.label}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
+                    </>
+                  )}
+                </div>
+
+                {/* Product image */}
+                <div className="w-full aspect-[4/3] mb-4">
+                  <ProductImage name={product.name} sku={product.sku} />
+                </div>
+
+                {/* Info */}
+                <div className="space-y-2">
+                  <div>
+                    <h3 className="font-headline font-semibold text-sm text-[var(--on-surface)] leading-tight">
+                      {product.name}
+                    </h3>
+                    <p className="text-[10px] font-mono text-[var(--on-surface-variant)] mt-0.5">{product.sku}</p>
                   </div>
-                  
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{product.name_th}</p>
-                        <p className="text-xs text-gray-500 font-mono">{product.sku}</p>
-                      </div>
-                      <Badge className={getStatusColor(product.status)}>
-                        {product.status === 'active' ? 'ใช้งาน' : 'ไม่ใช้งาน'}
-                      </Badge>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--on-surface-variant)]">{product.category}</span>
+                    <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>
+                      {statusStyle.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end justify-between pt-2 border-t border-[var(--outline-variant)]">
+                    <div>
+                      <span className="text-[10px] text-[var(--on-surface-variant)]">Unit price</span>
+                      <p className="font-headline font-bold text-lg text-[var(--on-surface)]">
+                        {formatTHB(product.price)}
+                      </p>
                     </div>
-                    
-                    <div className="flex items-center gap-3 mt-2">
-                      <Badge className={getCategoryColor(product.category)}>{product.category}</Badge>
-                      <span className={`text-sm ${isLowStock ? 'text-red-600' : 'text-gray-600'}`}>
-                        {isLowStock && '⚠️ '}
-                        คงคลัง: {stock}
-                      </span>
-                    </div>
-                    
-                    {/* Mobile Actions */}
-                    <div className="flex items-center gap-2 mt-3">
-                      <button onClick={() => handleView(product)} className="flex-1 py-2 text-blue-600 bg-blue-50 rounded-lg text-sm font-medium" title="ดู">
-                        ดู
-                      </button>
-                      <button onClick={() => handleEdit(product)} className="flex-1 py-2 text-orange-600 bg-orange-50 rounded-lg text-sm font-medium" title="แก้ไข">
-                        แก้ไข
-                      </button>
-                      <button onClick={() => handleDelete(product.id)} className="flex-1 py-2 text-red-600 bg-red-50 rounded-lg text-sm font-medium" title="ลบ">
-                        ลบ
-                      </button>
-                    </div>
+                    <span className="text-xs font-semibold text-[var(--on-surface-variant)]">
+                      {product.stock} {product.unit}
+                    </span>
                   </div>
                 </div>
               </div>
             );
           })}
-          
-          {filteredProducts.length === 0 && (
-            <div className="p-8 text-center">
-              <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">ไม่พบสินค้า</p>
-            </div>
-          )}
         </div>
-      </Card>
+      )}
 
-      {/* Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={isViewMode ? 'รายละเอียดสินค้า' : editingProduct ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}
-        size="lg"
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
-              {isViewMode ? 'ปิด' : 'ยกเลิก'}
-            </Button>
-            {!isViewMode && (
-              <Button onClick={handleSave}>
-                {editingProduct ? 'บันทึก' : 'เพิ่มสินค้า'}
-              </Button>
-            )}
-          </div>
-        }
-      >
-        <div className="space-y-6">
-          {/* Image Upload */}
-          <div className="flex flex-col items-center">
-            <div 
-              className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-2xl flex items-center justify-center cursor-pointer hover:border-orange-400 transition-colors overflow-hidden"
-              onClick={() => !isViewMode && fileInputRef.current?.click()}
-            >
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-center text-gray-400">
-                  <Upload className="w-8 h-8 mx-auto mb-1" />
-                  <span className="text-xs">เพิ่มรูป</span>
-                </div>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-              disabled={isViewMode}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="SKU"
-              value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              disabled={isViewMode || !!editingProduct}
-              required
-            />
-            <Select
-              label="หมวดหมู่"
-              options={categoryOptions}
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as ProductCategory })}
-              disabled={isViewMode}
-            />
-          </div>
-
-          <Input
-            label="ชื่อสินค้า (ไทย)"
-            value={formData.name_th}
-            onChange={(e) => setFormData({ ...formData, name_th: e.target.value })}
-            disabled={isViewMode}
-            required
-          />
-
-          <Input
-            label="ชื่อสินค้า (อังกฤษ)"
-            value={formData.name_en}
-            onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-            disabled={isViewMode}
-          />
-
-          <div className="grid grid-cols-3 gap-4">
-            <Select
-              label="หน่วย"
-              options={unitOptions}
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value as ProductUnit })}
-              disabled={isViewMode}
-            />
-            <Input
-              label="ขนาด"
-              value={formData.spec_size}
-              onChange={(e) => setFormData({ ...formData, spec_size: e.target.value })}
-              disabled={isViewMode}
-            />
-            <Input
-              label="ความหนา"
-              value={formData.spec_thickness}
-              onChange={(e) => setFormData({ ...formData, spec_thickness: e.target.value })}
-              disabled={isViewMode}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="สี"
-              value={formData.spec_color}
-              onChange={(e) => setFormData({ ...formData, spec_color: e.target.value })}
-              disabled={isViewMode}
-            />
-            <Input
-              label="ผู้จัดจำหน่าย"
-              value={formData.default_supplier}
-              onChange={(e) => setFormData({ ...formData, default_supplier: e.target.value })}
-              disabled={isViewMode}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="จุดสั่งซื้อใหม่"
-              type="number"
-              value={formData.reorder_point}
-              onChange={(e) => setFormData({ ...formData, reorder_point: parseInt(e.target.value) || 0 })}
-              disabled={isViewMode}
-            />
-            <Input
-              label="สต็อกขั้นต่ำ"
-              type="number"
-              value={formData.min_stock}
-              onChange={(e) => setFormData({ ...formData, min_stock: parseInt(e.target.value) || 0 })}
-              disabled={isViewMode}
-            />
-          </div>
-
-          {!isViewMode && (
-            <Select
-              label="สถานะ"
-              options={[
-                { value: 'active', label: 'ใช้งาน' },
-                { value: 'inactive', label: 'ไม่ใช้งาน' },
-              ]}
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-            />
-          )}
-
-          {isViewMode && editingProduct && (
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-              <p className="text-sm"><span className="font-medium">สร้างเมื่อ:</span> {formatDate(editingProduct.created_at)}</p>
-              <p className="text-sm"><span className="font-medium">อัปเดตล่าสุด:</span> {formatDate(editingProduct.updated_at)}</p>
-            </div>
-          )}
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="card-elevated overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[var(--surface-container-low)]">
+                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Product</th>
+                <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Category</th>
+                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Stock</th>
+                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Price</th>
+                <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Status</th>
+                <th className="px-6 py-4 w-12"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--outline-variant)]">
+              {filtered.map(product => {
+                const statusStyle = getStatusStyle(product.status);
+                return (
+                  <tr key={product.id} className="hover:bg-[var(--surface-container-low)] transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden">
+                          <ProductImage name={product.name} sku={product.sku} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--on-surface)]">{product.name}</p>
+                          <p className="text-xs text-[var(--on-surface-variant)] font-mono">{product.sku}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-[var(--on-surface-variant)]">{product.category}</td>
+                    <td className="px-4 py-4 text-right text-sm font-semibold text-[var(--on-surface)]">
+                      {product.stock} <span className="text-[var(--on-surface-variant)] font-normal">{product.unit}</span>
+                    </td>
+                    <td className="px-4 py-4 text-right font-headline font-bold text-[var(--on-surface)]">
+                      {formatTHB(product.price)}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>{statusStyle.label}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {['view', 'edit', 'duplicate', 'archive', 'delete'].map(action => {
+                          const icons: Record<string, any> = {
+                            view: Eye, edit: Edit, duplicate: Copy, archive: Archive, delete: Trash2
+                          };
+                          const Icon = icons[action];
+                          return (
+                            <button key={action}
+                              onClick={() => handleMenuAction(action, product.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                action === 'delete'
+                                  ? 'text-[var(--error)] hover:bg-[var(--error-container)]'
+                                  : 'text-[var(--on-surface-variant)] hover:text-[var(--on-surface)] hover:bg-[var(--surface-container-high)]'
+                              }`}>
+                              <Icon className="w-3.5 h-3.5" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </Modal>
+      )}
+
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            <Package className="w-8 h-8" style={{ color: 'var(--primary)' }} />
+          </div>
+          <h3 className="empty-state-title">No products found</h3>
+          <p className="empty-state-desc">
+            Try adjusting your search or filter, or add your first product to get started.
+          </p>
+          <button className="btn-primary">
+            <Plus className="w-4 h-4" />
+            Add First Product
+          </button>
+        </div>
+      )}
     </div>
   );
 }

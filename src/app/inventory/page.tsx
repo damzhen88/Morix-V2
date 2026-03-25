@@ -1,296 +1,168 @@
-// Inventory Page for MORIX CRM v2
-
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '@/store';
-import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
-import { formatDate, formatCurrency, getStatusColor, generateId } from '@/lib/utils';
-import { StockMovement } from '@/types';
-import { Plus, Search, ArrowUpDown, Package, AlertTriangle, TrendingUp, History } from 'lucide-react';
+import { Warehouse, Plus, Search, Package, AlertTriangle, ArrowUpDown, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+
+const inventoryItems = [
+  { id: 1, sku: 'AL-PNL-001',   name: 'Aluminum Panel 120x240cm',          stock: 48,  reorder: 20, unit: 'pcs', value: 136800, trend: 'up',   location: 'WH-A-01' },
+  { id: 2, sku: 'WPC-DK-014',   name: 'WPC Decking Board 145x21mm',        stock: 120, reorder: 30, unit: 'pcs', value: 504000, trend: 'up',   location: 'WH-A-02' },
+  { id: 3, sku: 'HPL-SH-122',   name: 'HPL Sheet 1220x2440mm',             stock: 12,  reorder: 35, unit: 'pcs', value: 67200,  trend: 'down', location: 'WH-B-01' },
+  { id: 4, sku: 'AL-TRM-025',   name: 'Aluminum Trim Strip 2.5m',          stock: 200, reorder: 50, unit: 'pcs', value: 76000,  trend: 'up',   location: 'WH-A-03' },
+  { id: 5, sku: 'PVC-CL-060',   name: 'PVC Ceiling Panel 60x60cm',         stock: 0,   reorder: 100,unit: 'pcs', value: 0,      trend: 'down', location: 'WH-B-02' },
+  { id: 6, sku: 'CP-CLD-160',   name: 'Composite Cladding 160x12mm',       stock: 72,  reorder: 40, unit: 'pcs', value: 133200, trend: 'up',   location: 'WH-A-04' },
+  { id: 7, sku: 'SS-FST-M8',    name: 'Stainless Steel Fastener M8',       stock: 8,   reorder: 200,unit: 'box', value: 4800,   trend: 'down', location: 'WH-C-01' },
+  { id: 8, sku: 'GL-SEAL-5M',   name: 'Glass Sealant Cartridge 5m',        stock: 55,  reorder: 30, unit: 'pcs', value: 27500,  trend: 'up',   location: 'WH-C-02' },
+];
 
 export default function InventoryPage() {
-  const { state, dispatch } = useApp();
   const [search, setSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
-  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
-  const [movementType, setMovementType] = useState<'IN' | 'OUT' | 'ADJUST'>('IN');
-  const [movementForm, setMovementForm] = useState({
-    product_id: '',
-    quantity: 0,
-    notes: '',
+  const [showLow, setShowLow] = useState(false);
+
+  const filtered = inventoryItems.filter(i => {
+    const match = i.name.toLowerCase().includes(search.toLowerCase()) || i.sku.toLowerCase().includes(search.toLowerCase());
+    return showLow ? match && (i.stock <= i.reorder) : match;
   });
 
-  // Merge inventory with products
-  const inventoryData = state.products.map(product => {
-    const inv = state.inventory.find(i => i.product_id === product.id);
-    return {
-      ...product,
-      inventory: inv,
-    };
-  });
-
-  const filteredInventory = inventoryData.filter(item => 
-    !search || 
-    item.name_th.toLowerCase().includes(search.toLowerCase()) ||
-    item.sku.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalValue = state.inventory.reduce((sum, inv) => 
-    sum + (inv.quantity_on_hand * inv.weighted_average_cost_thb), 0
-  );
-
-  const lowStockCount = state.products.filter(p => {
-    const inv = state.inventory.find(i => i.product_id === p.id);
-    return inv && inv.quantity_on_hand < p.reorder_point;
-  }).length;
-
-  const handleOpenMovement = (productId: string) => {
-    setMovementForm({ product_id: productId, quantity: 0, notes: '' });
-    setIsMovementModalOpen(true);
-  };
-
-  const handleSaveMovement = () => {
-    const now = new Date().toISOString();
-    const product = state.products.find(p => p.id === movementForm.product_id);
-    const inv = state.inventory.find(i => i.product_id === movementForm.product_id);
-
-    // Create movement record
-    const movement: StockMovement = {
-      id: generateId(),
-      product_id: movementForm.product_id,
-      warehouse_id: 'wh-1',
-      type: movementType,
-      quantity: movementForm.quantity,
-      notes: movementForm.notes,
-      created_by: 'admin',
-      created_at: now,
-    };
-
-    // Update inventory
-    if (inv) {
-      const newQty = movementType === 'OUT' 
-        ? inv.quantity_on_hand - movementForm.quantity 
-        : inv.quantity_on_hand + movementForm.quantity;
-
-      dispatch({
-        type: 'UPDATE_INVENTORY',
-        payload: {
-          ...inv,
-          quantity_on_hand: Math.max(0, newQty),
-          quantity_available: Math.max(0, newQty),
-          last_movement_at: now,
-        },
-      });
-    }
-
-    dispatch({ type: 'ADD_STOCK_MOVEMENT', payload: movement });
-    setIsMovementModalOpen(false);
-  };
-
-  if (state.isLoading) {
-    return <PageLoader />;
-  }
+  const totalValue = inventoryItems.reduce((s, i) => s + i.value, 0);
+  const lowStock    = inventoryItems.filter(i => i.stock <= i.reorder).length;
+  const outOfStock  = inventoryItems.filter(i => i.stock === 0).length;
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="page-header flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">คลังสินค้า</h1>
-          <p className="text-gray-500 mt-1">จัดการสต็อกและการเคลื่อนไหว</p>
+          <div className="page-header-eyebrow">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+            Warehouse Operations
+          </div>
+          <h1 className="page-header-title">Inventory</h1>
+          <p className="page-header-subtitle">Real-time stock levels across all warehouses</p>
         </div>
+        <button className="btn-primary">
+          <Plus className="w-4 h-4" />
+          Stock Adjustment
+        </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-            <Package className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">มูลค่าสินค้าคงคลัง</p>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(totalValue)}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">จำนวน SKU</p>
-            <p className="text-xl font-bold text-gray-900">{state.products.length}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">สินค้าต่ำกว่าจุดสั่งซื้อ</p>
-            <p className="text-xl font-bold text-red-600">{lowStockCount}</p>
-          </div>
-        </Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
+        {[
+          { label: 'Total SKUs',         value: inventoryItems.length.toString(), icon: Package,       color: 'var(--primary)' },
+          { label: 'Total Stock Value',  value: `฿${(totalValue / 1000).toFixed(0)}K`, icon: TrendingUp,  color: 'var(--success)' },
+          { label: 'Low Stock Items',     value: lowStock.toString(),             icon: AlertTriangle, color: 'var(--warning)' },
+          { label: 'Out of Stock',        value: outOfStock.toString(),           icon: AlertTriangle, color: 'var(--error)' },
+        ].map((k, i) => {
+          const Icon = k.icon;
+          return (
+            <div key={i} className="kpi-card">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${k.color}15` }}>
+                  <Icon className="w-5 h-5" style={{ color: k.color }} />
+                </div>
+              </div>
+              <div className="kpi-value text-xl">{k.value}</div>
+              <div className="kpi-label">{k.label}</div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Search */}
-      <Card padding="sm">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
           <input
-            type="text"
-            placeholder="ค้นหาสินค้า..."
+            className="input-field-search w-full"
+            placeholder="Search SKU or product name…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            onChange={e => setSearch(e.target.value)}
           />
         </div>
-      </Card>
+        <button
+          onClick={() => setShowLow(!showLow)}
+          className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+            showLow
+              ? 'signature-gradient text-white shadow-sm'
+              : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]'
+          }`}>
+          <AlertTriangle className="w-3.5 h-3.5 inline mr-1.5" />
+          Low Stock Only ({lowStock})
+        </button>
+      </div>
 
-      {/* Inventory Table - Mobile Responsive */}
-      <Card padding="none">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeadCell>SKU</TableHeadCell>
-                <TableHeadCell>สินค้า</TableHeadCell>
-                <TableHeadCell>หมวด</TableHeadCell>
-                <TableHeadCell>คงคลัง</TableHeadCell>
-                <TableHeadCell>จุดสั่งซื้อ</TableHeadCell>
-                <TableHeadCell>มูลค่า</TableHeadCell>
-                <TableHeadCell>สถานะ</TableHeadCell>
-                <TableHeadCell>จัดการ</TableHeadCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredInventory.map(item => {
-              const qty = item.inventory?.quantity_on_hand || 0;
-              const isLow = qty < item.reorder_point;
-              const value = qty * (item.inventory?.weighted_average_cost_thb || 0);
-              
+      {/* Inventory Table */}
+      <div className="card-elevated overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-[var(--surface-container-low)]">
+              <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">SKU</th>
+              <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Product</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Location</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Stock</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Reorder</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Status</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Value</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--outline-variant)]">
+            {filtered.map(item => {
+              const isLow = item.stock <= item.reorder && item.stock > 0;
+              const isOut = item.stock === 0;
               return (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <span className="font-mono text-sm text-gray-600">{item.sku}</span>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium text-gray-900">{item.name_th}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={item.category === 'ASA' ? 'bg-purple-100 text-purple-700' :
-                      item.category === 'WPC' ? 'bg-orange-100 text-orange-700' :
-                      item.category === 'SPC' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}>
-                      {item.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`font-bold ${isLow ? 'text-red-600' : 'text-gray-900'}`}>
-                      {qty}
+                <tr key={item.id} className="hover:bg-[var(--surface-container-low)] transition-colors group">
+                  <td className="px-6 py-4">
+                    <span className="text-xs font-mono font-semibold text-[var(--primary-dark)]">{item.sku}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="text-sm font-semibold text-[var(--on-surface)]">{item.name}</p>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <span className="text-xs font-mono bg-[var(--surface-container)] px-2 py-1 rounded-lg text-[var(--on-surface-variant)]">
+                      {item.location}
                     </span>
-                  </TableCell>
-                  <TableCell>{item.reorder_point}</TableCell>
-                  <TableCell>{formatCurrency(value)}</TableCell>
-                  <TableCell>
-                    {isLow ? (
-                      <Badge variant="danger">ต่ำ</Badge>
-                    ) : (
-                      <Badge variant="success">ปกติ</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => handleOpenMovement(item.id)}>
-                        + Stock
-                      </Button>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {item.trend === 'up'
+                        ? <TrendingUp className="w-3.5 h-3.5 text-[var(--success)]" />
+                        : item.trend === 'down'
+                          ? <TrendingDown className="w-3.5 h-3.5 text-[var(--error)]" />
+                          : null}
+                      <span className={`font-bold ${isOut ? 'text-[var(--error)]' : isLow ? 'text-[var(--warning)]' : 'text-[var(--on-surface)]'}`}>
+                        {item.stock}
+                      </span>
+                      <span className="text-[var(--on-surface-variant)] text-xs">{item.unit}</span>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                  <td className="px-4 py-4 text-right text-sm text-[var(--on-surface-variant)]">
+                    {item.reorder} <span className="text-[10px]">{item.unit}</span>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    {isOut
+                      ? <span className="badge badge-error">Out of Stock</span>
+                      : isLow
+                        ? <span className="badge badge-warning">Low Stock</span>
+                        : <span className="badge badge-success">In Stock</span>
+                    }
+                  </td>
+                  <td className="px-4 py-4 text-right font-headline font-bold text-[var(--on-surface)]">
+                    ฿{item.value.toLocaleString()}
+                  </td>
+                </tr>
               );
             })}
-          </TableBody>
-        </Table>
-        </div>
-        
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-gray-100">
-          {filteredInventory.map(inv => (
-            <div key={inv.id} className="p-4 bg-white">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div>
-                  <p className="font-medium text-gray-900">{inv.product?.name_th || 'ไม่ระบุ'}</p>
-                  <p className="text-xs text-gray-500 font-mono">{inv.product?.sku}</p>
-                </div>
-                <Badge className={inv.quantity_on_hand > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                  {inv.quantity_on_hand > 0 ? 'มีสินค้า' : 'Out of Stock'}
-                </Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                <div>
-                  <p className="text-gray-500">คงคลัง</p>
-                  <p className="font-medium">{inv.quantity_on_hand || 0}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">มูลค่า</p>
-                  <p className="font-medium text-orange-600">฿{((inv.quantity_on_hand || 0) * (inv.weighted_average_cost_thb || 0)).toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-          {filteredInventory.length === 0 && (
-            <div className="p-8 text-center text-gray-500">ไม่พบข้อมูลคงคลัง</div>
-          )}
-        </div>
-      </Card>
+          </tbody>
+        </table>
 
-      {/* Movement Modal */}
-      <Modal
-        isOpen={isMovementModalOpen}
-        onClose={() => setIsMovementModalOpen(false)}
-        title="เพิ่มการเคลื่อนไหวสต็อก"
-        size="sm"
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setIsMovementModalOpen(false)}>ยกเลิก</Button>
-            <Button onClick={handleSaveMovement}>บันทึก</Button>
+        {filtered.length === 0 && (
+          <div className="p-12 text-center">
+            <Warehouse className="w-12 h-12 mx-auto mb-4 text-[var(--on-surface-variant)] opacity-30" />
+            <p className="text-[var(--on-surface-variant)]">No items match your filter.</p>
           </div>
-        }
-      >
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setMovementType('IN')}
-              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-colors ${
-                movementType === 'IN' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              + Stock In
-            </button>
-            <button
-              onClick={() => setMovementType('OUT')}
-              className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-colors ${
-                movementType === 'OUT' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              - Stock Out
-            </button>
-          </div>
-
-          <Input
-            label="จำนวน"
-            type="number"
-            value={movementForm.quantity}
-            onChange={(e) => setMovementForm({ ...movementForm, quantity: parseInt(e.target.value) || 0 })}
-          />
-
-          <Input
-            label="หมายเหตุ"
-            value={movementForm.notes}
-            onChange={(e) => setMovementForm({ ...movementForm, notes: e.target.value })}
-          />
-        </div>
-      </Modal>
+        )}
+      </div>
     </div>
   );
 }

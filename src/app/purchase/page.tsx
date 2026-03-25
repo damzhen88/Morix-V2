@@ -1,469 +1,595 @@
-// Purchase/Import Page for MORIX CRM v2
+// Purchase Order Page for MORIX V2 - Anti-Slop Design
+// Works within DashboardLayout - NO duplicate header/sidebar
 
 'use client';
 
 import { useState } from 'react';
 import { useApp } from '@/store';
-import { Card, Button, Input, Select, Badge, Modal, Table, TableHead, TableBody, TableRow, TableHeadCell, TableCell, EmptyState, PageLoader } from '@/components/ui';
-import { formatDate, formatCurrency, generateId, cnyToThb } from '@/lib/utils';
-import { PurchaseOrder, PurchaseOrderItem } from '@/types';
-import { supabase } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
-import { Plus, Search, FileText, Truck, DollarSign, Calendar, Edit } from 'lucide-react';
+import { PageLoader } from '@/components/ui';
+import { 
+  Save, Send, CheckCircle, Package, Truck, Globe, 
+  Delete, Plus, Info, ChevronRight,
+  CreditCard, Factory, PlaneTakeoff, Warehouse
+} from 'lucide-react';
+
+// ============================================================
+// ANTI-SLOP DESIGN SYSTEM - MORIX V2
+// ============================================================
+// ✅ NO Inter/Roboto (using Outfit + DM Sans)
+// ✅ NO purple gradients (using amber/orange palette)
+// ✅ NO uniform rounded corners (varied 8px-16px-24px)
+// ✅ NO generic cards (layered depth with shadows)
+// ✅ Custom noise texture backgrounds
+// ============================================================
 
 export default function PurchasePage() {
-  const { state, dispatch } = useApp();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
-  const [formData, setFormData] = useState({
-    supplier: '',
-    exchange_rate: 5.12,
-    status: 'draft' as const,
+  const { state } = useApp();
+  const [activeCurrency, setActiveCurrency] = useState('USD');
+  const [logistics, setLogistics] = useState({
+    chinaDomestic: { amount: '', currency: 'CNY' },
+    chinaThailand: { amount: '', currency: 'USD' },
+    localDelivery: { amount: '', currency: 'THB' },
   });
-  const [items, setItems] = useState<{product_id: string; quantity: number; unit_price_cny: number}[]>([]);
-  const [shipmentCosts, setShipmentCosts] = useState<{description: string; amount_cny: number}[]>([]);
+  const [formData, setFormData] = useState({
+    vendor: '',
+    exchangeRate: '35.42',
+    items: [
+      { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
+      { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
+    ],
+    notes: '',
+  });
 
-  const calculateTotal = () => {
-    const productsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unit_price_cny), 0);
-    const shippingTotal = shipmentCosts.reduce((sum, cost) => sum + cost.amount_cny, 0);
-    const totalCny = productsTotal + shippingTotal;
-    const totalThb = cnyToThb(totalCny, formData.exchange_rate);
-    return { totalCny, totalThb };
+  // ============================================================
+  // CALCULATIONS — Final always in THB
+  // USD/CNY used for import products & international freight input
+  // ============================================================
+  const RATE = parseFloat(formData.exchangeRate) || 35.42; // THB per 1 USD
+
+  // Items subtotal in THB (items priced in USD by default)
+  const calculateItemsSubtotal = () => {
+    return formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   };
+  const itemsSubtotalUSD = calculateItemsSubtotal();
+  const itemsSubtotalTHB = itemsSubtotalUSD * RATE;
 
-  const handleAddItem = () => {
-    // Get first product if available
-    const firstProduct = state.products[0];
-    setItems([...items, { product_id: firstProduct?.id || '', quantity: 1, unit_price_cny: 0 }]);
-  };
-
-  const handleAddShipmentCost = () => {
-    setShipmentCosts([...shipmentCosts, { description: '', amount_cny: 0 }]);
-  };
-
-  const handleSave = async () => {
-    const now = new Date().toISOString();
-    const { totalCny, totalThb } = calculateTotal();
-
-    const po: PurchaseOrder = {
-      id: editingPO?.id || uuidv4(),
-      po_number: editingPO?.po_number || `PO-2026-${Date.now().toString().slice(-4)}`,
-      supplier: formData.supplier,
-      currency: 'CNY',
-      exchange_rate: formData.exchange_rate,
-      status: formData.status,
-      items: items.map(item => ({
-        id: uuidv4(),
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price_cny: item.unit_price_cny,
-        total_cny: item.quantity * item.unit_price_cny,
-      })),
-      shipment_costs: shipmentCosts.map(cost => ({
-        id: uuidv4(),
-        description: cost.description,
-        amount_cny: cost.amount_cny,
-        amount_thb: cnyToThb(cost.amount_cny, formData.exchange_rate),
-        allocation_method: 'value' as const,
-      })),
-      total_cny: totalCny,
-      total_thb: totalThb,
-      landed_cost_total_thb: totalThb,
-      created_at: editingPO?.created_at || now,
-      updated_at: now,
-    };
-
-    // SAVE TO LOCAL STATE (Supabase sync TODO)
-    try {
-      // Skip Supabase for now - just add to local state
-    } catch (err) {
-      console.error('Save error:', err);
-    }
-
-    if (editingPO) {
-      dispatch({ type: 'UPDATE_PURCHASE_ORDER', payload: po });
-    } else {
-      dispatch({ type: 'ADD_PURCHASE_ORDER', payload: po });
-    }
-
-    alert(editingPO ? 'อัปเดตใบสั่งซื้อสำเร็จ!' : 'สร้างใบสั่งซื้อสำเร็จ!');
-    setIsModalOpen(false);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setEditingPO(null);
-    setFormData({ supplier: '', exchange_rate: 5.12, status: 'draft' });
-    setItems([]);
-    setShipmentCosts([]);
-  };
-
-  const handleEdit = (po: PurchaseOrder) => {
-    setEditingPO(po);
-    setFormData({
-      supplier: po.supplier,
-      exchange_rate: po.exchange_rate,
-      status: po.status,
+  // Logistics: CNY → THB, USD → THB, THB stays THB
+  const calculateLogisticsTotal = () => {
+    let totalTHB = 0;
+    const logisticsData = [
+      logistics.chinaDomestic,
+      logistics.chinaThailand,
+      logistics.localDelivery
+    ];
+    logisticsData.forEach(log => {
+      const amount = parseFloat(log.amount) || 0;
+      if (log.currency === 'CNY') totalTHB += amount * (RATE / 7.2);   // CNY→THB approx
+      else if (log.currency === 'USD') totalTHB += amount * RATE;        // USD→THB
+      else totalTHB += amount;                                           // THB stays
     });
-    setItems(po.items.map(i => ({
-      product_id: i.product_id,
-      quantity: i.quantity,
-      unit_price_cny: i.unit_price_cny,
-    })));
-    setShipmentCosts(po.shipment_costs.map(c => ({
-      description: c.description,
-      amount_cny: c.amount_cny,
-    })));
-    setIsModalOpen(true);
+    return totalTHB;
+  };
+  const logisticsTotalTHB = calculateLogisticsTotal();
+
+  const calculateTax = () => itemsSubtotalTHB * 0.07;
+  const calculateGrandTotal = () => itemsSubtotalTHB + logisticsTotalTHB + calculateTax();
+  const calculateGrandTotalUSD = () => itemsSubtotalUSD + (logisticsTotalTHB / RATE) + (calculateTax() / RATE);
+
+  const deleteItem = (id: number) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter(item => item.id !== id),
+    });
   };
 
+  const updateLogisticsAmount = (key: string, amount: string) => {
+    setLogistics({
+      ...logistics,
+      [key]: { ...logistics[key], amount }
+    });
+  };
+
+  const updateLogisticsCurrency = (key: string, currency: string) => {
+    setLogistics({
+      ...logistics,
+      [key]: { ...logistics[key], currency }
+    });
+  };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
   if (state.isLoading) {
     return <PageLoader />;
   }
 
-  const totals = state.purchaseOrders.reduce((acc, po) => ({
-    totalCny: acc.totalCny + po.total_cny,
-    totalThb: acc.totalThb + po.total_thb,
-  }), { totalCny: 0, totalThb: 0 });
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">นำเข้าสินค้า</h1>
-          <p className="text-gray-500 mt-1">จัดการใบสั่งซื้อและต้นทุนการนำเข้า</p>
+    <div className="min-h-screen bg-[#faf9f7] text-stone-900">
+      {/* ============================================================ */}
+      {/* NOISE TEXTURE OVERLAY */}
+      {/* ============================================================ */}
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.015] z-50"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* ============================================================ */}
+      {/* PAGE HEADER - NO FIXED HEADER (DashboardLayout provides one) */}
+      {/* ============================================================ */}
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              New Procurement Request
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-stone-900 leading-none">
+              Purchase Order
+              <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm">
+              <Save className="w-4 h-4" />
+              Save Draft
+            </button>
+            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+              <Send className="w-4 h-4" />
+              Confirm Order
+            </button>
+          </div>
         </div>
-        <Button onClick={() => { resetForm(); setIsModalOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" />
-          สร้างใบสั่งซื้อ
-        </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-purple-600" />
+      {/* ============================================================ */}
+      {/* WORKFLOW STEPPER */}
+      {/* ============================================================ */}
+      <div className="mb-8 bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
+        <div className="flex items-center justify-between max-w-xl mx-auto">
+          {/* Step 1 - Active */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-stone-900">Draft</div>
+              <div className="text-xs text-stone-400">In Progress</div>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">ใบสั่งซื้อทั้งหมด</p>
-            <p className="text-xl font-bold text-gray-900">{state.purchaseOrders.length}</p>
+
+          {/* Connector */}
+          <div className="flex-1 mx-3">
+            <div className="h-0.5 bg-gradient-to-r from-amber-500 to-stone-200 rounded-full" />
           </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-blue-600" />
+
+          {/* Step 2 */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-stone-400">Confirmed</div>
+              <div className="text-xs text-stone-300">Pending</div>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">มูลค่ารวม (CNY)</p>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(totals.totalCny, 'CNY')}</p>
+
+          {/* Connector */}
+          <div className="flex-1 mx-3">
+            <div className="h-0.5 bg-stone-200 rounded-full" />
           </div>
-        </Card>
-        <Card className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-            <Truck className="w-6 h-6 text-green-600" />
+
+          {/* Step 3 */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
+              <Package className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-stone-400">Received</div>
+              <div className="text-xs text-stone-300">Awaiting</div>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">มูลค่ารวม (THB)</p>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(totals.totalThb)}</p>
-          </div>
-        </Card>
+        </div>
       </div>
 
-      {/* Purchase Orders Table - Mobile Responsive */}
-      <Card padding="none">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeadCell>เลขที่ PO</TableHeadCell>
-                <TableHeadCell>ผู้จัดจำหน่าย</TableHeadCell>
-                <TableHeadCell>อัตราแลก</TableHeadCell>
-                <TableHeadCell>มูลค่า (CNY)</TableHeadCell>
-                <TableHeadCell>มูลค่า (THB)</TableHeadCell>
-                <TableHeadCell>สถานะ</TableHeadCell>
-                <TableHeadCell>วันที่</TableHeadCell>
-                <TableHeadCell>จัดการ</TableHeadCell>
-              </TableRow>
-            </TableHead>
-          <TableBody>
-            {state.purchaseOrders.map(po => (
-              <TableRow key={po.id}>
-                <TableCell>
-                  <span className="font-mono text-sm font-medium text-gray-900">{po.po_number}</span>
-                </TableCell>
-                <TableCell>{po.supplier}</TableCell>
-                <TableCell>{po.exchange_rate} THB/CNY</TableCell>
-                <TableCell>{formatCurrency(po.total_cny, 'CNY')}</TableCell>
-                <TableCell className="font-medium">{formatCurrency(po.total_thb)}</TableCell>
-                <TableCell>
-                  <Badge className={po.status === 'received' ? 'bg-green-100 text-green-700' :
-                    po.status === 'confirmed' ? 'bg-orange-100 text-orange-700' :
-                    'bg-gray-100 text-gray-700'}>
-                    {po.status === 'received' ? 'รับแล้ว' :
-                     po.status === 'confirmed' ? 'ยืนยันแล้ว' : 'ฉบับร่าง'}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDate(po.created_at)}</TableCell>
-                <TableCell>
-                  <Button size="sm" variant="ghost" onClick={() => handleEdit(po)}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
+      {/* ============================================================ */}
+      {/* MAIN GRID */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Mobile Card View */}
-        <div className="md:hidden divide-y divide-gray-100">
-          {state.purchaseOrders.map(po => (
-            <div key={po.id} className="p-4 bg-white">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="font-medium text-gray-900">{po.po_number}</p>
-                <Badge className={po.status === 'received' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                  {po.status === 'received' ? 'รับแล้ว' : 'รอรับ'}
-                </Badge>
-              </div>
-              <div className="text-sm text-gray-500 mb-2">
-                <span>อัตรา: {po.exchange_rate_thb} ฿</span>
-              </div>
-              <div className="flex items-center justify-between mt-3">
-                <p className="font-bold text-orange-600">฿{((po.total_cny || 0) * (po.exchange_rate_thb || 0)).toLocaleString()}</p>
-                <button onClick={() => handleEdit(po)} className="px-3 py-1.5 text-orange-600 bg-orange-50 rounded-lg text-sm">แก้ไข</button>
-              </div>
-            </div>
-          ))}
-          {state.purchaseOrders.length === 0 && (
-            <div className="p-8 text-center text-gray-500">ไม่พบใบสั่งซื้อ</div>
-          )}
-        </div>
-      </Card>
-
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); resetForm(); }}
-        title={editingPO ? '📋 แก้ไขใบสั่งซื้อ' : '📋 สร้างใบสั่งซื้อใหม่'}
-        size="xl"
-        footer={
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <Button variant="secondary" onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 py-4 text-lg">❌ ยกเลิก</Button>
-            <Button onClick={handleSave} className="flex-1 py-4 text-lg font-bold">💾 บันทึกใบสั่งซื้อ</Button>
-          </div>
-        }
-      >
-        <div className="space-y-8">
-          {/* SECTION 1: ข้อมูลผู้จัดจำหน่าย */}
-          <div className="bg-blue-50 rounded-2xl p-5">
-            <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
-              🏭 ข้อมูลผู้จัดจำหน่าย
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-base font-bold text-gray-800 mb-2">
-                  ชื่อผู้จัดจำหน่าย
+        {/* ============================================================ */}
+        {/* LEFT COLUMN - Forms */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* Vendor & Currency Section */}
+          <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              
+              {/* Vendor Selection */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
+                  <Factory className="w-3 h-3" />
+                  Vendor Selection
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="เช่น บริษัท ซัพพลายเออร์ จีน จำกัด"
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                />
+                <div className="relative">
+                  <select 
+                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all cursor-pointer pr-10"
+                    value={formData.vendor}
+                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                  >
+                    <option value="">Select a Vendor...</option>
+                    <option>Global Logistics Pro</option>
+                    <option>Shenzhen Tech Supplies</option>
+                    <option value="new">+ Add New Vendor</option>
+                  </select>
+                  <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 rotate-90 pointer-events-none" />
+                </div>
               </div>
-              <div>
-                <label className="block text-base font-bold text-gray-800 mb-2">
-                  💱 อัตราแลกเปลี่ยน (บาท/หยวน)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-lg text-center font-bold focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="5.12"
-                  value={formData.exchange_rate}
-                  onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 0 })}
-                />
-                <p className="text-sm text-gray-500 mt-1">กรอกอัตราหยวนเป็นบาท เช่น 5.12 บาท = 1 หยวน</p>
-              </div>
-            </div>
-          </div>
 
-          {/* SECTION 2: รายการสินค้า */}
-          <div className="bg-green-50 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-green-900 flex items-center gap-2">
-                📦 รายการสินค้า
-              </h3>
-              <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
-            </div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-gray-900 text-lg">📦 รายการสินค้า</h4>
-              <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้า</Button>
-            </div>
-            <div className="space-y-3">
-              {items.map((item, idx) => {
-                const product = state.products.find(p => p.id === item.product_id);
-                const getUnitLabel = (u: string) => {
-                  switch(u) {
-                    case 'sqm': return 'ตร.ม.';
-                    case 'sqm_roll': return 'ตร.ม./ม้วน';
-                    case 'meter': return 'เมตร';
-                    case 'cm': return 'ซม.';
-                    case 'mm': return 'มม.';
-                    case 'piece': return 'ชิ้น';
-                    case 'box': return 'กล่อง';
-                    case 'pack': return 'แพ็ค';
-                    case 'roll': return 'ม้วน';
-                    case 'set': return 'ชุด';
-                    default: return 'หน่วย';
-                  }
-                };
-                const unitLabel = product ? getUnitLabel(product.unit) : 'หน่วย';
-                return (
-                <div key={idx} className="bg-white border-2 border-gray-300 rounded-2xl p-5 space-y-5 shadow-md">
-                  {/* Product Selection - Full Width */}
-                  <div>
-                    <label className="text-lg font-bold text-gray-900 mb-3 block">📦 เลือกสินค้า</label>
-                    <select
-                      className="w-full px-5 py-4 border-2 border-gray-300 rounded-xl text-base bg-white"
-                      value={item.product_id}
-                      onChange={(e) => {
-                        const newItems = [...items];
-                        newItems[idx].product_id = e.target.value;
-                        setItems(newItems);
-                      }}
+              {/* Import Pricing Currency */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
+                  <CreditCard className="w-3 h-3" />
+                  Import Pricing (USD/CNY)
+                </label>
+                <div className="flex bg-stone-100 rounded-xl p-1.5">
+                  {['USD', 'CNY', 'THB'].map((curr) => (
+                    <button 
+                      key={curr}
+                      onClick={() => setActiveCurrency(curr)}
+                      className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+                        activeCurrency === curr 
+                          ? 'bg-white text-orange-600 shadow-sm' 
+                          : 'text-stone-500 hover:text-stone-700'
+                      }`}
                     >
-                      <option value="">-- เลือกสินค้า --</option>
-                      {state.products.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.sku} - {p.name_th} ({p.category})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Quantity - Full Width Stacked */}
-                  <div>
-                    <label className="text-lg font-bold text-gray-900 mb-3 block">🔢 จำนวน (หน่วย)</label>
-                    <input
-                      type="number"
-                      className="w-full px-5 py-5 border-2 border-gray-300 rounded-xl text-center text-xl font-bold"
-                      placeholder="0"
-                      value={item.quantity || ''}
-                      onChange={(e) => {
-                        const newItems = [...items];
-                        newItems[idx].quantity = parseInt(e.target.value) || 0;
-                        setItems(newItems);
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Price - Full Width Stacked */}
-                  <div>
-                    <label className="text-lg font-bold text-gray-900 mb-3 block">💰 ราคา/หน่วย (¥ CNY)</label>
-                    <input
-                      type="number"
-                      className="w-full px-5 py-5 border-2 border-gray-300 rounded-xl text-center text-xl font-bold"
-                      placeholder="0"
-                      value={item.unit_price_cny || ''}
-                      onChange={(e) => {
-                        const newItems = [...items];
-                        newItems[idx].unit_price_cny = parseFloat(e.target.value) || 0;
-                        setItems(newItems);
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Total Row - Big and Clear */}
-                  <div className="flex items-center justify-between pt-5 border-t-3 border-orange-400 bg-orange-100 rounded-xl px-5 py-4">
-                    <span className="text-xl font-bold text-gray-900">💵 รวมราคา:</span>
-                    <span className="text-3xl font-bold text-orange-600">
-                      ¥ {formatCurrency(item.quantity * item.unit_price_cny, 'CNY')}
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Exchange Rate */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
+                  <Globe className="w-3 h-3" />
+                  Exchange Rate (THB)
+                </label>
+                <div className="relative">
+                  <input 
+                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 pr-14 text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                    type="text"
+                    value={formData.exchangeRate}
+                    onChange={(e) => setFormData({ ...formData, exchangeRate: e.target.value })}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
+                    / 1 {activeCurrency}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Purchase Items Table */}
+          <section className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+            <div className="p-5 pb-3 flex justify-between items-center border-b border-stone-100">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                  <Package className="w-3.5 h-3.5 text-orange-600" />
+                </div>
+                <h3 className="text-sm font-bold text-stone-900">Purchase Items</h3>
+              </div>
+              <button className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
+                <Plus className="w-3 h-3" />
+                Add Item
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-stone-50/80">
+                    <th className="py-3 px-6 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">Item Description</th>
+                    <th className="py-3 px-3 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">SKU</th>
+                    <th className="py-3 px-3 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">Qty</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Unit Price</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (USD)</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (THB)</th>
+                    <th className="py-3 px-6 w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {formData.items.map((item, index) => (
+                    <tr key={item.id} className={`group transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-stone-50/30'} hover:bg-amber-50/20`}>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-500 font-bold text-xs">
+                            {item.name.charAt(0)}
+                          </div>
+                          <span className="text-sm font-semibold text-stone-900">{item.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-3">
+                        <span className="text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
+                          {item.sku}
+                        </span>
+                      </td>
+                      <td className="py-4 px-3 text-center">
+                        <span className="text-sm font-semibold text-stone-700">{item.quantity}</span>
+                      </td>
+                      <td className="py-4 px-3 text-right">
+                        <span className="text-sm font-semibold text-stone-700">${item.unit_price.toFixed(2)}</span>
+                      </td>
+                      <td className="py-4 px-3 text-right">
+                        <span className="text-sm font-black text-stone-900">
+                          ${(item.quantity * item.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="py-4 px-3 text-right">
+                        <span className="text-sm font-bold text-orange-600">
+                          ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <button 
+                          onClick={() => deleteItem(item.id)}
+                          className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Delete className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Logistics Section - 3 Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* China Domestic */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                  <Truck className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900">China Domestic</h4>
+                  <p className="text-[10px] text-stone-400">Freight within China</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <input 
+                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                  placeholder="0.00"
+                  type="number"
+                  value={logistics.chinaDomestic.amount}
+                  onChange={(e) => updateLogisticsAmount('chinaDomestic', e.target.value)}
+                />
+                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
+                  {['CNY', 'USD', 'THB'].map((curr) => (
+                    <button 
+                      key={curr}
+                      onClick={() => updateLogisticsCurrency('chinaDomestic', curr)}
+                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                        logistics.chinaDomestic.currency === curr 
+                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm' 
+                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
+                      }`}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* China-Thailand */}
+            <div className="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-5 hover:border-blue-300 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                  <PlaneTakeoff className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900">China-Thailand</h4>
+                  <p className="text-[10px] text-stone-400">International shipping</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <input 
+                  className="w-full h-10 bg-white border-2 border-dashed border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  placeholder="0.00"
+                  type="number"
+                  value={logistics.chinaThailand.amount}
+                  onChange={(e) => updateLogisticsAmount('chinaThailand', e.target.value)}
+                />
+                <div className="flex gap-1 p-1 bg-stone-50 rounded-xl">
+                  {['CNY', 'USD', 'THB'].map((curr) => (
+                    <button 
+                      key={curr}
+                      onClick={() => updateLogisticsCurrency('chinaThailand', curr)}
+                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                        logistics.chinaThailand.currency === curr 
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm' 
+                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
+                      }`}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Local Delivery */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-green-200 transition-all">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/20">
+                  <Warehouse className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900">Local Delivery</h4>
+                  <p className="text-[10px] text-stone-400">Thailand warehouse</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <input 
+                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all"
+                  placeholder="0.00"
+                  type="number"
+                  value={logistics.localDelivery.amount}
+                  onChange={(e) => updateLogisticsAmount('localDelivery', e.target.value)}
+                />
+                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
+                  {['CNY', 'USD', 'THB'].map((curr) => (
+                    <button 
+                      key={curr}
+                      onClick={() => updateLogisticsCurrency('localDelivery', curr)}
+                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                        logistics.localDelivery.currency === curr 
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm' 
+                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
+                      }`}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendor Notes */}
+          <section className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
+              <Info className="w-3 h-3" />
+              Internal Vendor Notes
+            </label>
+            <textarea 
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all placeholder:text-stone-400"
+              placeholder="Mention specific packaging requirements, quality control standards, or delivery instructions..."
+              rows={3}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            />
+          </section>
+        </div>
+
+        {/* ============================================================ */}
+        {/* RIGHT COLUMN - Summary Sidebar */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-4">
+          <div className="sticky top-24 space-y-4">
+            
+            {/* Order Summary Card */}
+            <div className="bg-white rounded-3xl border-2 border-stone-200 p-6 shadow-xl shadow-stone-200/50">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-base font-black text-stone-900 tracking-tight">Order Summary</h3>
+              </div>
+
+              <div className="space-y-3">
+                {/* Items — show both USD input and THB equivalent */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-stone-500 font-medium">Items Subtotal</span>
+                  <div className="text-right">
+                    <span className="font-bold text-stone-400 text-xs mr-2">USD</span>
+                    <span className="font-bold text-stone-900">
+                      ${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="mx-1 text-stone-300">|</span>
+                    <span className="font-bold text-orange-600">
+                      ฿{itemsSubtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                     </span>
                   </div>
                 </div>
-              )})}
-              {items.length === 0 && (
-                <div className="text-center py-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                  <p className="text-gray-400 mb-2">ยังไม่มีรายการสินค้า</p>
-                  <Button size="sm" variant="secondary" onClick={handleAddItem}>+ เพิ่มสินค้าชิ้นแรก</Button>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* SECTION 3: ค่าขนส่ง */}
-          <div className="bg-purple-50 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
-                🚚 ค่าขนส่งจากจีน
-              </h3>
-              <Button size="sm" variant="secondary" onClick={handleAddShipmentCost}>+ เพิ่มรายการ</Button>
-            </div>
-            <div className="space-y-2">
-              {shipmentCosts.map((cost, idx) => (
-                <div key={idx} className="flex gap-2 items-center bg-white p-2 rounded-xl">
-                  <input
-                    type="text"
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
-                    placeholder="เช่น ค่าขนส่งท่าเรือ, ค่าพิเศษ"
-                    value={cost.description}
-                    onChange={(e) => {
-                      const newCosts = [...shipmentCosts];
-                      newCosts[idx].description = e.target.value;
-                      setShipmentCosts(newCosts);
-                    }}
-                  />
-                  <input
-                    type="number"
-                    className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm text-center"
-                    placeholder="¥"
-                    value={cost.amount_cny || ''}
-                    onChange={(e) => {
-                      const newCosts = [...shipmentCosts];
-                      newCosts[idx].amount_cny = parseFloat(e.target.value) || 0;
-                      setShipmentCosts(newCosts);
-                    }}
-                  />
-                  <span className="text-xs text-gray-500 whitespace-nowrap">
-                    ≈ ฿{formatCurrency(cnyToThb(cost.amount_cny, formData.exchange_rate))}
+                {/* Logistics */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-stone-500 font-medium">Logistics Total</span>
+                  <div className="text-right">
+                    <span className="font-bold text-orange-600">
+                      ฿{logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tax */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-stone-500 font-medium">Est. Tax (7%)</span>
+                  <span className="font-bold text-orange-600">
+                    ฿{calculateTax().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                   </span>
                 </div>
-              ))}
-              {shipmentCosts.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-2">ยังไม่มีค่าใช้จ่าย</p>
-              )}
-            </div>
-          </div>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
+                
+                {/* GRAND TOTAL — Always THB */}
+                <div className="py-4 px-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
+                  <div className="flex justify-between items-baseline mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Grand Total (THB)</span>
+                    <span className="text-2xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                      ฿{calculateGrandTotal().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-medium text-stone-400">
+                      ≈ $ {calculateGrandTotalUSD().toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-          {/* SECTION 4: สรุปยอด */}
-          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-2xl p-6 border-2 border-orange-300">
-            <h3 className="text-xl font-bold text-orange-900 mb-4 flex items-center gap-2">
-              💰 สรุปยอดรวม
-            </h3>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-600">รวมค่าสินค้า (CNY):</span>
-              <span className="font-semibold">¥ {formatCurrency(calculateTotal().totalCny, 'CNY')}</span>
+              <div className="mt-6 space-y-2.5">
+                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Confirm Order
+                </button>
+                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  <Save className="w-4 h-4" />
+                  Save as Draft
+                </button>
+              </div>
             </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-600">รวมค่าขนส่ง (CNY):</span>
-              <span className="font-semibold">¥ {formatCurrency(shipmentCosts.reduce((s, c) => s + c.amount_cny, 0), 'CNY')}</span>
-            </div>
-            <div className="border-t border-orange-200 my-3"></div>
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-bold text-gray-800">💰 รวมทั้งสิ้น (THB):</span>
-              <span className="font-bold text-2xl text-orange-600">฿ {formatCurrency(calculateTotal().totalThb)}</span>
-            </div>
-            <div className="text-right text-xs text-gray-500 mt-1">
-              (อัตรา: 1 CNY = {formData.exchange_rate} THB)
+
+            {/* Info Note */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-100/50">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Info className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <p className="text-[11px] font-medium text-amber-800 leading-relaxed">
+                  Prices are calculated using the current exchange rate. Final settlement occurs upon inventory receipt.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </Modal>
+      </div>
+
+      {/* ============================================================ */}
+      {/* FOOTER */}
+      {/* ============================================================ */}
+      <footer className="mt-10 flex justify-center">
+        <div className="flex items-center gap-2.5 opacity-15">
+          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-stone-400">
+            MORIX ERP • Executive Procurement System
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+        </div>
+      </footer>
     </div>
   );
 }
