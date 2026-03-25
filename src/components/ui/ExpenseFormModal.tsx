@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Receipt, Tag, Truck, Zap, Wrench, Building, CreditCard, Plus, Trash2, DollarSign, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/supabase';
 
 interface ExpenseFormModalProps {
   isOpen: boolean;
@@ -50,10 +51,25 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    toast(`Expense "${form.description}" recorded!`, 'success');
-    setLoading(false);
-    onClose();
+    try {
+      await api.createExpense({
+        description: form.description,
+        category: form.category,
+        vendor: form.vendor || null,
+        expense_date: form.date,
+        amount_thb: parseFloat(form.amount) || 0,
+        amount_currency: parseFloat(form.amount) || 0,
+        currency: form.currency,
+        reference_po: form.ref || null,
+        notes: form.note || null,
+      });
+      toast(`Expense "${form.description}" recorded!`, 'success');
+      onClose();
+    } catch (err: any) {
+      toast('Failed to record expense: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;

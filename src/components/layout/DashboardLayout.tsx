@@ -158,23 +158,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           {menuItems.map(item => <NavItem key={item.id} item={item} />)}
         </nav>
 
-        {/* FAB */}
-        {!collapsed && (
-          <div style={{ padding: '0.75rem 0.75rem 0.5rem' }}>
-            <button onClick={() => setCreateOpen(true)}
-              style={{
-                width: '100%', padding: '0.875rem',
-                background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-                color: 'white', borderRadius: 9999, border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem',
-                boxShadow: '0 4px 12px rgba(249,115,22,0.35)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-              }}>
-              <Plus style={{ width: 20, height: 20 }} />
-              Create New
-            </button>
-          </div>
-        )}
+        {/* FAB - REMOVED: Desktop primary action is now ONLY in header (see header section) */}
 
         {/* Bottom */}
         <div style={{ borderTop: '1px solid var(--outline-variant)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
@@ -264,23 +248,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* ── MOBILE HEADER ──────────────────── */}
-      <header className="lg:hidden flex items-center fixed top-0 left-0 right-0 z-30"
-        style={{
-          height: 64, padding: '0 1rem',
-          background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid var(--outline-variant)',
-          justifyContent: 'space-between',
-        }}
-      >
-        <button onClick={() => setMobileOpen(true)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}>
-          <Menu style={{ width: 20, height: 20 }} />
-        </button>
-        <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>MORIX</span>
-        <button onClick={() => setCreateOpen(true)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Plus style={{ width: 18, height: 18, color: 'white' }} />
-        </button>
-      </header>
 
       {/* ── MOBILE SIDEBAR OVERLAY ──────────── */}
       {mobileOpen && (
@@ -341,7 +308,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           { label: 'Products', icon: Package,     href: '/products' },
           { label: '',         icon: Plus,         fab: true },
           { label: 'Sales',   icon: TrendingUp,  href: '/sales' },
-          { label: 'Suite',   icon: Settings,    href: '/settings' },
+          { label: 'Menu',    icon: Menu,        mobileMenu: true },
         ].map((item, i) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -350,6 +317,15 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
               <button key={i} onClick={() => setCreateOpen(true)}
                 style={{ position: 'relative', top: -20, width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', boxShadow: '0 4px 16px rgba(249,115,22,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon style={{ width: 24, height: 24, color: 'white' }} />
+              </button>
+            );
+          }
+          if ((item as any).mobileMenu) {
+            return (
+              <button key={i} onClick={() => setMobileOpen(true)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: 'var(--on-surface-variant)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <Menu style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Menu</span>
               </button>
             );
           }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, ShoppingCart, Package, Plus, Trash2, Truck, DollarSign, MapPin, Calendar, ChevronDown } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/supabase';
 
 interface PurchaseOrderFormModalProps {
   isOpen: boolean;
@@ -79,10 +80,33 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
     e.preventDefault();
     if (!supplier) { toast('Please select a supplier', 'error'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    toast(`PO created — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
-    setLoading(false);
-    onClose();
+    try {
+      await api.createPurchaseOrder({
+        po_number: `PO-${Date.now()}`,
+        supplier_id: supplier.id,
+        order_date: new Date().toISOString().split('T')[0],
+        expected_arrival_date: expectedDate || null,
+        status: 'pending',
+        currency: 'CNY',
+        exchange_rate: THB_RATE,
+        items: items.map((item, idx) => ({
+          product_id: IMPORT_PRODUCTS[item.product]?.name || 'Unknown',
+          description: IMPORT_PRODUCTS[item.product]?.name || `Item ${idx + 1}`,
+          quantity: item.qty,
+          unit_price_cny: item.unitPrice,
+          unit_price: item.unitPrice * THB_RATE,
+        })),
+        total_amount: itemsSubtotalUSD,
+        total_thb: grandTotalTHB,
+        notes: null,
+      });
+      toast(`PO created — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
+      onClose();
+    } catch (err: any) {
+      toast('Failed to create PO: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;

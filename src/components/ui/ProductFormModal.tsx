@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Package, Tag, Hash, Layers, DollarSign, ToggleLeft, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/supabase';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -59,11 +60,29 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
       return;
     }
     setLoading(true);
-    // Simulate save
-    await new Promise(r => setTimeout(r, 800));
-    toast(`Product "${form.name}" created successfully!`, 'success');
-    setLoading(false);
-    onClose();
+    try {
+      const productData = {
+        sku: form.sku,
+        name_th: form.name,
+        name_en: form.nameEn || null,
+        category: form.category,
+        unit: form.unit,
+        price_thb: parseFloat(form.price) || 0,
+        cost_thb: parseFloat(form.cost) || 0,
+        reorder_point: parseInt(form.reorderPoint) || 10,
+        min_stock: parseInt(form.minStock) || 5,
+        spec: {},
+        images: [],
+        status: 'active',
+      };
+      await api.createProduct(productData);
+      toast(`Product "${form.name}" created successfully!`, 'success');
+      onClose();
+    } catch (err: any) {
+      toast('Failed to create product: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;

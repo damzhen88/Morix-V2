@@ -146,7 +146,8 @@ export default function PurchasePage() {
               <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          {/* DESKTOP CTA — only visible on desktop */}
+          <div className="hidden md:flex items-center gap-3">
             <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm" onClick={handleSaveDraft}>
               <Save className="w-4 h-4" />
               Save Draft
@@ -567,8 +568,9 @@ export default function PurchasePage() {
                 </div>
               </div>
 
-              <div className="mt-6 space-y-2.5">
-                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
+              {/* MOBILE STICKY CTA BAR — only visible on mobile */}
+              <div className="md:hidden mt-6 space-y-2.5">
+                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
                   <Send className="w-4 h-4" />
                   Confirm Order
                 </button>

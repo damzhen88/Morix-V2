@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, TrendingUp, User, Package, Plus, Trash2, Calendar, ChevronDown } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/supabase';
 
 interface SaleFormModalProps {
   isOpen: boolean;
@@ -62,11 +63,34 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!client) { toast('Please select a client', 'error'); return; }
+    if (items.length === 0) { toast('Please add at least one item', 'error'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    toast(`Sale order created — ฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
-    setLoading(false);
-    onClose();
+    try {
+      await api.createSalesOrder({
+        order_number: `SO-${Date.now()}`,
+        customer_id: client.id,
+        customer_name: client.name,
+        customer_type: 'dealer',
+        status: 'confirmed',
+        items: items.map(item => ({
+          product_id: item.productId,
+          description: item.name,
+          quantity: item.qty,
+          unit_price: item.price,
+          total: item.qty * item.price,
+        })),
+        subtotal: subtotal,
+        total: grandTotal,
+        profit_thb: grandTotal - subtotal,
+        payment_status: 'unpaid',
+      });
+      toast(`Sale order created — ฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
+      onClose();
+    } catch (err: any) {
+      toast('Failed to create sale: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;

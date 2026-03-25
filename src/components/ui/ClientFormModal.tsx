@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Users, Building2, Mail, Phone, MapPin, Star, User, Globe } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/supabase';
 
 interface ClientFormModalProps {
   isOpen: boolean;
@@ -34,10 +35,22 @@ export default function ClientFormModal({ isOpen, onClose }: ClientFormModalProp
       return;
     }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    toast(`Client "${form.name}" added successfully!`, 'success');
-    setLoading(false);
-    onClose();
+    try {
+      await api.createCustomer({
+        name: form.name,
+        phone: form.phone || null,
+        email: form.email || null,
+        address: form.address || null,
+        customer_type: form.type.toLowerCase().replace(' ', '_'),
+        status: 'active',
+      });
+      toast(`Client "${form.name}" added successfully!`, 'success');
+      onClose();
+    } catch (err: any) {
+      toast('Failed to add client: ' + (err.message || 'Unknown error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
