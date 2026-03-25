@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   Users, Receipt, TrendingUp, Settings, Menu, X,
@@ -36,6 +36,7 @@ const SIDEBAR_KEY = 'morix-sidebar-collapsed';
 
 function InnerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { activeForm, openForm, closeForm } = useFormModal();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed]   = useState(false);
@@ -285,6 +286,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onOpenForm={openForm}
+        onNavigate={(path) => { setCreateOpen(false); router.push(path); }}
       />
 
       {/* Form modals */}

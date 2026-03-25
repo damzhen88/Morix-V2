@@ -7,13 +7,14 @@ interface CreateMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenForm: (key: 'product' | 'client' | 'sale' | 'purchase') => void;
+  onNavigate: (path: string) => void;
 }
 
 const ITEMS = [
   { label: 'New Product',          desc: 'Add to catalog & inventory', icon: Package,      key: 'product'  as const, color: '#F97316' },
   { label: 'New Sale',            desc: 'Record a customer sale',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
   { label: 'New Client',          desc: 'Add a business partner',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
-  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart,key: 'purchase' as const, color: '#D97706' },
+  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart, key: 'purchase' as const, color: '#D97706', navigate: '/purchase/new' as string },
   { label: 'New Expense',        desc: 'Record a business expense',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
 ];
 
@@ -83,7 +84,7 @@ export default function CreateMenu({ isOpen, onClose, onOpenForm }: CreateMenuPr
               return (
                 <button
                   key={item.key}
-                  onClick={() => { onOpenForm(item.key); }}
+                  onClick={() => { if (item.navigate) { onNavigate(item.navigate); onClose(); } else { onOpenForm(item.key); } }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
                     padding: '0.75rem', borderRadius: 12,
