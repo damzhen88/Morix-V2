@@ -97,7 +97,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '2.5rem', backgroundColor: 'var(--surface-container-low)', padding: '0.25rem', borderRadius: 16 }}>
+      <div className="hidden lg:block" style={{ display: 'flex', gap: '0.25rem', marginBottom: '2.5rem', backgroundColor: 'var(--surface-container-low)', padding: '0.25rem', borderRadius: 16 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{
@@ -112,6 +112,35 @@ export default function SettingsPage() {
             {t.label}
           </button>
         ))}
+      </div>
+
+      {/* ── MOBILE SECTION ACCORDION ── */}
+      <div className="lg:hidden space-y-2 mb-6">
+        <p className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] px-1">Select Section</p>
+        {TABS.map(t => {
+          const icons: Record<string, any> = {
+            identity: Award, general: Globe, financial: CreditCardIcon,
+            notifications: Bell, users: ShieldCheck,
+          };
+          const Icon = icons[t.id];
+          return (
+            <button key={t.id}
+              onClick={() => toggleMobileSection(t.id)}
+              className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all touch-action text-left ${
+                tab === t.id
+                  ? 'border-[var(--primary)] bg-[var(--primary-container)]'
+                  : 'border-[var(--outline-variant)] bg-[var(--surface-container-lowest)] hover:border-[var(--outline)]'
+              }`}>
+              <div className="flex items-center gap-3">
+                <Icon className="w-5 h-5" style={{ color: tab === t.id ? 'var(--primary)' : 'var(--on-surface-variant)' }} />
+                <span className={`font-semibold text-sm ${tab === t.id ? 'text-[var(--primary)]' : 'text-[var(--on-surface)]'}`}>
+                  {t.label}
+                </span>
+              </div>
+              <ChevronRight className={`w-4 h-4 transition-transform ${mobileOpenSection === t.id ? 'rotate-90 text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`} />
+            </button>
+          );
+        })}
       </div>
 
       {/* ══════════════════════════════════════
