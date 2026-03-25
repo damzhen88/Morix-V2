@@ -1,613 +1,793 @@
-// Purchase Order Page for MORIX V2 - Anti-Slop Design
-// Works within DashboardLayout - NO duplicate header/sidebar
-
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '@/store';
-import { PageLoader } from '@/components/ui';
-import { 
-  Save, Send, CheckCircle, Package, Truck, Globe, 
-  Delete, Plus, Info, ChevronRight,
-  CreditCard, Factory, PlaneTakeoff, Warehouse
+import {
+  Factory, CreditCard, Globe, Package, Truck, PlaneTakeoff, Warehouse,
+  Plus, Save, Send, ChevronRight, Trash2, Info, X, CheckCircle,
+  ShoppingCart, Receipt, ArrowLeft, AlertCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 
-// ============================================================
-// ANTI-SLOP DESIGN SYSTEM - MORIX V2
-// ============================================================
-// ✅ NO Inter/Roboto (using Outfit + DM Sans)
-// ✅ NO purple gradients (using amber/orange palette)
-// ✅ NO uniform rounded corners (varied 8px-16px-24px)
-// ✅ NO generic cards (layered depth with shadows)
-// ✅ Custom noise texture backgrounds
-// ============================================================
+// ─── Anti-Slop Design Tokens (MORIX V2) ───────────────────────
+const css = {
+  primary:   'var(--primary)',
+  primaryBg:  'var(--primary-container)',
+  surface:   'var(--surface-container-lowest)',
+  card:      'var(--surface-container-lowest)',
+  cardMid:   'var(--surface-container-low)',
+  border:    'var(--outline-variant)',
+  text:      'var(--on-surface)',
+  textMuted: 'var(--on-surface-variant)',
+  error:     'var(--error)',
+  success:   'var(--success)',
+  amber:     '#F59E0B',
+  amberBg:   '#FEF3C7',
+  blue:      '#3B82F6',
+  blueBg:    '#DBEAFE',
+  green:     '#10B981',
+  greenBg:   '#D1FAE5',
+};
 
+// ─── Default Items ────────────────────────────────────────────
+const DEFAULT_ITEMS = [
+  { id: 1, sku: 'CH-AS-092', name: 'Ultra-Slim Aluminum Chassis', qty: 150, priceUSD: 45.00 },
+  { id: 2, sku: 'PCB-GF-44',  name: 'Glass Fiber PCB Panel',       qty: 300, priceUSD: 12.50 },
+];
+
+const LOGISTICS = [
+  { id: 'china_domestic',  label: 'China Domestic',   icon: Truck,       color: '#EF4444', colorBg: '#FEE2E2' },
+  { id: 'china_thailand',  label: 'China → Thailand', icon: PlaneTakeoff, color: '#3B82F6', colorBg: '#DBEAFE' },
+  { id: 'local_delivery',  label: 'Local Delivery',   icon: Warehouse,   color: '#10B981', colorBg: '#D1FAE5' },
+];
+
+const SUPPLIERS = [
+  'Global Logistics Pro',
+  'Shenzhen Tech Supplies',
+  'Guangzhou Trading Co.',
+  'Bangkok Freight Co.',
+];
+
+// ─── Card Component ─────────────────────────────────────────────
+function Card({ children, className = '', style = {} }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  return (
+    <div className={`rounded-2xl border ${className}`}
+      style={{
+        backgroundColor: css.card,
+        borderColor: css.border,
+        ...style,
+      }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── Section Title ─────────────────────────────────────────────
+function SectionTitle({ icon: Icon, title, subtitle, badge, color = css.primary }: {
+  icon: React.ComponentType<{ style?: React.CSSProperties }>;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  color?: string;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10,
+        backgroundColor: `${color}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <Icon style={{ width: 18, height: 18, color }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>
+            {title}
+          </h2>
+          {badge && (
+            <span style={{
+              fontSize: '0.625rem', fontWeight: 700, padding: '2px 8px',
+              borderRadius: 9999, backgroundColor: `${color}18`, color,
+            }}>{badge}</span>
+          )}
+        </div>
+        {subtitle && (
+          <p style={{ fontSize: '0.75rem', color: css.textMuted, marginTop: 2 }}>{subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Bottom Sheet ─────────────────────────────────────────────
+function BottomSheet({ open, onClose, title, children }: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        backgroundColor: 'var(--surface-container-lowest)',
+        borderRadius: '24px 24px 0 0',
+        maxHeight: '85vh', overflowY: 'auto',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+        animation: 'slideUp 300ms ease-out',
+      }}>
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: 'var(--outline-variant)' }} />
+        </div>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '1rem 1.5rem', borderBottom: `1px solid ${css.border}`,
+        }}>
+          <h3 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1rem', color: css.text }}>
+            {title}
+          </h3>
+          <button onClick={onClose} style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            padding: '0.375rem', borderRadius: 8, color: css.textMuted,
+          }}>
+            <X style={{ width: 20, height: 20 }} />
+          </button>
+        </div>
+        {/* Content */}
+        <div style={{ padding: '1.5rem' }}>{children}</div>
+      </div>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────
 export default function PurchasePage() {
-  const { state } = useApp();
-  const [activeCurrency, setActiveCurrency] = useState('USD');
-  const [logistics, setLogistics] = useState({
-    chinaDomestic: { amount: '', currency: 'CNY' },
-    chinaThailand: { amount: '', currency: 'USD' },
-    localDelivery: { amount: '', currency: 'THB' },
-  });
-  const [formData, setFormData] = useState({
-    vendor: '',
-    exchangeRate: '35.42',
-    items: [
-      { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
-      { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
-    ],
-    notes: '',
-  });
+  const [supplier, setSupplier]         = useState('');
+  const [currency, setCurrency]           = useState('USD');
+  const [exchangeRate, setExchangeRate] = useState('35.42');
+  const [items, setItems]               = useState(DEFAULT_ITEMS);
+  const [logistics, setLogistics]       = useState<Record<string, string>>({});
+  const [notes, setNotes]               = useState('');
 
-  // ============================================================
-  // CALCULATIONS — Final always in THB
-  // USD/CNY used for import products & international freight input
-  // ============================================================
-  const RATE = parseFloat(formData.exchangeRate) || 35.42; // THB per 1 USD
+  // Sheet state
+  const [sheetOpen, setSheetOpen]       = useState(false);
+  const [sheetTitle, setSheetTitle]     = useState('');
+  const [sheetContent, setSheetContent] = useState<'add-product' | 'add-logistics'>('add-product');
+  const [newItem, setNewItem]           = useState({ sku: '', name: '', qty: '1', price: '0' });
 
-  // Items subtotal in THB (items priced in USD by default)
-  const calculateItemsSubtotal = () => {
-    return formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  };
-  const itemsSubtotalUSD = calculateItemsSubtotal();
-  const itemsSubtotalTHB = itemsSubtotalUSD * RATE;
+  // Calc
+  const rate = parseFloat(exchangeRate) || 35.42;
+  const subtotalUSD = items.reduce((s, i) => s + i.qty * i.priceUSD, 0);
+  const subtotalTHB = subtotalUSD * rate;
+  const logisticsUSD = Object.values(logistics).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const logisticsTHB = logisticsUSD * rate;
+  const taxTHB   = subtotalTHB * 0.07;
+  const totalTHB = subtotalTHB + logisticsTHB + taxTHB;
+  const totalUSD = totalTHB / rate;
 
-  // Logistics: CNY → THB, USD → THB, THB stays THB
-  const calculateLogisticsTotal = () => {
-    let totalTHB = 0;
-    const logisticsData = [
-      logistics.chinaDomestic,
-      logistics.chinaThailand,
-      logistics.localDelivery
-    ];
-    logisticsData.forEach(log => {
-      const amount = parseFloat(log.amount) || 0;
-      if (log.currency === 'CNY') totalTHB += amount * (RATE / 7.2);   // CNY→THB approx
-      else if (log.currency === 'USD') totalTHB += amount * RATE;        // USD→THB
-      else totalTHB += amount;                                           // THB stays
-    });
-    return totalTHB;
-  };
-  const logisticsTotalTHB = calculateLogisticsTotal();
-
-  const calculateTax = () => itemsSubtotalTHB * 0.07;
-  const calculateGrandTotal = () => itemsSubtotalTHB + logisticsTotalTHB + calculateTax();
-  const calculateGrandTotalUSD = () => itemsSubtotalUSD + (logisticsTotalTHB / RATE) + (calculateTax() / RATE);
-
-  const deleteItem = (id: number) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter(item => item.id !== id),
-    });
+  const openSheet = (title: string, content: 'add-product' | 'add-logistics') => {
+    setSheetTitle(title);
+    setSheetContent(content);
+    setSheetOpen(true);
   };
 
-  const updateLogisticsAmount = (key: string, amount: string) => {
-    setLogistics({
-      ...logistics,
-      [key]: { ...logistics[key], amount }
-    });
+  const addItem = () => {
+    if (!newItem.name) return;
+    setItems([...items, {
+      id: Date.now(),
+      sku: newItem.sku || `SKU-${items.length + 1}`,
+      name: newItem.name,
+      qty: parseInt(newItem.qty) || 1,
+      priceUSD: parseFloat(newItem.price) || 0,
+    }]);
+    setNewItem({ sku: '', name: '', qty: '1', price: '0' });
+    setSheetOpen(false);
   };
 
-  const updateLogisticsCurrency = (key: string, currency: string) => {
-    setLogistics({
-      ...logistics,
-      [key]: { ...logistics[key], currency }
-    });
+  const removeItem = (id: number) => setItems(items.filter(i => i.id !== id));
+  const toggleLogistics = (id: string) => {
+    if (logistics[id]) {
+      const updated = { ...logistics };
+      delete updated[id];
+      setLogistics(updated);
+    } else {
+      setLogistics({ ...logistics, [id]: '' });
+    }
   };
 
   const handleSaveDraft = () => {
-    alert(`Draft saved!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+    alert(`Draft saved!\n\nPO #2847\nSupplier: ${supplier || '—'}\nItems: ${items.length}\nTotal: ฿${totalTHB.toLocaleString()}`);
   };
 
   const handleConfirm = () => {
-    if (!formData.supplier) {
-      alert('Please select a supplier first');
-      return;
-    }
-    if (formData.items.length === 0) {
-      alert('Please add at least one item');
-      return;
-    }
-    alert(`Purchase Order confirmed!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+    if (!supplier) { alert('Please select a supplier first'); return; }
+    if (items.length === 0) { alert('Please add at least one item'); return; }
+    alert(`Purchase Order confirmed!\n\nTotal: ฿${totalTHB.toLocaleString()}`);
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
-  if (state.isLoading) {
-    return <PageLoader />;
-  }
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: 'var(--surface-container-low)',
+    border: '1px solid transparent',
+    borderRadius: 12,
+    padding: '0.75rem 1rem',
+    width: '100%',
+    fontSize: '0.875rem',
+    color: css.text,
+    fontFamily: 'var(--font-body)',
+    outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+  };
+
+  const focusStyle: React.CSSProperties = {
+    borderColor: css.primary,
+    boxShadow: '0 0 0 3px rgba(249,115,22,0.12)',
+  };
 
   return (
-    <div className="min-h-screen bg-[#faf9f7] text-stone-900">
-      {/* ============================================================ */}
-      {/* NOISE TEXTURE OVERLAY */}
-      {/* ============================================================ */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-[0.015] z-50"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>
 
-      {/* ============================================================ */}
-      {/* PAGE HEADER - NO FIXED HEADER (DashboardLayout provides one) */}
-      {/* ============================================================ */}
-      <div className="mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      {/* ── PAGE HEADER ─────────────────────────── */}
+      <div style={{ marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              New Procurement Request
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <Link href="/purchase" style={{ color: css.textMuted, display: 'flex', alignItems: 'center' }}>
+                <ArrowLeft style={{ width: 16, height: 16 }} />
+              </Link>
+              <span style={{
+                fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.1em', color: css.primary, display: 'flex', alignItems: 'center', gap: '0.5rem',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: css.primary }} />
+                New Procurement
+              </span>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-stone-900 leading-none">
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: 'clamp(1.5rem, 4vw, 2rem)', letterSpacing: '-0.02em', color: css.text }}>
               Purchase Order
-              <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
+              <span style={{ fontWeight: 400, color: css.textMuted, marginLeft: '0.75rem', fontSize: 'clamp(1rem, 2.5vw, 1.25rem)' }}>
+                #PO-2847
+              </span>
             </h1>
           </div>
-          {/* DESKTOP CTA — only visible on desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm" onClick={handleSaveDraft}>
-              <Save className="w-4 h-4" />
+
+          {/* Desktop CTA */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0 }}>
+            <button onClick={handleSaveDraft}
+              style={{
+                height: 44, padding: '0 1.25rem',
+                borderRadius: 12, border: `1.5px solid ${css.border}`,
+                background: 'transparent', cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem',
+                color: css.text, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-container-low)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}>
+              <Save style={{ width: 16, height: 16 }} />
               Save Draft
             </button>
-            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2" onClick={handleConfirm}>
-              <Send className="w-4 h-4" />
+            <button onClick={handleConfirm}
+              style={{
+                height: 44, padding: '0 1.5rem',
+                borderRadius: 12, border: 'none',
+                background: `linear-gradient(135deg, ${css.primary}, var(--primary-dark))`,
+                cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem',
+                color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+              }}>
+              <Send style={{ width: 16, height: 16 }} />
               Confirm Order
             </button>
           </div>
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* WORKFLOW STEPPER */}
-      {/* ============================================================ */}
-      <div className="mb-8 bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-        <div className="flex items-center justify-between max-w-xl mx-auto">
-          {/* Step 1 - Active */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-stone-900">Draft</div>
-              <div className="text-xs text-stone-400">In Progress</div>
-            </div>
-          </div>
+      {/* ── MAIN GRID ──────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
 
-          {/* Connector */}
-          <div className="flex-1 mx-3">
-            <div className="h-0.5 bg-gradient-to-r from-amber-500 to-stone-200 rounded-full" />
-          </div>
+        {/* ── LEFT COLUMN ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-          {/* Step 2 */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
-              <CheckCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-stone-400">Confirmed</div>
-              <div className="text-xs text-stone-300">Pending</div>
-            </div>
-          </div>
-
-          {/* Connector */}
-          <div className="flex-1 mx-3">
-            <div className="h-0.5 bg-stone-200 rounded-full" />
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
-              <Package className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-stone-400">Received</div>
-              <div className="text-xs text-stone-300">Awaiting</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* MAIN GRID */}
-      {/* ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* ============================================================ */}
-        {/* LEFT COLUMN - Forms */}
-        {/* ============================================================ */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Vendor & Currency Section */}
-          <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              
-              {/* Vendor Selection */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <Factory className="w-3 h-3" />
-                  Vendor Selection
-                </label>
-                <div className="relative">
-                  <select 
-                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all cursor-pointer pr-10"
-                    value={formData.vendor}
-                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  >
-                    <option value="">Select a Vendor...</option>
-                    <option>Global Logistics Pro</option>
-                    <option>Shenzhen Tech Supplies</option>
-                    <option value="new">+ Add New Vendor</option>
+          {/* Supplier Info */}
+          <Card style={{ padding: '1.5rem' }}>
+            <SectionTitle icon={Factory} title="Supplier Information" subtitle="Select supplier and set pricing currency" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>Supplier *</label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={supplier}
+                    onChange={e => setSupplier(e.target.value)}
+                    onFocus={e => Object.assign(e.target.style, focusStyle)}
+                    onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }}
+                    style={{ ...inputStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}>
+                    <option value="">Select supplier…</option>
+                    {SUPPLIERS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 rotate-90 pointer-events-none" />
+                  <ChevronRight style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', width: 16, height: 16, color: css.textMuted, pointerEvents: 'none' }} />
                 </div>
               </div>
-
-              {/* Import Pricing Currency */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <CreditCard className="w-3 h-3" />
-                  Import Pricing (USD/CNY)
-                </label>
-                <div className="flex bg-stone-100 rounded-xl p-1.5">
-                  {['USD', 'CNY', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => setActiveCurrency(curr)}
-                      className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-                        activeCurrency === curr 
-                          ? 'bg-white text-orange-600 shadow-sm' 
-                          : 'text-stone-500 hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
+              <div>
+                <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>Import Currency</label>
+                <div style={{ display: 'flex', gap: '0.375rem', backgroundColor: 'var(--surface-container-low)', borderRadius: 12, padding: '0.25rem' }}>
+                  {['USD', 'CNY', 'THB'].map(c => (
+                    <button key={c}
+                      onClick={() => setCurrency(c)}
+                      style={{
+                        flex: 1, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
+                        transition: 'all 0.15s',
+                        backgroundColor: currency === c ? 'white' : 'transparent',
+                        color: currency === c ? css.primary : css.textMuted,
+                        boxShadow: currency === c ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                      }}>
+                      {c}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Exchange Rate */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <Globe className="w-3 h-3" />
-                  Exchange Rate (THB)
-                </label>
-                <div className="relative">
-                  <input 
-                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 pr-14 text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-                    type="text"
-                    value={formData.exchangeRate}
-                    onChange={(e) => setFormData({ ...formData, exchangeRate: e.target.value })}
+              <div>
+                <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>Exchange Rate (THB)</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={exchangeRate}
+                    onChange={e => setExchangeRate(e.target.value)}
+                    onFocus={e => Object.assign(e.target.style, focusStyle)}
+                    onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }}
+                    style={{ ...inputStyle, paddingRight: '3.5rem', fontWeight: 600 }}
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
-                    / 1 {activeCurrency}
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', fontWeight: 600, color: css.textMuted }}>
+                    THB/{currency}
                   </span>
                 </div>
               </div>
             </div>
-          </section>
+          </Card>
 
-          {/* Purchase Items Table */}
-          <section className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-            <div className="p-5 pb-3 flex justify-between items-center border-b border-stone-100">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                  <Package className="w-3.5 h-3.5 text-orange-600" />
+          {/* Products */}
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Section header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '1.25rem 1.5rem',
+              borderBottom: `1px solid ${css.border}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${css.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Package style={{ width: 18, height: 18, color: css.primary }} />
                 </div>
-                <h3 className="text-sm font-bold text-stone-900">Purchase Items</h3>
+                <div>
+                  <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>Products</h2>
+                  <p style={{ fontSize: '0.75rem', color: css.textMuted }}>{items.length} item{items.length !== 1 ? 's' : ''} added</p>
+                </div>
               </div>
-              <button className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
-                <Plus className="w-3 h-3" />
-                Add Item
+              <button onClick={() => openSheet('Add Product', 'add-product')}
+                style={{
+                  height: 36, padding: '0 1rem',
+                  borderRadius: 10, border: 'none',
+                  background: `linear-gradient(135deg, ${css.primary}, var(--primary-dark))`,
+                  cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
+                  color: 'white', display: 'flex', alignItems: 'center', gap: '0.375rem',
+                  boxShadow: '0 2px 8px rgba(249,115,22,0.25)',
+                }}>
+                <Plus style={{ width: 14, height: 14 }} />
+                Add
               </button>
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-stone-50/80">
-                    <th className="py-3 px-6 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">Item Description</th>
-                    <th className="py-3 px-3 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">SKU</th>
-                    <th className="py-3 px-3 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">Qty</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Unit Price</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (USD)</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (THB)</th>
-                    <th className="py-3 px-6 w-12"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {formData.items.map((item, index) => (
-                    <tr key={item.id} className={`group transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-stone-50/30'} hover:bg-amber-50/20`}>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-500 font-bold text-xs">
-                            {item.name.charAt(0)}
-                          </div>
-                          <span className="text-sm font-semibold text-stone-900">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-3">
-                        <span className="text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
-                          {item.sku}
-                        </span>
-                      </td>
-                      <td className="py-4 px-3 text-center">
-                        <span className="text-sm font-semibold text-stone-700">{item.quantity}</span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-semibold text-stone-700">${item.unit_price.toFixed(2)}</span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-black text-stone-900">
-                          ${(item.quantity * item.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-bold text-orange-600">
-                          ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <button 
-                          onClick={() => deleteItem(item.id)}
-                          className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Delete className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+            {items.length > 0 ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                      {['Product', 'SKU', 'Qty', 'Price (USD)', 'Subtotal', ''].map((h, i) => (
+                        <th key={h} style={{
+                          padding: '0.625rem 1rem',
+                          textAlign: i >= 3 ? 'right' : 'left',
+                          fontSize: '0.5625rem', fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '0.1em',
+                          color: css.textMuted, whiteSpace: 'nowrap',
+                        }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={item.id} style={{
+                        borderTop: idx === 0 ? undefined : `1px solid ${css.border}`,
+                        transition: 'background-color 0.15s',
+                      }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = 'rgba(249,115,22,0.03)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = 'transparent'; }}>
+                        <td style={{ padding: '0.875rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              backgroundColor: 'var(--surface-container-low)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 900, fontSize: '0.75rem', color: css.textMuted, flexShrink: 0,
+                            }}>{item.name.charAt(0)}</div>
+                            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>
+                              {item.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.875rem 0.5rem' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: css.textMuted, backgroundColor: 'var(--surface-container-low)', padding: '2px 8px', borderRadius: 6 }}>
+                            {item.sku}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>{item.qty}</td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>${item.priceUSD.toFixed(2)}</td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '0.875rem', color: css.text }}>
+                          ${(item.qty * item.priceUSD).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                          <button onClick={() => removeItem(item.id)}
+                            style={{
+                              background: 'transparent', border: 'none', cursor: 'pointer',
+                              padding: '0.375rem', borderRadius: 8, color: css.textMuted,
+                              opacity: 0.5, transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLButtonElement).style.color = 'var(--error)';
+                              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--error-container)';
+                              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLButtonElement).style.color = css.textMuted;
+                              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                              (e.currentTarget as HTMLButtonElement).style.opacity = '0.5';
+                            }}>
+                            <Trash2 style={{ width: 14, height: 14 }} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {/* Subtotal row */}
+                  <tfoot>
+                    <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                      <td colSpan={4} style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.75rem', color: css.textMuted, fontWeight: 600 }}>Items Subtotal</td>
+                      <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '0.875rem', color: css.text }}>
+                        ${subtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ) : (
+              <div style={{ padding: '3rem', textAlign: 'center' }}>
+                <Package style={{ width: 40, height: 40, color: css.textMuted, margin: '0 auto 0.75rem', opacity: 0.3 }} />
+                <p style={{ fontWeight: 600, color: css.textMuted, marginBottom: '0.5rem' }}>No products added</p>
+                <button onClick={() => openSheet('Add Product', 'add-product')}
+                  style={{ color: css.primary, fontWeight: 700, fontSize: '0.875rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                  + Add Product
+                </button>
+              </div>
+            )}
+          </Card>
 
-          {/* Logistics Section - 3 Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* China Domestic */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-                  <Truck className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">China Domestic</h4>
-                  <p className="text-[10px] text-stone-400">Freight within China</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.chinaDomestic.amount}
-                  onChange={(e) => updateLogisticsAmount('chinaDomestic', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('chinaDomestic', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.chinaDomestic.currency === curr 
-                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* Logistics */}
+          <Card style={{ padding: '1.5rem' }}>
+            <SectionTitle icon={Truck} title="Logistics & Costs" subtitle="Shipping and handling fees (auto-converted to THB)" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              {LOGISTICS.map(log => {
+                const Icon = log.icon;
+                const active = !!logistics[log.id];
+                return (
+                  <div key={log.id}
+                    style={{
+                      borderRadius: 16, padding: '1rem',
+                      border: `1.5px solid ${active ? log.color : css.border}`,
+                      backgroundColor: active ? log.colorBg : 'var(--surface-container-low)',
+                      transition: 'all 0.15s',
+                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8,
+                          backgroundColor: `${log.color}20`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Icon style={{ width: 16, height: 16, color: log.color }} />
+                        </div>
+                        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: css.text }}>{log.label}</span>
+                      </div>
+                      <button
+                        onClick={() => toggleLogistics(log.id)}
+                        style={{
+                          width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer',
+                          backgroundColor: active ? log.color : 'var(--surface-container-high)',
+                          color: active ? 'white' : css.textMuted,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.15s',
+                        }}>
+                        {active ? <CheckCircle style={{ width: 14, height: 14 }} /> : <Plus style={{ width: 14, height: 14 }} />}
+                      </button>
+                    </div>
+                    {active && (
+                      <div style={{ position: 'relative' }}>
+                        <span style={{
+                          position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                          fontSize: '0.875rem', fontWeight: 700, color: css.textMuted,
+                        }}>$</span>
+                        <input
+                          value={logistics[log.id]}
+                          onChange={e => setLogistics({ ...logistics, [log.id]: e.target.value })}
+                          placeholder="0.00"
+                          style={{
+                            width: '100%', paddingLeft: '2rem', padding: '0.625rem 0.75rem',
+                            backgroundColor: 'white', border: `1.5px solid ${log.color}40`,
+                            borderRadius: 10, fontSize: '0.875rem', fontWeight: 600,
+                            color: css.text, fontFamily: 'var(--font-body)', outline: 'none',
+                          }}
+                        />
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.6875rem', color: css.textMuted, textAlign: 'right' }}>
+                          ≈ ฿{((parseFloat(logistics[log.id]) || 0) * rate).toLocaleString('th-TH', { minimumFractionDigits: 0 })} THB
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* China-Thailand */}
-            <div className="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-5 hover:border-blue-300 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <PlaneTakeoff className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">China-Thailand</h4>
-                  <p className="text-[10px] text-stone-400">International shipping</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-white border-2 border-dashed border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.chinaThailand.amount}
-                  onChange={(e) => updateLogisticsAmount('chinaThailand', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-50 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('chinaThailand', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.chinaThailand.currency === curr 
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
+            {/* Logistics subtotal */}
+            {logisticsUSD > 0 && (
+              <div style={{
+                marginTop: '1rem', paddingTop: '1rem',
+                borderTop: `1px solid ${css.border}`,
+                display: 'flex', justifyContent: 'flex-end',
+              }}>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '0.75rem', color: css.textMuted, marginBottom: 2 }}>Logistics Total</p>
+                  <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1rem', color: css.text }}>
+                    ${logisticsUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: css.primary, marginLeft: '0.5rem' }}>
+                      ฿{logisticsTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                    </span>
+                  </p>
                 </div>
               </div>
-            </div>
+            )}
+          </Card>
 
-            {/* Local Delivery */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-green-200 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/20">
-                  <Warehouse className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">Local Delivery</h4>
-                  <p className="text-[10px] text-stone-400">Thailand warehouse</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.localDelivery.amount}
-                  onChange={(e) => updateLogisticsAmount('localDelivery', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('localDelivery', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.localDelivery.currency === curr 
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vendor Notes */}
-          <section className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
-              <Info className="w-3 h-3" />
-              Internal Vendor Notes
-            </label>
-            <textarea 
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all placeholder:text-stone-400"
-              placeholder="Mention specific packaging requirements, quality control standards, or delivery instructions..."
-              rows={3}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          {/* Notes */}
+          <Card style={{ padding: '1.5rem' }}>
+            <SectionTitle icon={Receipt} title="Internal Notes" subtitle="Special instructions or comments" />
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Add special instructions, packaging requirements, or quality notes…"
+              style={{
+                ...inputStyle,
+                resize: 'vertical',
+                minHeight: 80,
+                fontFamily: 'var(--font-body)',
+              }}
+              onFocus={e => Object.assign(e.target.style, focusStyle)}
+              onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }}
             />
-          </section>
+          </Card>
         </div>
 
-        {/* ============================================================ */}
-        {/* RIGHT COLUMN - Summary Sidebar */}
-        {/* ============================================================ */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-24 space-y-4">
-            
-            {/* Order Summary Card */}
-            <div className="bg-white rounded-3xl border-2 border-stone-200 p-6 shadow-xl shadow-stone-200/50">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-base font-black text-stone-900 tracking-tight">Order Summary</h3>
-              </div>
+        {/* ── RIGHT COLUMN (Summary) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Card style={{ padding: '1.5rem', position: 'sticky', top: '1rem' }}>
+            <SectionTitle icon={CreditCard} title="Order Summary" />
 
-              <div className="space-y-3">
-                {/* Items — show both USD input and THB equivalent */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Items Subtotal</span>
-                  <div className="text-right">
-                    <span className="font-bold text-stone-400 text-xs mr-2">USD</span>
-                    <span className="font-bold text-stone-900">
-                      ${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="mx-1 text-stone-300">|</span>
-                    <span className="font-bold text-orange-600">
-                      ฿{itemsSubtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Logistics */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Logistics Total</span>
-                  <div className="text-right">
-                    <span className="font-bold text-orange-600">
-                      ฿{logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Tax */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Est. Tax (7%)</span>
-                  <span className="font-bold text-orange-600">
-                    ฿{calculateTax().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[
+                { label: `Items (${items.length})`, value: `$${subtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, sub: `฿${subtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
+                { label: 'Logistics', value: logisticsUSD > 0 ? `$${logisticsUSD.toFixed(2)}` : '—', sub: logisticsUSD > 0 ? `฿${logisticsTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` : undefined },
+                { label: 'Est. Tax (7%)', value: `฿${taxTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, highlight: false },
+              ].map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', color: css.textMuted }}>{row.label}</span>
+                  <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.875rem', color: css.text }}>
+                    {row.value}
+                    {row.sub && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: css.primary, marginLeft: '0.375rem' }}>{row.sub}</span>}
                   </span>
                 </div>
-                
-                <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
-                
-                {/* GRAND TOTAL — Always THB */}
-                <div className="py-4 px-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Grand Total (THB)</span>
-                    <span className="text-2xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                      ฿{calculateGrandTotal().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-medium text-stone-400">
-                      ≈ $ {calculateGrandTotalUSD().toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
-                    </span>
-                  </div>
-                </div>
-              </div>
+              ))}
 
-              {/* MOBILE STICKY CTA BAR — only visible on mobile */}
-              <div className="md:hidden mt-6 space-y-2.5">
-                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
-                  <Send className="w-4 h-4" />
-                  Confirm Order
-                </button>
-                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleSaveDraft}>
-                  <Save className="w-4 h-4" />
-                  Save as Draft
-                </button>
-              </div>
-            </div>
-
-            {/* Info Note */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-100/50">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Info className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-                <p className="text-[11px] font-medium text-amber-800 leading-relaxed">
-                  Prices are calculated using the current exchange rate. Final settlement occurs upon inventory receipt.
+              {/* Grand total */}
+              <div style={{
+                marginTop: '0.5rem', padding: '1rem',
+                background: `linear-gradient(135deg, ${css.primary}12, ${css.primary}06)`,
+                borderRadius: 16, border: `1.5px solid ${css.primary}30`,
+              }}>
+                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, marginBottom: '0.375rem' }}>
+                  Grand Total
+                </p>
+                <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', color: css.primary, letterSpacing: '-0.02em' }}>
+                  ฿{totalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: css.textMuted, marginTop: '0.25rem' }}>
+                  ≈ ${totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
                 </p>
               </div>
             </div>
-          </div>
+
+            {/* CTA buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '1.25rem' }}>
+              <button onClick={handleConfirm}
+                style={{
+                  width: '100%', height: 48, borderRadius: 12, border: 'none',
+                  background: `linear-gradient(135deg, ${css.primary}, var(--primary-dark))`,
+                  cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+                  color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  boxShadow: '0 4px 16px rgba(249,115,22,0.3)',
+                }}>
+                <CheckCircle style={{ width: 18, height: 18 }} />
+                Confirm Order
+              </button>
+              <button onClick={handleSaveDraft}
+                style={{
+                  width: '100%', height: 44, borderRadius: 12,
+                  border: `1.5px solid ${css.border}`,
+                  background: 'transparent', cursor: 'pointer',
+                  fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem',
+                  color: css.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                }}>
+                <Save style={{ width: 16, height: 16 }} />
+                Save as Draft
+              </button>
+            </div>
+
+            {/* Info note */}
+            <div style={{
+              marginTop: '1rem', padding: '0.75rem',
+              backgroundColor: 'var(--surface-container-low)',
+              borderRadius: 12, display: 'flex', gap: '0.625rem', alignItems: 'flex-start',
+            }}>
+              <Info style={{ width: 14, height: 14, color: css.amber, flexShrink: 0, marginTop: 2 }} />
+              <p style={{ fontSize: '0.6875rem', color: css.textMuted, lineHeight: 1.5 }}>
+                Prices calculated using exchange rate 1 USD = ฿{rate.toFixed(2)}. Final settlement on inventory receipt.
+              </p>
+            </div>
+          </Card>
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* FOOTER */}
-      {/* ============================================================ */}
-      <footer className="mt-10 flex justify-center">
-        <div className="flex items-center gap-2.5 opacity-15">
-          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-stone-400">
-            MORIX ERP • Executive Procurement System
-          </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+      {/* ── Bottom Sheet ─────────────────────────── */}
+      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={sheetTitle}>
+        {sheetContent === 'add-product' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>
+                Product Name *
+              </label>
+              <input
+                value={newItem.name}
+                onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                placeholder="e.g. Ultra-Slim Aluminum Chassis"
+                style={inputStyle}
+                onFocus={e => Object.assign(e.target.style, focusStyle)}
+                onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>SKU</label>
+                <input value={newItem.sku} onChange={e => setNewItem({ ...newItem, sku: e.target.value })} placeholder="SKU-001" style={inputStyle}
+                  onFocus={e => Object.assign(e.target.style, focusStyle)}
+                  onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>Quantity *</label>
+                <input type="number" value={newItem.qty} onChange={e => setNewItem({ ...newItem, qty: e.target.value })} placeholder="1" style={inputStyle}
+                  onFocus={e => Object.assign(e.target.style, focusStyle)}
+                  onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }} />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: '0.5rem' }}>Unit Price (USD) *</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.875rem', fontWeight: 700, color: css.textMuted }}>$</span>
+                <input type="number" value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} placeholder="0.00" style={{ ...inputStyle, paddingLeft: '2rem' }}
+                  onFocus={e => Object.assign(e.target.style, focusStyle)}
+                  onBlur={e => { e.target.style.borderColor = 'transparent'; e.target.style.boxShadow = 'none'; }} />
+              </div>
+            </div>
+            <button
+              onClick={addItem}
+              disabled={!newItem.name}
+              style={{
+                width: '100%', height: 52, borderRadius: 12, border: 'none',
+                background: newItem.name ? `linear-gradient(135deg, ${css.primary}, var(--primary-dark))` : 'var(--surface-container-high)',
+                cursor: newItem.name ? 'pointer' : 'not-allowed',
+                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+                color: newItem.name ? 'white' : css.textMuted,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                boxShadow: newItem.name ? '0 4px 12px rgba(249,115,22,0.3)' : 'none',
+              }}>
+              <Plus style={{ width: 18, height: 18 }} />
+              Add to Order
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {LOGISTICS.filter(l => !logistics[l.id]).map(log => {
+              const Icon = log.icon;
+              return (
+                <button key={log.id}
+                  onClick={() => { toggleLogistics(log.id); setSheetOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '1rem',
+                    padding: '1rem', borderRadius: 14, border: `1.5px solid ${css.border}`,
+                    background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--surface-container-low)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12,
+                    backgroundColor: log.colorBg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Icon style={{ width: 22, height: 22, color: log.color }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.9375rem', color: css.text }}>{log.label}</p>
+                    <p style={{ fontSize: '0.75rem', color: css.textMuted, marginTop: 2 }}>Add logistics cost</p>
+                  </div>
+                  <ChevronRight style={{ width: 18, height: 18, color: css.textMuted }} />
+                </button>
+              );
+            })}
+            {LOGISTICS.filter(l => !logistics[l.id]).length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: css.textMuted }}>
+                <CheckCircle style={{ width: 32, height: 32, margin: '0 auto 0.75rem', color: css.success }} />
+                <p style={{ fontWeight: 600 }}>All logistics added!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* ── MOBILE STICKY BOTTOM CTA ─────────────── */}
+      <div
+        className="purchase-sticky-cta"
+        style={{
+          position: 'fixed', bottom: 80, left: 0, right: 0, zIndex: 40,
+          padding: '0.75rem 1rem',
+          backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)',
+          borderTop: `1px solid ${css.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+        }}>
+        <div>
+          <p style={{ fontSize: '0.625rem', color: css.textMuted }}>Total</p>
+          <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.125rem', color: css.primary }}>
+            ฿{totalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+          </p>
         </div>
-      </footer>
+        <button onClick={handleConfirm}
+          style={{
+            height: 44, padding: '0 1.25rem', borderRadius: 12, border: 'none',
+            background: `linear-gradient(135deg, ${css.primary}, var(--primary-dark))`,
+            cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem',
+            color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem',
+            boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+          }}>
+          <CheckCircle style={{ width: 16, height: 16 }} />
+          Confirm
+        </button>
+      </div>
+
+
     </div>
   );
 }

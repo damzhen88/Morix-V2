@@ -546,3 +546,22 @@ input:focus, select:focus, textarea:focus {
     grid-column: span 1 !important;
   }
 }
+
+/* ============================================================
+   PURCHASE PAGE RESPONSIVE
+   ============================================================ */
+@media (max-width: 1023px) {
+  .purchase-sticky-cta {
+    display: flex !important;
+  }
+}
+@media (min-width: 1024px) {
+  .purchase-sticky-cta {
+    display: none !important;
+  }
+}
+
+/* Hide sticky CTA when sidebar or bottom nav isn't present */
+body:not(:has(.dashboard-layout)) .purchase-sticky-cta {
+  bottom: 0 !important;
+}
