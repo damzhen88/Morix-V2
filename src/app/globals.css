@@ -565,3 +565,81 @@ input:focus, select:focus, textarea:focus {
 body:not(:has(.dashboard-layout)) .purchase-sticky-cta {
   bottom: 0 !important;
 }
+
+/* ============================================================
+   GLOBAL RESPONSIVE — Every Page, Every Screen
+   ============================================================ */
+
+/* All tables scroll horizontally on mobile */
+table {
+  min-width: 600px;
+}
+
+/* Cards: reduce padding on mobile */
+@media (max-width: 639px) {
+  .card-elevated,
+  .card-surface,
+  .rounded-2xl {
+    padding: 1rem !important;
+  }
+  
+  .page-header-title {
+    font-size: 1.25rem !important;
+  }
+  
+  .page-header-eyebrow {
+    font-size: 0.625rem !important;
+  }
+  
+  .page-header-subtitle {
+    font-size: 0.8125rem !important;
+  }
+  
+  /* KPI cards on mobile */
+  .kpi-value {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Bottom sticky CTA on mobile for Purchase page */
+  .purchase-sticky-cta {
+    bottom: 80px !important;
+  }
+}
+
+/* Touch targets: minimum 44px */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Large screens: sidebar spacing */
+@media (min-width: 1024px) {
+  .purchase-sticky-cta {
+    display: none !important;
+  }
+}
+
+/* Mobile main content: extra bottom padding for bottom nav */
+@media (max-width: 1023px) {
+  .dashboard-main-mobile {
+    padding-bottom: 7rem !important;
+  }
+}
+
+/* Responsive tables */
+@media (max-width: 767px) {
+  table {
+    font-size: 0.8125rem;
+  }
+  
+  table th,
+  table td {
+    padding: 0.5rem 0.75rem !important;
+  }
+}

@@ -100,7 +100,8 @@ export default function SalesPage() {
           </div>
         </div>
 
-        <table className="w-full">
+        <div style={{ overflowX: "auto" }}>
+          <table className="w-full">
           <thead>
             <tr className="bg-[var(--surface-container-low)]">
               <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Order ID</th>
@@ -142,7 +143,8 @@ export default function SalesPage() {
               <td></td>
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -230,7 +230,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           <main style={{ padding: '2.5rem', paddingBottom: '6rem' }}>{children}</main>
         </div>
       </div>
-      <div className="lg:hidden">
+      <div className="lg:hidden dashboard-main-mobile" style={{ paddingTop: 64 }}>
         <main style={{ padding: '1.5rem', paddingBottom: '6rem' }}>{children}</main>
       </div>
 
