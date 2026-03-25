@@ -18,7 +18,7 @@ const ITEMS = [
   { label: 'New Expense',        desc: 'Record a business expense',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
 ];
 
-export default function CreateMenu({ isOpen, onClose, onOpenForm }: CreateMenuProps) {
+export default function CreateMenu({ isOpen, onClose, onOpenForm, onNavigate }: CreateMenuProps) {
   if (!isOpen) return null;
 
   return (
