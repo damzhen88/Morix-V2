@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ExpenseCategory, ExpenseStatus } from './entities/expense.entity';
+import { ExpenseCategory, ExpenseStatus, Expense } from './entities/expense.entity';
 
 @Controller('expenses')
 @UseGuards(JwtAuthGuard)

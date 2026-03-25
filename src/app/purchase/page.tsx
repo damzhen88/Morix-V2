@@ -96,6 +96,22 @@ export default function PurchasePage() {
     });
   };
 
+  const handleSaveDraft = () => {
+    alert(`Draft saved!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+  };
+
+  const handleConfirm = () => {
+    if (!formData.supplier) {
+      alert('Please select a supplier first');
+      return;
+    }
+    if (formData.items.length === 0) {
+      alert('Please add at least one item');
+      return;
+    }
+    alert(`Purchase Order confirmed!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+  };
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -131,11 +147,11 @@ export default function PurchasePage() {
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm">
+            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm" onClick={handleSaveDraft}>
               <Save className="w-4 h-4" />
               Save Draft
             </button>
-            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2" onClick={handleConfirm}>
               <Send className="w-4 h-4" />
               Confirm Order
             </button>
@@ -552,11 +568,11 @@ export default function PurchasePage() {
               </div>
 
               <div className="mt-6 space-y-2.5">
-                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
                   <Send className="w-4 h-4" />
                   Confirm Order
                 </button>
-                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleSaveDraft}>
                   <Save className="w-4 h-4" />
                   Save as Draft
                 </button>

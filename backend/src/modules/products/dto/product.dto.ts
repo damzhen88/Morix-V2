@@ -106,8 +106,8 @@ export class ProductQueryDto {
   category?: ProductCategory;
 
   @IsOptional()
- (['active', 'inactive'])
-  status?: ' @IsEnumactive' | 'inactive';
+  @IsEnum(['active', 'inactive'])
+  status?: 'active' | 'inactive';
 
   @IsOptional()
   @IsNumber()

@@ -1,60 +1,36 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { SupabaseService } from '../../database/supabase.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CustomerEntity } from './entities/customers.entity';
 
 @Injectable()
 export class CustomersService {
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    @InjectRepository(CustomerEntity) private customersRepository: Repository<CustomerEntity>,
+  ) {}
 
   async findAll() {
-    const { data, error } = await this.supabase.client
-      .from('customers')
-      .select('*');
-    
-    if (error) throw error;
-    return data;
+    return this.customersRepository.find({ order: { createdAt: 'DESC' } });
   }
 
   async findOne(id: string) {
-    const { data, error } = await this.supabase.client
-      .from('customers')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) throw new NotFoundException('Customer not found');
-    return data;
+    const customer = await this.customersRepository.findOne({ where: { id } });
+    if (!customer) throw new NotFoundException('Customer not found');
+    return customer;
   }
 
   async create(createCustomerDto: any) {
-    const { data, error } = await this.supabase.client
-      .from('customers')
-      .insert(createCustomerDto)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    const customer = this.customersRepository.create(createCustomerDto);
+    return this.customersRepository.save(customer);
   }
 
   async update(id: string, updateCustomerDto: any) {
-    const { data, error } = await this.supabase.client
-      .from('customers')
-      .update(updateCustomerDto)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+    await this.customersRepository.update(id, updateCustomerDto);
+    return this.findOne(id);
   }
 
   async remove(id: string) {
-    const { error } = await this.supabase.client
-      .from('customers')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
+    await this.customersRepository.delete(id);
     return { success: true };
   }
 }

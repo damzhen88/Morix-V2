@@ -28,6 +28,7 @@ const kpis = [
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState('This Month');
+  const [periodOpen, setPeriodOpen] = useState(false);
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
@@ -45,13 +46,26 @@ export default function ReportsPage() {
         <div className="flex items-center gap-3">
           {/* Period selector */}
           <div className="relative">
-            <button className="btn-secondary flex items-center gap-2">
+            <button className="btn-secondary flex items-center gap-2" onClick={() => setPeriodOpen(!periodOpen)}>
               <Calendar className="w-4 h-4" />
               {period}
               <ChevronDown className="w-3 h-3" />
             </button>
+            {periodOpen && (
+              <div className="absolute right-0 top-12 bg-[var(--surface-container-lowest)] rounded-xl shadow-xl border border-[var(--outline-variant)] py-1 min-w-[160px] z-50 overflow-hidden"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                {periods.map(p => (
+                  <button key={p} onClick={() => { setPeriod(p); setPeriodOpen(false); }}
+                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+                      period === p ? 'font-semibold text-[var(--primary)] bg-[var(--primary-container)]' : 'text-[var(--on-surface)] hover:bg-[var(--surface-container-low)]'
+                    }`}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <button className="btn-primary">
+          <button className="btn-primary" onClick={() => alert('Export PDF: Coming soon — reports will be exported as PDF')}>
             <Download className="w-4 h-4" />
             Export PDF
           </button>

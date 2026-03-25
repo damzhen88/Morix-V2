@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Warehouse, Plus, Search, Package, AlertTriangle, ArrowUpDown, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { useFormModal } from '@/components/ui/FormModalContext';
 
 const inventoryItems = [
   { id: 1, sku: 'AL-PNL-001',   name: 'Aluminum Panel 120x240cm',          stock: 48,  reorder: 20, unit: 'pcs', value: 136800, trend: 'up',   location: 'WH-A-01' },
@@ -17,6 +18,7 @@ const inventoryItems = [
 export default function InventoryPage() {
   const [search, setSearch] = useState('');
   const [showLow, setShowLow] = useState(false);
+  const { openForm } = useFormModal();
 
   const filtered = inventoryItems.filter(i => {
     const match = i.name.toLowerCase().includes(search.toLowerCase()) || i.sku.toLowerCase().includes(search.toLowerCase());
@@ -40,7 +42,7 @@ export default function InventoryPage() {
           <h1 className="page-header-title">Inventory</h1>
           <p className="page-header-subtitle">Real-time stock levels across all warehouses</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => openForm('product')}>
           <Plus className="w-4 h-4" />
           Stock Adjustment
         </button>

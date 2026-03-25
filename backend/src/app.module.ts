@@ -9,7 +9,7 @@ import { CrmModule } from './modules/crm/crm.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
-import { DatabaseModule } from './database/database.module';
+import { DatabaseModule } from './modules/database/database.module';
 
 @Module({
   imports: [

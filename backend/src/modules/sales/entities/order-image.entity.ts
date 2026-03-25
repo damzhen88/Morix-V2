@@ -12,6 +12,6 @@ export class OrderImage {
   @Column({ nullable: true })
   caption: string;
 
-  @ManyToOne(() => SalesOrder, (order) => order.images)
+  @ManyToOne(() => SalesOrder)
   sales_order: SalesOrder;
 }
