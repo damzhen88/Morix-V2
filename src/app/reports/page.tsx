@@ -89,14 +89,7 @@ export default function ReportsPage() {
             </div>
           );
         })}
-        {/* Export CTA on mobile */}
-        <button
-          className="col-span-2 btn-primary justify-center"
-          onClick={() => alert('Export PDF: Coming soon')}
-        >
-          <Download className="w-4 h-4" />
-          Export PDF Report
-        </button>
+
       </div>
 
       {/* KPI Cards — DESKTOP */}
