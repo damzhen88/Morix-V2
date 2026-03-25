@@ -81,8 +81,54 @@ export default function SalesPage() {
         })}
       </div>
 
-      {/* Recent Sales Table */}
-      <div className="card-elevated overflow-hidden">
+      {/* Recent Sales — MOBILE CARD LIST */}
+      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+        {/* Status filter */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {['all', 'confirmed', 'pending', 'delivered'].map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-full text-xs font-bold capitalize transition-all flex-shrink-0 touch-action ${
+                filter === f
+                  ? 'signature-gradient text-white shadow-sm'
+                  : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)]'
+              }`}>
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {filtered.map(sale => (
+          <div key={sale.id} className="card-elevated p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span className="text-sm font-mono font-bold text-[var(--primary-dark)]">{sale.id}</span>
+                <p className="font-semibold text-[var(--on-surface)] mt-0.5">{sale.client}</p>
+              </div>
+              <span className={`badge ${statusBadge(sale.status)} capitalize flex-shrink-0`}>{sale.status}</span>
+            </div>
+            <div className="flex items-end justify-between mt-3 pt-3 border-t border-[var(--outline-variant)]">
+              <div>
+                <p className="text-xs text-[var(--on-surface-variant)]">{sale.date} · {sale.items} items</p>
+              </div>
+              <p className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
+                {formatTHB(sale.total)}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {filtered.length > 0 && (
+          <div className="card-surface p-4 flex items-center justify-between">
+            <span className="text-sm font-bold text-[var(--on-surface)]">Total ({filtered.length})</span>
+            <span className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
+              ฿{filtered.reduce((s, r) => s + r.total, 0).toLocaleString('th-TH')}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Sales Table — DESKTOP ONLY */}
+      <div className="hidden lg:block card-elevated overflow-hidden">
         {/* Table header */}
         <div className="px-6 py-5 flex items-center justify-between border-b border-[var(--outline-variant)]">
           <h2 className="font-headline font-bold text-[var(--on-surface)]">Recent Transactions</h2>

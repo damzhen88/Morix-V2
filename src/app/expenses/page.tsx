@@ -104,8 +104,56 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Expense List */}
-      <div className="space-y-3 stagger-children">
+      {/* Expense List — MOBILE CARD VIEW */}
+      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+        {filtered.map(exp => {
+          const catInfo = categories.find(c => c.id === exp.category);
+          const CatIcon = catInfo?.icon || Receipt;
+          return (
+            <div key={exp.id} className="card-elevated p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${catInfo?.color}15` }}>
+                  <CatIcon className="w-5 h-5" style={{ color: catInfo?.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[var(--on-surface)]">{exp.desc}</p>
+                      <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{exp.vendor}</p>
+                      {exp.ref && (
+                        <span className="text-xs font-mono text-[var(--primary-dark)] mt-0.5 inline-block">{exp.ref}</span>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-headline font-bold text-[var(--on-surface)]">
+                        ฿{exp.amount.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-[var(--on-surface-variant)]">{exp.date}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="badge badge-secondary capitalize text-xs">{catInfo?.label || exp.category}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Mobile total summary */}
+        {filtered.length > 0 && (
+          <div className="card-surface p-4 flex items-center justify-between">
+            <span className="text-sm font-bold text-[var(--on-surface)]">Total ({filtered.length})</span>
+            <span className="font-headline font-black text-lg text-[var(--error)]">
+              ฿{total.toLocaleString()}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Expense List — DESKTOP TABLE VIEW */}
+      <div className="hidden lg:block space-y-3 stagger-children">
         {filtered.map(exp => {
           const catInfo = categories.find(c => c.id === exp.category);
           const CatIcon = catInfo?.icon || Receipt;

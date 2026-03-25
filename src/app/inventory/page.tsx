@@ -94,8 +94,59 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      {/* Inventory Table */}
-      <div className="card-elevated overflow-hidden">
+      {/* Inventory Mobile Card List */}
+      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+        {filtered.map(item => {
+          const isLow = item.stock <= item.reorder && item.stock > 0;
+          const isOut = item.stock === 0;
+          return (
+            <div key={item.id} className="card-elevated p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[var(--on-surface)] truncate">{item.name}</p>
+                  <p className="text-xs font-mono text-[var(--primary-dark)] mt-0.5">{item.sku}</p>
+                </div>
+                <span className="text-xs font-mono bg-[var(--surface-container)] px-2 py-1 rounded-lg text-[var(--on-surface-variant)] flex-shrink-0">
+                  {item.location}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Stock</p>
+                    <p className={`font-headline font-bold text-base ${isOut ? 'text-[var(--error)]' : isLow ? 'text-[var(--warning)]' : 'text-[var(--on-surface)]'}`}>
+                      {item.stock} <span className="text-xs font-normal text-[var(--on-surface-variant)]">{item.unit}</span>
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-[var(--outline-variant)]" />
+                  <div>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Reorder</p>
+                    <p className="text-sm font-semibold text-[var(--on-surface-variant)]">{item.reorder} {item.unit}</p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Value</p>
+                  <p className="font-headline font-bold text-sm text-[var(--on-surface)]">฿{item.value.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="mt-2">
+                {isOut
+                  ? <span className="badge badge-error">Out of Stock</span>
+                  : isLow
+                    ? <span className="badge badge-warning">Low Stock</span>
+                    : <span className="badge badge-success">In Stock</span>
+                }
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Inventory Table — DESKTOP ONLY */}
+      <div className="hidden lg:block card-elevated overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-[var(--surface-container-low)]">

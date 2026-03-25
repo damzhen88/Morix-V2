@@ -14,7 +14,7 @@ const ITEMS = [
   { label: 'New Product',          desc: 'Add to catalog & inventory', icon: Package,      key: 'product'  as const, color: '#F97316' },
   { label: 'New Sale',            desc: 'Record a customer sale',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
   { label: 'New Client',          desc: 'Add a business partner',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
-  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart, key: 'purchase' as const, color: '#D97706', navigate: '/purchase/new' as string },
+  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart, key: 'purchase' as const, color: '#D97706', navigate: '/purchase' as string },
   { label: 'New Expense',        desc: 'Record a business expense',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
 ];
 

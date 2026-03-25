@@ -57,6 +57,13 @@ export default function SettingsPage() {
   });
   const { toast } = useToast();
 
+  // Mobile accordion state
+  const [mobileOpenSection, setMobileOpenSection] = useState<Tab | null>('identity');
+  const toggleMobileSection = (section: Tab) => {
+    setMobileOpenSection(prev => prev === section ? null : section);
+    setTab(section);
+  };
+
   const save = () => toast('Settings saved successfully!', 'success');
   const discard = () => toast('Changes discarded.', 'info');
   const invite = () => {
