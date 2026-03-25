@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, ShoppingCart, Package, Plus, Trash2, Truck, DollarSign, MapPin, Calendar, ChevronDown } from 'lucide-react';
+import { X, ShoppingCart, Package, Plus, Trash2, Truck, ChevronDown, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/supabase';
 
@@ -55,9 +55,17 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
     return s + amt;
   }, 0);
 
+  const logisticsTotalUSD = logistics.reduce((s, l) => {
+    const lt = LOGISTICS_TYPES[l.type];
+    const amt = parseFloat(l.amount) || 0;
+    if (lt.currency === 'CNY') return s + amt / 7.2;
+    if (lt.currency === 'THB') return s + amt / THB_RATE;
+    return s + amt;
+  }, 0);
+
   const tax = itemsSubtotalTHB * 0.07;
   const grandTotalTHB = itemsSubtotalTHB + logisticsTotalTHB + tax;
-  const grandTotalUSD = itemsSubtotalUSD + logisticsTotalTHB / THB_RATE + tax / THB_RATE;
+  const grandTotalUSD = itemsSubtotalUSD + logisticsTotalUSD + tax / THB_RATE;
 
   const addItem = () => setItems(p => [...p, { product: 0, qty: 100, unitPrice: IMPORT_PRODUCTS[0].price }]);
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i));
@@ -83,11 +91,11 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
     try {
       await api.createPurchaseOrder({
         po_number: `PO-${Date.now()}`,
-        supplier_id: supplier.id,
+        supplier_id: supplier,
         order_date: new Date().toISOString().split('T')[0],
-        expected_arrival_date: expectedDate || null,
+        expected_arrival_date: null,
         status: 'pending',
-        currency: 'CNY',
+        currency: 'USD',
         exchange_rate: THB_RATE,
         items: items.map((item, idx) => ({
           product_id: IMPORT_PRODUCTS[item.product]?.name || 'Unknown',
@@ -98,7 +106,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
         })),
         total_amount: itemsSubtotalUSD,
         total_thb: grandTotalTHB,
-        notes: null,
+        notes: note || null,
       });
       toast(`PO created — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
       onClose();
@@ -111,244 +119,263 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
 
   if (!isOpen) return null;
 
-  const fieldStyle: React.CSSProperties = {
+  const inputStyle: React.CSSProperties = {
     backgroundColor: 'var(--surface-container-low)',
-    border: '1px solid transparent',
-    borderRadius: 12, padding: '0.75rem 1rem',
-    width: '100%', fontSize: '0.875rem',
-    color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none', transition: 'all 0.15s',
+    border: 'none',
+    borderRadius: 10,
+    padding: '0.625rem 0.875rem',
+    width: '100%',
+    fontSize: '0.8125rem',
+    color: 'var(--on-surface)',
+    fontFamily: 'var(--font-body)',
+    outline: 'none',
+    transition: 'all 0.15s',
   };
 
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: '0.625rem', fontWeight: 700,
-    textTransform: 'uppercase', letterSpacing: '0.1em',
-    color: 'var(--on-surface-variant)', marginBottom: '0.5rem',
+    display: 'block',
+    fontSize: '0.625rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: 'var(--on-surface-variant)',
+    marginBottom: '0.375rem',
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }} />
 
+      {/* Modal Container */}
       <div style={{
-        position: 'relative', zIndex: 1, backgroundColor: 'var(--surface-container-lowest)',
-        borderRadius: 24, width: '100%', maxWidth: 820,
-        maxHeight: '92vh', overflowY: 'auto',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+        position: 'relative',
+        zIndex: 1,
+        backgroundColor: 'var(--surface-container-lowest)',
+        borderRadius: 20,
+        width: '100%',
+        maxWidth: 680,
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
       }}>
+
         {/* Header */}
-        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--outline-variant)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: 'var(--surface-container-lowest)', zIndex: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShoppingCart style={{ width: 20, height: 20, color: '#D97706' }} />
+        <div style={{
+          padding: '1.25rem 1.5rem',
+          borderBottom: '1px solid var(--outline-variant)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: 'var(--surface-container-lowest)',
+          zIndex: 2,
+          borderRadius: '20px 20px 0 0',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingCart style={{ width: 18, height: 18, color: '#D97706' }} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>New Purchase Order</h2>
-              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Import procurement from suppliers abroad</p>
+              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1rem', color: 'var(--on-surface)' }}>New Purchase Order</h2>
+              <p style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', marginTop: 1 }}>Import procurement from suppliers abroad</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: 10, color: 'var(--on-surface-variant)' }}>
-            <X style={{ width: 20, height: 20 }} />
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: 8, color: 'var(--on-surface-variant)' }}>
+            <X style={{ width: 18, height: 18 }} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Supplier + Date */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}><ShoppingCart style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />Supplier *</label>
-                <div style={{ position: 'relative' }}>
-                  <select style={{ ...fieldStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}
-                    value={supplier} onChange={e => setSupplier(e.target.value)}>
-                    <option value="">Select supplier…</option>
-                    {SUPPLIERS.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                  <ChevronDown style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
-                </div>
-              </div>
-              <div>
-                <label style={labelStyle}><Calendar style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />PO Date</label>
-                <input type="date" style={fieldStyle} value={poDate} onChange={e => setPoDate(e.target.value)} />
-              </div>
-              <div>
-                <label style={labelStyle}>Status</label>
-                <div style={{ position: 'relative' }}>
-                  <select style={{ ...fieldStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}
-                    value={status} onChange={e => setStatus(e.target.value)}>
-                    {['draft', 'confirmed', 'shipped', 'delivered', 'cancelled'].map(s => (
-                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                    ))}
-                  </select>
-                  <ChevronDown style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
-                </div>
+          {/* Header Fields - Combined */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label style={labelStyle}>Supplier *</label>
+              <div style={{ position: 'relative' }}>
+                <select style={{ ...inputStyle, paddingRight: '2rem', cursor: 'pointer', appearance: 'none' }}
+                  value={supplier} onChange={e => setSupplier(e.target.value)}>
+                  <option value="">Select…</option>
+                  {SUPPLIERS.map(s => <option key={s}>{s}</option>)}
+                </select>
+                <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
               </div>
             </div>
-
-            {/* Import Products */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>
-                  <Package style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />
-                  Import Products <span style={{ fontSize: '0.5625rem', opacity: 0.6 }}>(prices in USD)</span>
-                </label>
-                <button type="button" onClick={addItem}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.875rem', borderRadius: 9999, border: 'none', backgroundColor: '#FEF3C7', color: '#D97706', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
-                  <Plus style={{ width: 14, height: 14 }} />Add Product
-                </button>
+              <label style={labelStyle}>PO Date</label>
+              <input type="date" style={inputStyle} value={poDate} onChange={e => setPoDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Status</label>
+              <div style={{ position: 'relative' }}>
+                <select style={{ ...inputStyle, paddingRight: '2rem', cursor: 'pointer', appearance: 'none' }}
+                  value={status} onChange={e => setStatus(e.target.value)}>
+                  {['draft', 'confirmed', 'shipped', 'delivered'].map(s => (
+                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  ))}
+                </select>
+                <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
               </div>
+            </div>
+          </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 100px 40px', gap: '0.5rem', padding: '0.5rem 0', marginBottom: '0.25rem' }}>
-                {['Product', 'Qty', 'Unit (USD)', 'Subtotal', ''].map((h, i) => (
-                  <span key={i} style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)' }}>{h}</span>
-                ))}
+          {/* Products Section */}
+          <div style={{ backgroundColor: 'var(--surface-container-low)', borderRadius: 14, padding: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Package style={{ width: 14, height: 14, color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>Products</span>
+                <span style={{ fontSize: '0.625rem', color: 'var(--on-surface-variant)' }}>({items.length})</span>
               </div>
-
-              {items.map((item, idx) => {
-                const prod = IMPORT_PRODUCTS[item.product];
-                return (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px 100px 40px', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <select style={{ ...fieldStyle, cursor: 'pointer', appearance: 'none', paddingRight: '2rem' }}
-                      value={item.product} onChange={e => updateItem(idx, 'product', +e.target.value)}>
-                      {IMPORT_PRODUCTS.map(p => <option key={p.sku} value={IMPORT_PRODUCTS.indexOf(p)}>{p.name}</option>)}
-                    </select>
-                    <input type="number" min="1" style={{ ...fieldStyle, textAlign: 'right' }}
-                      value={item.qty} onChange={e => updateItem(idx, 'qty', +e.target.value)} />
-                    <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--on-surface-variant)' }}>$</span>
-                      <input type="number" step="0.01" style={{ ...fieldStyle, paddingLeft: '1.5rem', textAlign: 'right' }}
-                        value={item.unitPrice} onChange={e => updateItem(idx, 'unitPrice', +e.target.value)} />
-                    </div>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.875rem', color: 'var(--on-surface)', textAlign: 'right' }}>
-                      ${(item.qty * item.unitPrice).toFixed(2)}
-                    </span>
-                    <button type="button" onClick={() => removeItem(idx)}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--error)', display: 'flex', justifyContent: 'center', padding: '0.25rem' }}>
-                      <Trash2 style={{ width: 16, height: 16 }} />
-                    </button>
-                  </div>
-                );
-              })}
+              <button type="button" onClick={addItem}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0.375rem 0.75rem', borderRadius: 8, border: 'none', backgroundColor: 'var(--primary)', color: 'white', cursor: 'pointer', fontSize: '0.6875rem', fontWeight: 700 }}>
+                <Plus style={{ width: 12, height: 12 }} />Add
+              </button>
             </div>
 
-            {/* Logistics */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <label style={{ ...labelStyle, marginBottom: 0 }}>
-                  <Truck style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />
-                  Logistics & Shipping
-                </label>
-                <button type="button" onClick={addLogistics}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.875rem', borderRadius: 9999, border: 'none', backgroundColor: '#DBEAFE', color: '#2563EB', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
-                  <Plus style={{ width: 14, height: 14 }} />Add Cost
-                </button>
-              </div>
-
-              {logistics.length === 0 && (
-                <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', padding: '0.75rem', backgroundColor: 'var(--surface-container-low)', borderRadius: 12, textAlign: 'center' }}>
-                  No logistics costs added yet
-                </p>
-              )}
-
-              {logistics.map((l, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 40px', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <select style={{ ...fieldStyle, cursor: 'pointer', appearance: 'none', paddingRight: '2rem' }}
-                    value={l.type} onChange={e => updateLogistics(idx, 'type', e.target.value)}>
-                    {LOGISTICS_TYPES.map((lt, i) => (
-                      <option key={i} value={i}>{lt.label} ({lt.currency})</option>
-                    ))}
+            {/* Product Rows */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {items.map((item, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 90px 36px', gap: '0.5rem', alignItems: 'center' }}>
+                  <select style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', paddingRight: '1.5rem' }}
+                    value={item.product} onChange={e => updateItem(idx, 'product', +e.target.value)}>
+                    {IMPORT_PRODUCTS.map((p, i) => <option key={p.sku} value={i}>{p.name}</option>)}
                   </select>
+                  <input type="number" min="1" style={{ ...inputStyle, textAlign: 'right' }}
+                    value={item.qty} onChange={e => updateItem(idx, 'qty', +e.target.value)} />
                   <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--on-surface-variant)' }}>
-                      {LOGISTICS_TYPES[l.type]?.currency === 'USD' ? '$' : LOGISTICS_TYPES[l.type]?.currency === 'CNY' ? '¥' : '฿'}
-                    </span>
-                    <input type="number" step="0.01" style={{ ...fieldStyle, paddingLeft: '1.75rem', textAlign: 'right' }}
-                      placeholder="0.00" value={l.amount} onChange={e => updateLogistics(idx, 'amount', e.target.value)} />
+                    <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: '0.6875rem', color: 'var(--on-surface-variant)' }}>$</span>
+                    <input type="number" step="0.01" style={{ ...inputStyle, paddingLeft: '1.5rem', textAlign: 'right' }}
+                      value={item.unitPrice} onChange={e => updateItem(idx, 'unitPrice', +e.target.value)} />
                   </div>
-                  <button type="button" onClick={() => removeLogistics(idx)}
+                  <button type="button" onClick={() => removeItem(idx)}
                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--error)', display: 'flex', justifyContent: 'center', padding: '0.25rem' }}>
-                    <Trash2 style={{ width: 16, height: 16 }} />
+                    <Trash2 style={{ width: 14, height: 14 }} />
                   </button>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Summary */}
-            <div style={{ backgroundColor: '#0f172a', borderRadius: 16, padding: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              {/* USD Column */}
-              <div>
-                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.75rem' }}>USD</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>Items Subtotal</span>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.875rem', color: '#94a3b8' }}>
-                      ${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.875rem', color: '#e2e8f0' }}>Grand Total</span>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.125rem', color: '#f59e0b' }}>
-                      ${grandTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
+          {/* Logistics Section */}
+          <div style={{ backgroundColor: 'var(--surface-container-low)', borderRadius: 14, padding: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Truck style={{ width: 14, height: 14, color: '#2563EB' }} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>Logistics</span>
               </div>
+              <button type="button" onClick={addLogistics}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0.375rem 0.75rem', borderRadius: 8, border: 'none', backgroundColor: '#2563EB', color: 'white', cursor: 'pointer', fontSize: '0.6875rem', fontWeight: 700 }}>
+                <Plus style={{ width: 12, height: 12 }} />Add
+              </button>
+            </div>
 
-              {/* THB Column */}
-              <div>
-                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.75rem' }}>THB</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {[
-                    { label: 'Items Subtotal', value: `฿${itemsSubtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
-                    { label: 'Logistics', value: `฿${logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
-                    { label: 'VAT (7%)', value: `฿${tax.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
-                  ].map((r, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>{r.label}</span>
-                      <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 600, fontSize: '0.875rem', color: '#94a3b8' }}>{r.value}</span>
+            {logistics.length === 0 ? (
+              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', textAlign: 'center', padding: '0.5rem' }}>No logistics added</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {logistics.map((l, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 36px', gap: '0.5rem', alignItems: 'center' }}>
+                    <select style={{ ...inputStyle, cursor: 'pointer', appearance: 'none', paddingRight: '1.5rem' }}
+                      value={l.type} onChange={e => updateLogistics(idx, 'type', e.target.value)}>
+                      {LOGISTICS_TYPES.map((lt, i) => <option key={i} value={i}>{lt.label}</option>)}
+                    </select>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: '0.6875rem', color: 'var(--on-surface-variant)' }}>
+                        {LOGISTICS_TYPES[l.type]?.currency === 'USD' ? '$' : LOGISTICS_TYPES[l.type]?.currency === 'CNY' ? '¥' : '฿'}
+                      </span>
+                      <input type="number" step="0.01" style={{ ...inputStyle, paddingLeft: '1.5rem', textAlign: 'right' }}
+                        placeholder="0" value={l.amount} onChange={e => updateLogistics(idx, 'amount', e.target.value)} />
                     </div>
-                  ))}
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.875rem', color: '#e2e8f0' }}>Grand Total</span>
-                    <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.25rem', color: '#f97316' }}>
-                      ฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
+                    <button type="button" onClick={() => removeLogistics(idx)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--error)', display: 'flex', justifyContent: 'center', padding: '0.25rem' }}>
+                      <Trash2 style={{ width: 14, height: 14 }} />
+                    </button>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Summary - Combined dark card */}
+          <div style={{ backgroundColor: '#0f172a', borderRadius: 14, padding: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            {/* THB Column */}
+            <div>
+              <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.5rem' }}>THB</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                {[
+                  { label: 'Items', value: `฿${itemsSubtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
+                  { label: 'Logistics', value: `฿${logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
+                  { label: 'Tax (7%)', value: `฿${tax.toLocaleString('th-TH', { minimumFractionDigits: 0 })}` },
+                ].map((r, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>{r.label}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>{r.value}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>Total</span>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 900, color: '#f97316' }}>฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
             </div>
 
-            {/* Note */}
+            {/* USD Column */}
             <div>
-              <label style={labelStyle}>Notes</label>
-              <textarea style={{ ...fieldStyle, resize: 'vertical', minHeight: 60 }}
-                placeholder="Delivery address, special instructions…"
-                value={note} onChange={e => setNote(e.target.value)} />
+              <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.5rem' }}>USD</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Items</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Logistics</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>${logisticsTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>Total</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#f59e0b' }}>${grandTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <div style={{ padding: '1rem 2rem 1.5rem', display: 'flex', gap: '0.75rem', borderTop: '1px solid var(--outline-variant)' }}>
+          {/* Notes */}
+          <div>
+            <label style={labelStyle}>Notes</label>
+            <textarea style={{ ...inputStyle, resize: 'none', minHeight: 48 }}
+              placeholder="Delivery address, special instructions…"
+              value={note} onChange={e => setNote(e.target.value)} />
+          </div>
+
+          {/* Footer Buttons */}
+          <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '0.875rem', borderRadius: 9999, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)' }}>
+              style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--on-surface)' }}>
               Cancel
             </button>
             <button type="submit" disabled={loading}
               style={{
-                flex: 2, padding: '0.875rem', borderRadius: 9999, border: 'none',
+                flex: 2, padding: '0.75rem', borderRadius: 12, border: 'none',
                 background: loading ? 'var(--surface-container-high)' : 'linear-gradient(135deg, #D97706, #B45309)',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: 'white',
+                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem', color: 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                 boxShadow: loading ? 'none' : '0 4px 12px rgba(217,119,6,0.3)',
                 transition: 'all 150ms',
               }}>
-              {loading
-                ? <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />Creating…</>
-                : `Create PO — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`}
+              {loading ? (
+                <><span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />Creating…</>
+              ) : (
+                <>
+                  <Save style={{ width: 14, height: 14 }} />
+                  Create PO — ฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+                </>
+              )}
             </button>
           </div>
         </form>
+
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>

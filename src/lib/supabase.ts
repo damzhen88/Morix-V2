@@ -217,7 +217,6 @@ export const api = {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('status', 'active')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data as Product[];
@@ -242,6 +241,11 @@ export const api = {
       .single();
     if (error) throw error;
     return data as Product;
+  },
+
+  async deleteProduct(id: string) {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
   },
 
   // Customers
@@ -294,6 +298,11 @@ export const api = {
     return data as PurchaseOrder;
   },
 
+  async deletePurchaseOrder(id: string) {
+    const { error } = await supabase.from('purchase_orders').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   // Sales Orders
   async getSalesOrders() {
     const { data, error } = await supabase
@@ -312,6 +321,11 @@ export const api = {
       .single();
     if (error) throw error;
     return data as SalesOrder;
+  },
+
+  async deleteSalesOrder(id: string) {
+    const { error } = await supabase.from('sales_orders').delete().eq('id', id);
+    if (error) throw error;
   },
 
   // CRM Deals

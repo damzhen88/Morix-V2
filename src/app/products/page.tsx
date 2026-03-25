@@ -1,49 +1,28 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import { Package, Plus, Search, Grid, List, MoreVertical, Edit, Copy, Archive, Trash2, Eye } from 'lucide-react';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import ProductFormModal from '@/components/ui/ProductFormModal';
 import { formatTHB } from '@/lib/format';
+import { api, deleteImage } from '@/lib/supabase';
 
-const products = [
-  { id: 1, name: 'Aluminum Panel 120x240cm',    sku: 'AL-PNL-001',   category: 'Wall Panels', stock: 48,  unit: 'pcs', price: 2850, status: 'active' },
-  { id: 2, name: 'WPC Decking Board 145x21mm', sku: 'WPC-DK-014',   category: 'Flooring',    stock: 120, unit: 'pcs', price: 4200, status: 'active' },
-  { id: 3, name: 'HPL Sheet 1220x2440mm',      sku: 'HPL-SH-122',   category: 'Surface',    stock: 12,  unit: 'pcs', price: 5600, status: 'low'    },
-  { id: 4, name: 'Aluminum Trim Strip 2.5m',   sku: 'AL-TRM-025',   category: 'Accessories', stock: 200, unit: 'pcs', price: 380,  status: 'active' },
-  { id: 5, name: 'PVC Ceiling Panel 60x60cm',  sku: 'PVC-CL-060',   category: 'Ceiling',    stock: 0,   unit: 'pcs', price: 120,  status: 'out'    },
-  { id: 6, name: 'Composite Cladding 160x12mm',sku: 'CP-CLD-160',   category: 'Wall Panels', stock: 72,  unit: 'pcs', price: 1850, status: 'active' },
-];
+const CATEGORY_MAP: Record<string, string> = {
+  'ASA': 'Wall Panels',
+  'WPC': 'Flooring',
+  'SPC': 'Surface',
+  'ACCESSORIES': 'Accessories',
+  'CEILING': 'Ceiling',
+};
 
-const categories = ['All', 'Wall Panels', 'Flooring', 'Surface', 'Accessories', 'Ceiling'];
+const CATEGORIES = ['All', 'Wall Panels', 'Flooring', 'Surface', 'Accessories', 'Ceiling'];
 
-// Product placeholder images using initials
-function ProductImage({ name, sku }: { name: string; sku: string }) {
-  const colors: Record<string, string> = {
-    'Wall Panels': '#3B82F6',
-    'Flooring':    '#10B981',
-    'Surface':     '#8B5CF6',
-    'Accessories': '#F59E0B',
-    'Ceiling':     '#EC4899',
-  };
-  const color = colors[name.split(' ')[0]] || 'var(--primary)';
-  return (
-    <div
-      className="w-full h-full flex flex-col items-center justify-center rounded-xl"
-      style={{ background: `linear-gradient(135deg, ${color}20, ${color}08)` }}
-    >
-      <span className="font-headline text-3xl font-black" style={{ color }}>{sku.charAt(0)}</span>
-      <span className="text-[10px] font-mono mt-1" style={{ color }}>{sku}</span>
-    </div>
-  );
-}
-
-function getStatusStyle(status: string) {
-  return {
-    active: { bg: 'bg-[var(--success-container)]', text: 'text-[var(--success)]', label: 'In Stock' },
-    low:    { bg: 'bg-[var(--warning-container)]', text: 'text-[var(--warning)]', label: 'Low Stock' },
-    out:    { bg: 'bg-[var(--surface-container-high)]', text: 'text-[var(--on-surface-variant)]', label: 'Out of Stock' },
-  }[status];
+function getStatusStyle(product: any) {
+  const qty = product.quantity_on_hand || 0;
+  if (qty === 0) return { bg: 'bg-[var(--surface-container-high)]', text: 'text-[var(--on-surface-variant)]', label: 'Out of Stock' };
+  if (qty <= (product.min_stock || 5)) return { bg: 'bg-[var(--warning-container)]', text: 'text-[var(--warning)]', label: 'Low Stock' };
+  return { bg: 'bg-[var(--success-container)]', text: 'text-[var(--success)]', label: 'In Stock' };
 }
 
 export default function ProductsPage() {
@@ -52,6 +31,8 @@ export default function ProductsPage() {
   const [viewMode, setViewMode]     = useState<'grid' | 'list'>('grid');
   const [openMenu, setOpenMenu]     = useState<number | null>(null);
   const { openForm } = useFormModal();
+  const { toast } = useToast();
+  const [form, setForm] = useState({ name: '', sku: '' });
   
   // Category counts
   const catCounts: Record<string, number> = { All: products.length };
@@ -65,10 +46,45 @@ export default function ProductsPage() {
     return matchSearch && matchCat;
   });
 
-  const handleMenuAction = (action: string, productId: number) => {
+  const handleMenuAction = async (action: string, productId: string) => {
     setOpenMenu(null);
-    // TODO: implement actual actions
-    console.log(`[Products] ${action} on product #${productId}`);
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    const nameTh = product.name_th || product.sku || 'Unknown';
+    if (!product) return;
+
+    switch (action) {
+      case 'view':
+        alert(`Product: ${product.name_th}\nSKU: ${product.sku}\nPrice: ฿${(product.price_thb || 0).toLocaleString()}\nStock: ${product.stock || 0} ${product.unit}`);
+        break;
+      case 'edit':
+        openForm('product');
+        break;
+      case 'duplicate':
+        setForm(f => ({ ...f, name: `${nameTh} (Copy)`, sku: `${product.sku || ''}-COPY` }));
+        openForm('product');
+        break;
+      case 'archive':
+        try {
+          await api.updateProduct(productId, { status: 'inactive' });
+          toast('Product archived', 'info');
+          setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: 'inactive' } : p));
+        } catch (err: any) { toast('Failed: ' + (err.message || 'Unknown'), 'error'); }
+        break;
+      case 'delete':
+        if (!confirm(`Delete product "${product.name_th}"? This cannot be undone.`)) return;
+        try {
+          // Delete images from storage
+          for (const img of (product.images || [])) {
+            try { await deleteImage(img.url, 'products'); } catch {}
+          }
+          // Delete product record
+          await api.deleteProduct(productId);
+          toast(`"${product.name_th}" deleted`, 'success');
+          setProducts(prev => prev.filter(p => p.id !== productId));
+        } catch (err: any) { toast('Failed: ' + (err.message || 'Unknown'), 'error'); }
+        break;
+    }
   };
 
   return (
@@ -186,7 +202,7 @@ export default function ProductsPage() {
 
                 {/* Product image */}
                 <div className="w-full aspect-[4/3] mb-4">
-                  <ProductImage name={product.name} sku={product.sku} />
+                  <ProductImage name={product.name_th || product.name} sku={product.sku} imageUrl={product.images?.[0]?.url} />
                 </div>
 
                 {/* Info */}
@@ -245,7 +261,7 @@ export default function ProductsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl overflow-hidden">
-                          <ProductImage name={product.name} sku={product.sku} />
+                          <ProductImage name={product.name_th || product.name} sku={product.sku} imageUrl={product.images?.[0]?.url} />
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-[var(--on-surface)]">{product.name}</p>
