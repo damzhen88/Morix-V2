@@ -46,7 +46,7 @@ export default function SalesPage() {
           <p className="page-header-subtitle">March 2026 — ฿3.8M revenue tracked</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-outline">
+          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }}>
             <Download className="w-4 h-4" />
             Export
           </button>

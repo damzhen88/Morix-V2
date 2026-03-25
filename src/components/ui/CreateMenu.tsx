@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Package, TrendingUp, Users, ShoppingCart, X } from 'lucide-react';
+import { Package, TrendingUp, Users, ShoppingCart, X, Receipt } from 'lucide-react';
 
 interface CreateMenuProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ const ITEMS = [
   { label: 'New Sale',            desc: 'Record a customer sale',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
   { label: 'New Client',          desc: 'Add a business partner',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
   { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart,key: 'purchase' as const, color: '#D97706' },
+  { label: 'New Expense',        desc: 'Record a business expense',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
 ];
 
 export default function CreateMenu({ isOpen, onClose, onOpenForm }: CreateMenuProps) {

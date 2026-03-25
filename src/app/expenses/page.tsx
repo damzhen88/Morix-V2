@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormModal } from '@/components/ui/FormModalContext';
 import { Receipt, Plus, Download, Search, CreditCard, Truck, Package, Zap, Wrench, Building, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 
 const expenses = [
@@ -28,6 +29,7 @@ const categories = [
 export default function ExpensesPage() {
   const [search, setSearch]   = useState('');
   const [cat, setCat]         = useState('all');
+  const { openForm } = useFormModal();
 
   const filtered = expenses.filter(e => {
     const match = e.desc.toLowerCase().includes(search.toLowerCase()) || e.vendor.toLowerCase().includes(search.toLowerCase());
@@ -55,8 +57,11 @@ export default function ExpensesPage() {
           <p className="page-header-subtitle">March 2026 — ฿{expenses.reduce((s, e) => s + e.amount, 0).toLocaleString()} total expenses</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-outline"><Download className="w-4 h-4" />Export</button>
-          <button className="btn-primary"><Plus className="w-4 h-4" />Add Expense</button>
+          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }}>
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+          <button className="btn-primary" onClick={() => openForm('expense')}><Plus className="w-4 h-4" />Add Expense</button>
         </div>
       </div>
 

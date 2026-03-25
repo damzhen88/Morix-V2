@@ -15,6 +15,7 @@ import SearchModal from '@/components/ui/SearchModal';
 import ProductFormModal from '@/components/ui/ProductFormModal';
 import ClientFormModal from '@/components/ui/ClientFormModal';
 import SaleFormModal from '@/components/ui/SaleFormModal';
+import ExpenseFormModal from '@/components/ui/ExpenseFormModal';
 import PurchaseOrderFormModal from '@/components/ui/PurchaseOrderFormModal';
 import CreateMenu from '@/components/ui/CreateMenu';
 import { FormModalProvider, useFormModal } from '@/components/ui/FormModalContext';
@@ -376,6 +377,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       <ClientFormModal          isOpen={activeForm === 'client'}    onClose={closeForm} />
       <SaleFormModal           isOpen={activeForm === 'sale'}      onClose={closeForm} />
       <PurchaseOrderFormModal  isOpen={activeForm === 'purchase'}  onClose={closeForm} />
+      <ExpenseFormModal       isOpen={activeForm === 'expense'}   onClose={closeForm} />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
