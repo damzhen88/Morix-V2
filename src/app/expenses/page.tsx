@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import { Receipt, Plus, Download, Search, CreditCard, Truck, Package, Zap, Wrench, Building, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -30,8 +31,9 @@ export default function ExpensesPage() {
   const [search, setSearch]   = useState('');
   const [cat, setCat]         = useState('all');
   const { openForm } = useFormModal();
+  const { state } = useApp();
 
-  const filtered = expenses.filter(e => {
+  const filtered = state.expenses.filter((e: any) => {
     const match = e.desc.toLowerCase().includes(search.toLowerCase()) || e.vendor.toLowerCase().includes(search.toLowerCase());
     return cat === 'all' ? match : match && e.category === cat;
   });

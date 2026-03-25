@@ -1,30 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import { TrendingUp, Plus, Download, Filter, Calendar, DollarSign, Package, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { formatTHB } from '@/lib/format';
 
-const salesData = [
-  { id: 'SALE-1247', client: 'AEC Living Co.',    date: '2026-03-24', items: 3, total: 89400,   status: 'confirmed',  type: 'outbound' },
-  { id: 'SALE-1246', client: 'Skyline Interior',  date: '2026-03-23', items: 1, total: 285000,  status: 'pending',    type: 'outbound' },
-  { id: 'SALE-1245', client: 'Modern Home Corp.',  date: '2026-03-22', items: 5, total: 142500,  status: 'confirmed',  type: 'outbound' },
-  { id: 'SALE-1244', client: 'Urban Build Ltd.',  date: '2026-03-20', items: 2, total: 57600,   status: 'delivered',  type: 'outbound' },
-  { id: 'SALE-1243', client: 'Lumpoon Arch.',      date: '2026-03-18', items: 4, total: 315000,  status: 'confirmed',  type: 'outbound' },
-];
-
 const kpis = [
-  { label: 'Revenue (MTD)',     value: '฿3.8M',    change: '+18.4%', up: true,  icon: DollarSign, polarity: 'higher_is_better' as const },
-  { label: 'Orders (MTD)',       value: '47',        change: '+6',     up: true,  icon: Package,    polarity: 'higher_is_better' as const },
-  { label: 'Avg. Order Value',   value: '฿80.8K',   change: '+12.2%', up: true,  icon: TrendingUp, polarity: 'higher_is_better' as const },
-  { label: 'Active Clients',     value: '23',        change: '-2',     up: false, icon: Users,      polarity: 'higher_is_better' as const },
+  { label: 'Revenue (MTD)',    value: formatTHB(state.salesOrders.reduce((s, o) => s + (o.total || 0), 0)),   change: '+18.4%', up: true,  icon: DollarSign, polarity: 'higher_is_better' as const },
+  { label: 'Orders (MTD)',      value: state.salesOrders.length.toString(),       change: '+6',    up: true,  icon: Package,    polarity: 'higher_is_better' as const },
+  { label: 'Avg. Order Value',  value: '฿80.8K',  change: '+12.2%', up: true,  icon: TrendingUp, polarity: 'higher_is_better' as const },
+  { label: 'Active Clients',     value: state.crmDeals.length.toString(),       change: '-2',    up: false, icon: Users,      polarity: 'higher_is_better' as const },
 ];
 
 export default function SalesPage() {
   const [filter, setFilter] = useState('all');
   const { openForm } = useFormModal();
+  const { state } = useApp();
 
-  const filtered = filter === 'all' ? salesData : salesData.filter(s => s.status === filter);
+  const filtered = filter === 'all'
+    ? state.salesOrders
+    : state.salesOrders.filter((s: any) => s.status === filter);
 
   const statusBadge = (status: string) => ({
     confirmed:  'badge-success',
@@ -108,7 +104,7 @@ export default function SalesPage() {
             </div>
             <div className="flex items-end justify-between mt-3 pt-3 border-t border-[var(--outline-variant)]">
               <div>
-                <p className="text-xs text-[var(--on-surface-variant)]">{sale.date} · {sale.items} items</p>
+                <p className="text-xs text-[var(--on-surface-variant)]">{sale.created_at ? new Date(sale.created_at).toLocaleDateString('th-TH') : '—'} · {sale.items?.length || 0} items</p>
               </div>
               <p className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
                 {formatTHB(sale.total)}

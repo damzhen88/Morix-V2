@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import { Users, Plus, Search, Mail, Phone, MapPin, Building2, MoreVertical, ChevronRight, Star, Edit } from 'lucide-react';
 
@@ -80,6 +81,7 @@ const clients = [
 export default function CrmPage() {
   const [search, setSearch]   = useState('');
   const { openForm } = useFormModal();
+  const { state } = useApp();
   const [tier, setTier]       = useState('all');
 
   const filtered = clients.filter(c => {

@@ -69,6 +69,7 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
       await api.createSalesOrder({
         order_number: `SO-${Date.now()}`,
         customer_id: client.id,
+        order_date: new Date().toISOString().split('T')[0],
         status: 'confirmed',
         total_thb: grandTotal,
         profit_thb: grandTotal - subtotal,
