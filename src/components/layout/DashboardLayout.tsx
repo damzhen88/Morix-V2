@@ -320,11 +320,11 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
       {/* ── MAIN CONTENT ─────────────────────── */}
       <div className="hidden lg:block" style={{ paddingLeft: sidebarW, transition: 'padding-left 300ms ease' }}>
-        <div style={{ paddingTop: 64, minHeight: '100vh' }}>
+        <div style={{ minHeight: '100vh' }}>
           <main style={{ padding: '2.5rem', paddingBottom: '6rem' }}>{children}</main>
         </div>
       </div>
-      <div className="lg:hidden" style={{ paddingTop: 64 }}>
+      <div className="lg:hidden">
         <main style={{ padding: '1.5rem', paddingBottom: '6rem' }}>{children}</main>
       </div>
 
