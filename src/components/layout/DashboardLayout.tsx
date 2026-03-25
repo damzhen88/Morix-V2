@@ -186,67 +186,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* ── DESKTOP HEADER ─────────────────── */}
-      <header className="hidden lg:flex items-center fixed top-0 z-30"
-        style={{
-          left: sidebarW, right: 0, height: 64, transition: 'left 300ms ease',
-          padding: '0 1.5rem',
-          background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid var(--outline-variant)', gap: '1rem',
-        }}
-      >
-        {/* Search */}
-        <button onClick={() => setSearchOpen(true)}
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: '0.625rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: 'var(--surface-container-low)', borderRadius: 9999,
-            border: '1px solid var(--outline-variant)', cursor: 'pointer',
-            fontFamily: 'var(--font-body)', fontSize: '0.8125rem',
-            color: 'var(--on-surface-variant)', maxWidth: 640,
-          }}
-        >
-          <Search style={{ width: 16, height: 16, flexShrink: 0 }} />
-          <span style={{ flex: 1, textAlign: 'left' }}>Search products, clients, orders…</span>
-          <kbd style={{ fontSize: '0.625rem', padding: '0.125rem 0.5rem', borderRadius: 6, backgroundColor: 'var(--surface-container-high)', fontFamily: 'monospace', flexShrink: 0 }}>⌘K</kbd>
-        </button>
-
-        {/* Right actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-
-          {/* New button */}
-          <button onClick={() => setCreateOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.5rem 1rem',
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-              color: 'white', borderRadius: 9999, border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
-              boxShadow: '0 2px 8px rgba(249,115,22,0.3)',
-            }}>
-            <Plus style={{ width: 16, height: 16 }} />
-            New
-          </button>
-
-          {/* Bell */}
-          <button style={{ position: 'relative', padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-surface-variant)' }}>
-            <Bell style={{ width: 20, height: 20 }} />
-            <span style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: '50%', backgroundColor: 'var(--error)', color: 'white', fontSize: '0.5625rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</span>
-          </button>
-
-          <div style={{ width: 1, height: 24, backgroundColor: 'var(--outline-variant)', margin: '0 0.25rem' }} />
-
-          {/* User */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--primary-dark)' }}>{(user?.email?.[0] || 'A').toUpperCase()}</span>
-            </div>
-            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--on-surface)' }}>
-              {user?.email?.split('@')[0] || 'Admin'}
-            </span>
-          </div>
-        </div>
-      </header>
 
 
       {/* ── MOBILE SIDEBAR OVERLAY ──────────── */}
