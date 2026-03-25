@@ -1,594 +1,963 @@
-// Purchase Order Page for MORIX V2 - Anti-Slop Design
-// Works within DashboardLayout - NO duplicate header/sidebar
-
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '@/store';
-import { PageLoader } from '@/components/ui';
-import { 
-  Save, Send, CheckCircle, Package, Truck, Globe, 
-  Delete, Plus, Info, ChevronRight,
-  CreditCard, Factory, PlaneTakeoff, Warehouse
+import {
+  Factory, Package, Truck, CreditCard, CheckCircle, ChevronDown,
+  ChevronUp, Plus, Minus, X, AlertCircle, Save, Send, ShoppingCart,
 } from 'lucide-react';
+import Link from 'next/link';
+import { api } from '@/lib/supabase';
+import { useToast } from '@/components/ui/Toast';
 
-// ============================================================
-// ANTI-SLOP DESIGN SYSTEM - MORIX V2
-// ============================================================
-// ✅ NO Inter/Roboto (using Outfit + DM Sans)
-// ✅ NO purple gradients (using amber/orange palette)
-// ✅ NO uniform rounded corners (varied 8px-16px-24px)
-// ✅ NO generic cards (layered depth with shadows)
-// ✅ Custom noise texture backgrounds
-// ============================================================
+// ─── Design Tokens ─────────────────────────────────────────────
+const css = {
+  primary:     'var(--primary)',
+  primaryDark: 'var(--primary-dark)',
+  surface:     'var(--surface-container-low)',
+  card:        'var(--surface-container-lowest)',
+  border:      'var(--outline-variant)',
+  text:        'var(--on-surface)',
+  textMuted:   'var(--on-surface-variant)',
+  success:     'var(--success)',
+  successBg:   'var(--success-container)',
+  error:       'var(--error)',
+  amber:       '#F59E0B',
+  amberBg:     '#FEF3C7',
+};
 
+// ─── Mobile Step Card ─────────────────────────────────────────
+function StepCard({ step, label, icon: Icon, active, completed, onToggle, children }: {
+  step: number;
+  label: string;
+  icon: React.ComponentType<{ style?: React.CSSProperties }>;
+  active: boolean;
+  completed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      borderRadius: 16,
+      border: `1.5px solid ${active ? css.primary : css.border}`,
+      backgroundColor: css.card,
+      overflow: 'hidden',
+      transition: 'border-color 0.15s',
+      marginBottom: 12,
+    }}>
+      {/* Step Header */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '1rem 1.25rem',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        {/* Step number */}
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%',
+          backgroundColor: completed ? css.success : active ? css.primary : 'var(--surface-container-high)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+          transition: 'background-color 0.15s',
+        }}>
+          {completed
+            ? <CheckCircle style={{ width: 16, height: 16, color: 'white' }} />
+            : <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '0.875rem', color: active ? 'white' : css.textMuted }}>
+                {step}
+              </span>
+          }
+        </div>
+
+        {/* Label */}
+        <span style={{
+          flex: 1, fontFamily: 'var(--font-body)', fontWeight: 700,
+          fontSize: '0.9375rem', color: active ? css.text : css.textMuted,
+        }}>
+          {label}
+        </span>
+
+        {/* Chevron */}
+        {active
+          ? <ChevronUp style={{ width: 18, height: 18, color: css.primary }} />
+          : <ChevronDown style={{ width: 18, height: 18, color: css.textMuted }} />
+        }
+      </button>
+
+      {/* Step Content */}
+      {active && (
+        <div style={{ padding: '0 1.25rem 1.25rem', borderTop: `1px solid ${css.border}` }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Mobile Add Item Sheet ────────────────────────────────────
+function AddItemSheet({ open, onClose, onAdd }: {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (item: { sku: string; name: string; qty: number; price: number }) => void;
+}) {
+  const [sku, setSku]     = useState('');
+  const [name, setName]   = useState('');
+  const [qty, setQty]     = useState('1');
+  const [price, setPrice] = useState('');
+
+  if (!open) return null;
+
+  const handleAdd = () => {
+    if (!name) return;
+    onAdd({ sku, name, qty: parseInt(qty) || 1, price: parseFloat(price) || 0 });
+    setSku(''); setName(''); setQty('1'); setPrice('');
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '0.75rem 1rem',
+    backgroundColor: 'var(--surface-container-low)',
+    border: '1.5px solid transparent', borderRadius: 12,
+    fontSize: '0.9375rem', color: css.text,
+    fontFamily: 'var(--font-body)', outline: 'none',
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
+      <div onClick={onClose} style={{
+        position: 'absolute', inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        backgroundColor: css.card, borderRadius: '24px 24px 0 0',
+        maxHeight: '85vh', overflowY: 'auto',
+        padding: '1.5rem',
+        animation: 'slideUp 300ms ease-out',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: css.border }} />
+        </div>
+        <h3 style={{ fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '1.125rem', color: css.text, marginBottom: '1.25rem' }}>
+          Add Product
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>
+              Product Name *
+            </label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aluminum Panel 120x240cm"
+              style={inputStyle}
+              onFocus={e => Object.assign(e.target.style, { borderColor: css.primary, boxShadow: '0 0 0 3px rgba(249,115,22,0.12)' })}
+              onBlur={e => Object.assign(e.target.style, { borderColor: 'transparent', boxShadow: 'none' })} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>SKU</label>
+              <input value={sku} onChange={e => setSku(e.target.value)} placeholder="SKU-001" style={inputStyle}
+                onFocus={e => Object.assign(e.target.style, { borderColor: css.primary, boxShadow: '0 0 0 3px rgba(249,115,22,0.12)' })}
+                onBlur={e => Object.assign(e.target.style, { borderColor: 'transparent', boxShadow: 'none' })} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Qty *</label>
+              <input type="number" value={qty} onChange={e => setQty(e.target.value)} placeholder="1" style={inputStyle}
+                onFocus={e => Object.assign(e.target.style, { borderColor: css.primary, boxShadow: '0 0 0 3px rgba(249,115,22,0.12)' })}
+                onBlur={e => Object.assign(e.target.style, { borderColor: 'transparent', boxShadow: 'none' })} />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Unit Price (USD) *</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: css.textMuted }}>$</span>
+              <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" style={{ ...inputStyle, paddingLeft: '2rem' }}
+                onFocus={e => Object.assign(e.target.style, { borderColor: css.primary, boxShadow: '0 0 0 3px rgba(249,115,22,0.12)' })}
+                onBlur={e => Object.assign(e.target.style, { borderColor: 'transparent', boxShadow: 'none' })} />
+            </div>
+          </div>
+          <button
+            onClick={handleAdd}
+            disabled={!name}
+            style={{
+              width: '100%', height: 52, borderRadius: 12, border: 'none',
+              background: name ? `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})` : 'var(--surface-container-high)',
+              color: name ? 'white' : css.textMuted,
+              fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+              cursor: name ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              boxShadow: name ? `0 4px 16px rgba(249,115,22,0.3)` : 'none',
+              marginTop: 4,
+            }}>
+            <Plus style={{ width: 18, height: 18 }} />
+            Add to Order
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+    </div>
+  );
+}
+
+// ─── Item Card (Mobile) ────────────────────────────────────────
+function ItemCard({ item, onRemove }: {
+  item: { id: string; sku: string; name: string; qty: number; price: number };
+  onRemove: () => void;
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '0.875rem 0',
+      borderBottom: `1px solid ${css.border}`,
+    }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: 10,
+        backgroundColor: 'var(--surface-container-low)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontWeight: 900, fontSize: '0.75rem', color: css.textMuted,
+        flexShrink: 0,
+      }}>
+        {item.name.charAt(0)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: css.text, marginBottom: 2 }}>
+          {item.name}
+        </p>
+        <p style={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: css.textMuted }}>
+          {item.sku || '—'} · {item.qty}x${item.price.toFixed(2)}
+        </p>
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '0.875rem', color: css.text }}>
+          ${(item.qty * item.price).toFixed(2)}
+        </p>
+        <p style={{ fontSize: '0.6875rem', color: css.primary }}>
+          ฿{(item.qty * item.price * 35.42).toLocaleString()}
+        </p>
+      </div>
+      <button onClick={onRemove}
+        style={{
+          width: 36, height: 36, borderRadius: 10, border: 'none',
+          backgroundColor: 'var(--error-container)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+        <Minus style={{ width: 14, height: 14, color: 'var(--error)' }} />
+      </button>
+    </div>
+  );
+}
+
+// ─── Logistics Card (Mobile) ───────────────────────────────────
+function LogisticsCard({ active, label, icon: Icon, color, colorBg, value, onChange, onToggle }: {
+  active: boolean;
+  label: string;
+  icon: React.ComponentType<{ style?: React.CSSProperties }>;
+  color: string;
+  colorBg: string;
+  value: string;
+  onChange: (v: string) => void;
+  onToggle: () => void;
+}) {
+  return (
+    <div style={{
+      borderRadius: 14, padding: '0.875rem 1rem',
+      border: `1.5px solid ${active ? color : css.border}`,
+      backgroundColor: active ? colorBg : 'var(--surface-container-low)',
+      transition: 'all 0.15s',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: active ? 10 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon style={{ width: 18, height: 18, color }} />
+          <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem', color: css.text }}>{label}</span>
+        </div>
+        <button onClick={onToggle}
+          style={{
+            width: 28, height: 28, borderRadius: 8, border: 'none',
+            backgroundColor: active ? color : 'var(--surface-container-high)',
+            color: active ? 'white' : css.textMuted,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+          {active ? <CheckCircle style={{ width: 16, height: 16 }} /> : <Plus style={{ width: 14, height: 14 }} />}
+        </button>
+      </div>
+      {active && (
+        <div>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: css.textMuted }}>$</span>
+            <input value={value} onChange={e => onChange(e.target.value)} placeholder="0.00"
+              style={{
+                width: '100%', padding: '0.625rem 0.75rem 0.625rem 2rem',
+                backgroundColor: 'white', border: `1.5px solid ${color}40`,
+                borderRadius: 10, fontSize: '0.875rem', fontWeight: 600,
+                color: css.text, fontFamily: 'var(--font-body)', outline: 'none',
+              }} />
+          </div>
+          {value && <p style={{ fontSize: '0.6875rem', color: css.primary, textAlign: 'right', marginTop: 4 }}>
+            ≈ ฿{(parseFloat(value) * 35.42).toLocaleString()}
+          </p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Mobile Summary Sheet ──────────────────────────────────────
+function SummarySheet({ open, onClose, items, logistics, rate, onConfirm }: {
+  open: boolean;
+  onClose: () => void;
+  items: any[];
+  logistics: Record<string, string>;
+  rate: number;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+
+  const subtotalUSD = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const logUSD = Object.values(logistics).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const subtotalTHB = subtotalUSD * rate;
+  const logTHB = logUSD * rate;
+  const taxTHB = subtotalTHB * 0.07;
+  const total = subtotalTHB + logTHB + taxTHB;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 500 }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)' }} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        backgroundColor: css.card, borderRadius: '24px 24px 0 0',
+        padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: css.border }} />
+        </div>
+        <h3 style={{ fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '1.125rem', color: css.text, marginBottom: '1rem' }}>Order Summary</h3>
+
+        {[
+          { label: `Items (${items.length})`, value: `$${subtotalUSD.toFixed(2)}`, sub: `฿${subtotalTHB.toLocaleString()}` },
+          ...(logUSD > 0 ? [{ label: 'Logistics', value: `$${logUSD.toFixed(2)}`, sub: `฿${logTHB.toLocaleString()}` }] : []),
+          { label: 'Tax (7%)', value: `฿${taxTHB.toLocaleString()}`, sub: '' },
+        ].map((row, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: `1px solid ${css.border}` }}>
+            <span style={{ fontSize: '0.875rem', color: css.textMuted }}>{row.label}</span>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: css.text }}>
+              {row.value}
+              {row.sub && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: css.primary, marginLeft: 4 }}>{row.sub}</span>}
+            </span>
+          </div>
+        ))}
+
+        <div style={{ margin: '1rem 0', padding: '1rem', background: `linear-gradient(135deg, ${css.primary}12, ${css.primary}06)`, borderRadius: 14, border: `1.5px solid ${css.primary}30` }}>
+          <p style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, marginBottom: 4 }}>Grand Total</p>
+          <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.5rem', color: css.primary }}>
+            ฿{total.toLocaleString()}
+          </p>
+        </div>
+
+        <button onClick={onConfirm}
+          style={{
+            width: '100%', height: 52, borderRadius: 12, border: 'none',
+            background: `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})`,
+            color: 'white', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: `0 4px 16px rgba(249,115,22,0.3)`,
+          }}>
+          <CheckCircle style={{ width: 18, height: 18 }} />
+          Confirm Order
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────
 export default function PurchasePage() {
-  const { state } = useApp();
-  const [activeCurrency, setActiveCurrency] = useState('USD');
-  const [logistics, setLogistics] = useState({
-    chinaDomestic: { amount: '', currency: 'CNY' },
-    chinaThailand: { amount: '', currency: 'USD' },
-    localDelivery: { amount: '', currency: 'THB' },
-  });
-  const [formData, setFormData] = useState({
-    vendor: '',
-    exchangeRate: '35.42',
-    items: [
-      { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
-      { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
-    ],
-    notes: '',
-  });
+  const { toast } = useToast();
 
-  // ============================================================
-  // CALCULATIONS — Final always in THB
-  // USD/CNY used for import products & international freight input
-  // ============================================================
-  const RATE = parseFloat(formData.exchangeRate) || 35.42; // THB per 1 USD
+  // Steps
+  const [activeStep, setActiveStep] = useState(1);
+  const STEPS = [
+    { n: 1, label: 'Supplier & Currency', icon: Factory },
+    { n: 2, label: 'Products', icon: Package },
+    { n: 3, label: 'Logistics & Costs', icon: Truck },
+    { n: 4, label: 'Review & Confirm', icon: CreditCard },
+  ];
 
-  // Items subtotal in THB (items priced in USD by default)
-  const calculateItemsSubtotal = () => {
-    return formData.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  };
-  const itemsSubtotalUSD = calculateItemsSubtotal();
-  const itemsSubtotalTHB = itemsSubtotalUSD * RATE;
+  // Form
+  const [supplier, setSupplier]       = useState('');
+  const [currency, setCurrency]         = useState('USD');
+  const [exchangeRate, setExchangeRate] = useState('35.42');
+  const [items, setItems]               = useState<{ id: string; sku: string; name: string; qty: number; price: number }[]>([
+    { id: '1', sku: 'AL-PNL-001', name: 'Aluminum Panel 120x240cm', qty: 150, price: 45.00 },
+    { id: '2', sku: 'PCB-GF-44', name: 'Glass Fiber PCB Panel', qty: 300, price: 12.50 },
+  ]);
+  const [logistics, setLogistics] = useState<Record<string, string>>({});
+  const [notes, setNotes]       = useState('');
 
-  // Logistics: CNY → THB, USD → THB, THB stays THB
-  const calculateLogisticsTotal = () => {
-    let totalTHB = 0;
-    const logisticsData = [
-      logistics.chinaDomestic,
-      logistics.chinaThailand,
-      logistics.localDelivery
-    ];
-    logisticsData.forEach(log => {
-      const amount = parseFloat(log.amount) || 0;
-      if (log.currency === 'CNY') totalTHB += amount * (RATE / 7.2);   // CNY→THB approx
-      else if (log.currency === 'USD') totalTHB += amount * RATE;        // USD→THB
-      else totalTHB += amount;                                           // THB stays
-    });
-    return totalTHB;
-  };
-  const logisticsTotalTHB = calculateLogisticsTotal();
+  // Sheet states
+  const [sheetOpen, setSheetOpen]     = useState(false);
+  const [summaryOpen, setSummaryOpen]   = useState(false);
+  const [saving, setSaving]            = useState(false);
 
-  const calculateTax = () => itemsSubtotalTHB * 0.07;
-  const calculateGrandTotal = () => itemsSubtotalTHB + logisticsTotalTHB + calculateTax();
-  const calculateGrandTotalUSD = () => itemsSubtotalUSD + (logisticsTotalTHB / RATE) + (calculateTax() / RATE);
+  const rate = parseFloat(exchangeRate) || 35.42;
+  const subtotalUSD = items.reduce((s, i) => s + i.qty * i.price, 0);
+  const logUSD = Object.values(logistics).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const subtotalTHB = subtotalUSD * rate;
+  const logTHB = logUSD * rate;
+  const taxTHB = subtotalTHB * 0.07;
+  const totalTHB = subtotalTHB + logTHB + taxTHB;
 
-  const deleteItem = (id: number) => {
-    setFormData({
-      ...formData,
-      items: formData.items.filter(item => item.id !== id),
-    });
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '0.75rem 1rem',
+    backgroundColor: 'var(--surface-container-low)',
+    border: '1.5px solid transparent', borderRadius: 12,
+    fontSize: '0.9375rem', color: css.text,
+    fontFamily: 'var(--font-body)', outline: 'none',
   };
 
-  const updateLogisticsAmount = (key: string, amount: string) => {
-    setLogistics({
-      ...logistics,
-      [key]: { ...logistics[key], amount }
-    });
+  const addItem = (item: { sku: string; name: string; qty: number; price: number }) => {
+    setItems([...items, { ...item, id: `item-${Date.now()}` }]);
   };
 
-  const updateLogisticsCurrency = (key: string, currency: string) => {
-    setLogistics({
-      ...logistics,
-      [key]: { ...logistics[key], currency }
-    });
-  };
+  const removeItem = (id: string) => setItems(items.filter(i => i.id !== id));
 
   const handleSaveDraft = () => {
-    alert(`Draft saved!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+    if (!supplier) { toast('Please select a supplier first', 'error'); return; }
+    setSaving(true);
+    api.createPurchaseOrder({
+      po_number: `PO-${Date.now()}`,
+      supplier_id: supplier,
+      order_date: new Date().toISOString().split('T')[0],
+      status: 'draft',
+      currency: 'CNY',
+      exchange_rate_thb: rate,
+      total_thb: totalTHB,
+      notes: notes || null,
+    }).then(() => {
+      toast('Draft saved!', 'success');
+    }).catch((err: any) => {
+      toast('Failed: ' + (err.message || 'Unknown'), 'error');
+    }).finally(() => setSaving(false));
   };
 
   const handleConfirm = () => {
-    if (!formData.supplier) {
-      alert('Please select a supplier first');
-      return;
-    }
-    if (formData.items.length === 0) {
-      alert('Please add at least one item');
-      return;
-    }
-    alert(`Purchase Order confirmed!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+    if (!supplier) { toast('Please select a supplier', 'error'); return; }
+    if (items.length === 0) { toast('Please add at least one item', 'error'); return; }
+    setSaving(true);
+    api.createPurchaseOrder({
+      po_number: `PO-${Date.now()}`,
+      supplier_id: supplier,
+      order_date: new Date().toISOString().split('T')[0],
+      status: 'pending',
+      currency: 'CNY',
+      exchange_rate_thb: rate,
+      total_thb: totalTHB,
+      notes: notes || null,
+    }).then(() => {
+      toast('Purchase Order confirmed!', 'success');
+      setSummaryOpen(false);
+    }).catch((err: any) => {
+      toast('Failed: ' + (err.message || 'Unknown'), 'error');
+    }).finally(() => setSaving(false));
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
-  if (state.isLoading) {
-    return <PageLoader />;
-  }
+  const suppliers = [
+    'Global Logistics Pro', 'Shenzhen Tech Supplies',
+    'Guangzhou Trading Co.', 'Bangkok Freight Co.',
+  ];
+
+  const LOGISTICS = [
+    { id: 'china_domestic', label: 'China Domestic', icon: Truck, color: '#EF4444', colorBg: '#FEE2E2' },
+    { id: 'china_thailand', label: 'China → Thailand', icon: Truck, color: '#3B82F6', colorBg: '#DBEAFE' },
+    { id: 'local_delivery', label: 'Local Delivery', icon: Truck, color: '#10B981', colorBg: '#D1FAE5' },
+  ];
+
+  const stepCompleted = (n: number) => {
+    if (n === 1) return !!supplier;
+    if (n === 2) return items.length > 0;
+    if (n === 3) return true;
+    if (n === 4) return supplier && items.length > 0;
+    return false;
+  };
 
   return (
-    <div className="min-h-screen bg-[#faf9f7] text-stone-900">
-      {/* ============================================================ */}
-      {/* NOISE TEXTURE OVERLAY */}
-      {/* ============================================================ */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-[0.015] z-50"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>
 
-      {/* ============================================================ */}
-      {/* PAGE HEADER - NO FIXED HEADER (DashboardLayout provides one) */}
-      {/* ============================================================ */}
-      <div className="mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+      {/* ── PAGE HEADER ─────────────────────────── */}
+      <div style={{ padding: '1.5rem 1.25rem 1rem', borderBottom: `1px solid ${css.border}`, backgroundColor: css.card, position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">
-              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              New Procurement Request
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Link href="/" style={{ color: css.textMuted }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.primary }}>
+                  Procurement
+                </span>
+              </Link>
+              <span style={{ color: css.textMuted, fontSize: '0.75rem' }}>/</span>
+              <span style={{ fontSize: '0.75rem', color: css.text }}>Purchase Order</span>
             </div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-stone-900 leading-none">
-              Purchase Order
-              <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', letterSpacing: '-0.02em', color: css.text }}>
+              New Purchase Order
             </h1>
           </div>
-          {/* DESKTOP CTA — only visible on desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm" onClick={handleSaveDraft}>
-              <Save className="w-4 h-4" />
+
+          {/* Desktop header actions */}
+          <div className="hidden lg:flex" style={{ gap: 8 }}>
+            <button onClick={handleSaveDraft} disabled={saving}
+              style={{
+                height: 40, padding: '0 1rem', borderRadius: 10, border: `1.5px solid ${css.border}`,
+                background: 'transparent', cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: css.text,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              <Save style={{ width: 14, height: 14 }} />
               Save Draft
             </button>
-            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2" onClick={handleConfirm}>
-              <Send className="w-4 h-4" />
-              Confirm Order
+            <button onClick={() => setActiveStep(4)}
+              style={{
+                height: 40, padding: '0 1rem', borderRadius: 10, border: 'none',
+                background: `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})`,
+                color: 'white', cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
+                display: 'flex', alignItems: 'center', gap: 6,
+                boxShadow: `0 2px 8px rgba(249,115,22,0.3)`,
+              }}>
+              <Send style={{ width: 14, height: 14 }} />
+              Review
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ============================================================ */}
-      {/* WORKFLOW STEPPER */}
-      {/* ============================================================ */}
-      <div className="mb-8 bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-        <div className="flex items-center justify-between max-w-xl mx-auto">
-          {/* Step 1 - Active */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </div>
-              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+        {/* Mobile step progress */}
+        <div className="lg:hidden" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {STEPS.map((s, i) => (
+            <div key={s.n} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{
+                flex: 1, height: 4, borderRadius: 9999,
+                backgroundColor: stepCompleted(s.n) ? css.success : activeStep === s.n ? css.primary : 'var(--surface-container-high)',
+                transition: 'background-color 0.3s',
+              }} />
             </div>
-            <div>
-              <div className="text-sm font-bold text-stone-900">Draft</div>
-              <div className="text-xs text-stone-400">In Progress</div>
-            </div>
-          </div>
-
-          {/* Connector */}
-          <div className="flex-1 mx-3">
-            <div className="h-0.5 bg-gradient-to-r from-amber-500 to-stone-200 rounded-full" />
-          </div>
-
-          {/* Step 2 */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
-              <CheckCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-stone-400">Confirmed</div>
-              <div className="text-xs text-stone-300">Pending</div>
-            </div>
-          </div>
-
-          {/* Connector */}
-          <div className="flex-1 mx-3">
-            <div className="h-0.5 bg-stone-200 rounded-full" />
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400">
-              <Package className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-stone-400">Received</div>
-              <div className="text-xs text-stone-300">Awaiting</div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* MAIN GRID */}
-      {/* ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* ============================================================ */}
-        {/* LEFT COLUMN - Forms */}
-        {/* ============================================================ */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Vendor & Currency Section */}
-          <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              
-              {/* Vendor Selection */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <Factory className="w-3 h-3" />
-                  Vendor Selection
-                </label>
-                <div className="relative">
-                  <select 
-                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all cursor-pointer pr-10"
-                    value={formData.vendor}
-                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  >
-                    <option value="">Select a Vendor...</option>
-                    <option>Global Logistics Pro</option>
-                    <option>Shenzhen Tech Supplies</option>
-                    <option value="new">+ Add New Vendor</option>
-                  </select>
-                  <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 rotate-90 pointer-events-none" />
-                </div>
-              </div>
+      {/* ── MAIN CONTENT ─────────────────────────── */}
+      <div style={{ padding: '1.25rem' }}>
 
-              {/* Import Pricing Currency */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <CreditCard className="w-3 h-3" />
-                  Import Pricing (USD/CNY)
+        {/* ── MOBILE VERSION ── */}
+        <div className="lg:hidden" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+          {/* Step 1: Supplier */}
+          <StepCard
+            step={1} label="Supplier & Currency" icon={Factory}
+            active={activeStep === 1} completed={stepCompleted(1)}
+            onToggle={() => setActiveStep(activeStep === 1 ? 0 : 1)}>
+            <div style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>
+                  Supplier *
                 </label>
-                <div className="flex bg-stone-100 rounded-xl p-1.5">
-                  {['USD', 'CNY', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => setActiveCurrency(curr)}
-                      className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-                        activeCurrency === curr 
-                          ? 'bg-white text-orange-600 shadow-sm' 
-                          : 'text-stone-500 hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
+                <select value={supplier} onChange={e => setSupplier(e.target.value)}
+                  style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="">Select supplier…</option>
+                  {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Currency</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['USD', 'CNY', 'THB'].map(c => (
+                    <button key={c} onClick={() => setCurrency(c)}
+                      style={{
+                        flex: 1, height: 44, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem',
+                        backgroundColor: currency === c ? css.primary : 'var(--surface-container-low)',
+                        color: currency === c ? 'white' : css.textMuted,
+                        transition: 'all 0.15s',
+                      }}>
+                      {c}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Exchange Rate */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
-                  <Globe className="w-3 h-3" />
+              <div>
+                <label style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, display: 'block', marginBottom: 6 }}>
                   Exchange Rate (THB)
                 </label>
-                <div className="relative">
-                  <input 
-                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 pr-14 text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-                    type="text"
-                    value={formData.exchangeRate}
-                    onChange={(e) => setFormData({ ...formData, exchangeRate: e.target.value })}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
-                    / 1 {activeCurrency}
+                <input value={exchangeRate} onChange={e => setExchangeRate(e.target.value)}
+                  type="number" style={inputStyle} />
+              </div>
+            </div>
+          </StepCard>
+
+          {/* Step 2: Products */}
+          <StepCard
+            step={2} label={`Products (${items.length})`} icon={Package}
+            active={activeStep === 2} completed={stepCompleted(2)}
+            onToggle={() => setActiveStep(activeStep === 2 ? 0 : 2)}>
+            <div style={{ paddingTop: '1rem' }}>
+              {/* Item list */}
+              {items.map(item => (
+                <ItemCard key={item.id} item={item} onRemove={() => removeItem(item.id)} />
+              ))}
+
+              {/* Add button */}
+              <button onClick={() => setSheetOpen(true)}
+                style={{
+                  width: '100%', marginTop: 8, height: 48, borderRadius: 12,
+                  border: `1.5px dashed ${css.primary}`,
+                  background: `${css.primary}08`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: css.primary,
+                }}>
+                <Plus style={{ width: 16, height: 16 }} />
+                Add Product
+              </button>
+
+              {/* Subtotal */}
+              {items.length > 0 && (
+                <div style={{ marginTop: 12, padding: '0.75rem 1rem', backgroundColor: 'var(--surface-container-low)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', color: css.textMuted }}>Items Subtotal</span>
+                  <span style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1rem', color: css.text }}>
+                    ${subtotalUSD.toFixed(2)} <span style={{ fontSize: '0.75rem', color: css.primary }}>฿{subtotalTHB.toLocaleString()}</span>
                   </span>
                 </div>
-              </div>
+              )}
             </div>
-          </section>
+          </StepCard>
 
-          {/* Purchase Items Table */}
-          <section className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-            <div className="p-5 pb-3 flex justify-between items-center border-b border-stone-100">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                  <Package className="w-3.5 h-3.5 text-orange-600" />
+          {/* Step 3: Logistics */}
+          <StepCard
+            step={3} label="Logistics & Costs" icon={Truck}
+            active={activeStep === 3} completed={stepCompleted(3)}
+            onToggle={() => setActiveStep(activeStep === 3 ? 0 : 3)}>
+            <div style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {LOGISTICS.map(log => (
+                <LogisticsCard
+                  key={log.id}
+                  {...log}
+                  active={!!logistics[log.id]}
+                  value={logistics[log.id] || ''}
+                  onChange={v => setLogistics({ ...logistics, [log.id]: v })}
+                  onToggle={() => {
+                    if (logistics[log.id]) {
+                      const updated = { ...logistics };
+                      delete updated[log.id];
+                      setLogistics(updated);
+                    } else {
+                      setLogistics({ ...logistics, [log.id]: '' });
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </StepCard>
+
+          {/* Step 4: Review */}
+          <StepCard
+            step={4} label="Review & Confirm" icon={CreditCard}
+            active={activeStep === 4} completed={stepCompleted(4)}
+            onToggle={() => setActiveStep(activeStep === 4 ? 0 : 4)}>
+            <div style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { label: 'Supplier', value: supplier || '—' },
+                { label: 'Items', value: `${items.length} product(s)` },
+                { label: 'Subtotal', value: `$${subtotalUSD.toFixed(2)}` },
+                ...(logUSD > 0 ? [{ label: 'Logistics', value: `$${logUSD.toFixed(2)}` }] : []),
+                { label: 'Tax (7%)', value: `฿${taxTHB.toLocaleString()}` },
+              ].map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: `1px solid ${css.border}` }}>
+                  <span style={{ fontSize: '0.875rem', color: css.textMuted }}>{row.label}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: css.text }}>{row.value}</span>
                 </div>
-                <h3 className="text-sm font-bold text-stone-900">Purchase Items</h3>
+              ))}
+
+              <div style={{ padding: '1rem', background: `linear-gradient(135deg, ${css.primary}12, ${css.primary}06)`, borderRadius: 14, border: `1.5px solid ${css.primary}30` }}>
+                <p style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css.textMuted, marginBottom: 4 }}>Grand Total</p>
+                <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.75rem', color: css.primary }}>
+                  ฿{totalTHB.toLocaleString()}
+                </p>
               </div>
-              <button className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
-                <Plus className="w-3 h-3" />
-                Add Item
-              </button>
+
+              {/* Notes */}
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Internal notes…"
+                style={{ ...inputStyle, resize: 'vertical', minHeight: 72 }}
+              />
+            </div>
+          </StepCard>
+
+          {/* Mobile sticky bottom CTA */}
+          <div style={{
+            position: 'fixed', bottom: 80, left: 0, right: 0, zIndex: 40,
+            padding: '0.75rem 1rem',
+            backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(24px)',
+            borderTop: `1px solid ${css.border}`,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '0.6875rem', color: css.textMuted }}>Total</p>
+              <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.125rem', color: css.primary }}>
+                ฿{totalTHB.toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                if (!supplier) { toast('Please select a supplier first', 'error'); return; }
+                if (items.length === 0) { toast('Please add products first', 'error'); return; }
+                handleConfirm();
+              }}
+              style={{
+                height: 48, padding: '0 1.5rem', borderRadius: 12, border: 'none',
+                background: `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})`,
+                color: 'white', cursor: 'pointer',
+                fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+                display: 'flex', alignItems: 'center', gap: 8,
+                boxShadow: `0 4px 16px rgba(249,115,22,0.3)`,
+              }}>
+              <CheckCircle style={{ width: 18, height: 18 }} />
+              Confirm
+            </button>
+          </div>
+        </div>
+
+        {/* ── DESKTOP VERSION ── */}
+        <div className="hidden lg:block" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+
+          {/* Left: Steps */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+            {/* Supplier */}
+            <div style={{ backgroundColor: css.card, borderRadius: 16, border: `1.5px solid ${css.border}`, padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${css.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Factory style={{ width: 18, height: 18, color: css.primary }} />
+                </div>
+                <div>
+                  <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>Supplier Information</h2>
+                  <p style={{ fontSize: '0.75rem', color: css.textMuted }}>Select supplier and pricing currency</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Supplier *</label>
+                  <select value={supplier} onChange={e => setSupplier(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                    <option value="">Select…</option>
+                    {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Currency</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {['USD', 'CNY', 'THB'].map(c => (
+                      <button key={c} onClick={() => setCurrency(c)}
+                        style={{
+                          flex: 1, height: 44, borderRadius: 10, border: 'none', cursor: 'pointer',
+                          fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
+                          backgroundColor: currency === c ? css.primary : 'var(--surface-container-low)',
+                          color: currency === c ? 'white' : css.textMuted,
+                        }}>
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, display: 'block', marginBottom: 6 }}>Rate (THB)</label>
+                  <input value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} type="number" style={inputStyle} />
+                </div>
+              </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-stone-50/80">
-                    <th className="py-3 px-6 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">Item Description</th>
-                    <th className="py-3 px-3 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">SKU</th>
-                    <th className="py-3 px-3 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">Qty</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Unit Price</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (USD)</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (THB)</th>
-                    <th className="py-3 px-6 w-12"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {formData.items.map((item, index) => (
-                    <tr key={item.id} className={`group transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-stone-50/30'} hover:bg-amber-50/20`}>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-500 font-bold text-xs">
-                            {item.name.charAt(0)}
-                          </div>
-                          <span className="text-sm font-semibold text-stone-900">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-3">
-                        <span className="text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
-                          {item.sku}
-                        </span>
-                      </td>
-                      <td className="py-4 px-3 text-center">
-                        <span className="text-sm font-semibold text-stone-700">{item.quantity}</span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-semibold text-stone-700">${item.unit_price.toFixed(2)}</span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-black text-stone-900">
-                          ${(item.quantity * item.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-bold text-orange-600">
-                          ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <button 
-                          onClick={() => deleteItem(item.id)}
-                          className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <Delete className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+            {/* Products Table */}
+            <div style={{ backgroundColor: css.card, borderRadius: 16, border: `1.5px solid ${css.border}`, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${css.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${css.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package style={{ width: 18, height: 18, color: css.primary }} />
+                  </div>
+                  <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>
+                    Products ({items.length})
+                  </h2>
+                </div>
+                <button onClick={() => setSheetOpen(true)}
+                  style={{
+                    height: 36, padding: '0 1rem', borderRadius: 10, border: 'none',
+                    background: `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})`,
+                    color: 'white', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.8125rem',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    boxShadow: `0 2px 8px rgba(249,115,22,0.25)`,
+                  }}>
+                  <Plus style={{ width: 14, height: 14 }} />
+                  Add
+                </button>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                      {['Product', 'SKU', 'Qty', 'Price (USD)', 'Subtotal', ''].map((h, i) => (
+                        <th key={h} style={{ padding: '0.625rem 1rem', textAlign: i >= 3 ? 'right' : 'left', fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, whiteSpace: 'nowrap' }}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Logistics Section - 3 Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* China Domestic */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-                  <Truck className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">China Domestic</h4>
-                  <p className="text-[10px] text-stone-400">Freight within China</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.chinaDomestic.amount}
-                  onChange={(e) => updateLogisticsAmount('chinaDomestic', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('chinaDomestic', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.chinaDomestic.currency === curr 
-                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={item.id} style={{ borderTop: idx === 0 ? undefined : `1px solid ${css.border}` }}>
+                        <td style={{ padding: '0.875rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'var(--surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', color: css.textMuted, flexShrink: 0 }}>
+                              {item.name.charAt(0)}
+                            </div>
+                            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>{item.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.875rem 0.5rem' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: css.textMuted, backgroundColor: 'var(--surface-container-low)', padding: '2px 8px', borderRadius: 6 }}>
+                            {item.sku}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>{item.qty}</td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontWeight: 600, fontSize: '0.875rem', color: css.text }}>${item.price.toFixed(2)}</td>
+                        <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '0.875rem', color: css.text }}>${(item.qty * item.price).toFixed(2)}</td>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
+                          <button onClick={() => removeItem(item.id)}
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: css.textMuted, opacity: 0.5 }}>
+                            <X style={{ width: 14, height: 14 }} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                      <td colSpan={4} style={{ padding: '0.875rem 1rem', textAlign: 'right', fontSize: '0.75rem', color: css.textMuted, fontWeight: 600 }}>Items Subtotal</td>
+                      <td style={{ padding: '0.875rem 0.5rem', textAlign: 'right', fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '0.875rem', color: css.text }}>
+                        ${subtotalUSD.toFixed(2)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
 
-            {/* China-Thailand */}
-            <div className="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-5 hover:border-blue-300 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <PlaneTakeoff className="w-4 h-4 text-white" />
+            {/* Logistics */}
+            <div style={{ backgroundColor: css.card, borderRadius: 16, border: `1.5px solid ${css.border}`, padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${css.amber}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Truck style={{ width: 18, height: 18, color: css.amber }} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-stone-900">China-Thailand</h4>
-                  <p className="text-[10px] text-stone-400">International shipping</p>
+                  <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>Logistics & Costs</h2>
+                  <p style={{ fontSize: '0.75rem', color: css.textMuted }}>Shipping fees (auto-converted to THB)</p>
                 </div>
               </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-white border-2 border-dashed border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.chinaThailand.amount}
-                  onChange={(e) => updateLogisticsAmount('chinaThailand', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-50 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('chinaThailand', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.chinaThailand.currency === curr 
-                          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {LOGISTICS.map(log => (
+                  <LogisticsCard
+                    key={log.id}
+                    {...log}
+                    active={!!logistics[log.id]}
+                    value={logistics[log.id] || ''}
+                    onChange={v => setLogistics({ ...logistics, [log.id]: v })}
+                    onToggle={() => {
+                      if (logistics[log.id]) {
+                        const updated = { ...logistics };
+                        delete updated[log.id];
+                        setLogistics(updated);
+                      } else {
+                        setLogistics({ ...logistics, [log.id]: '' });
+                      }
+                    }}
+                  />
+                ))}
               </div>
-            </div>
-
-            {/* Local Delivery */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-green-200 transition-all">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/20">
-                  <Warehouse className="w-4 h-4 text-white" />
+              {logUSD > 0 && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${css.border}`, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: css.textMuted }}>Logistics Total</p>
+                    <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1rem', color: css.text }}>
+                      ${logUSD.toFixed(2)} <span style={{ fontSize: '0.75rem', color: css.primary, fontWeight: 700 }}>฿{logTHB.toLocaleString()}</span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">Local Delivery</h4>
-                  <p className="text-[10px] text-stone-400">Thailand warehouse</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <input 
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all"
-                  placeholder="0.00"
-                  type="number"
-                  value={logistics.localDelivery.amount}
-                  onChange={(e) => updateLogisticsAmount('localDelivery', e.target.value)}
-                />
-                <div className="flex gap-1 p-1 bg-stone-100 rounded-xl">
-                  {['CNY', 'USD', 'THB'].map((curr) => (
-                    <button 
-                      key={curr}
-                      onClick={() => updateLogisticsCurrency('localDelivery', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
-                        logistics.localDelivery.currency === curr 
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm' 
-                          : 'text-stone-500 hover:bg-white hover:text-stone-700'
-                      }`}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Vendor Notes */}
-          <section className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
-              <Info className="w-3 h-3" />
-              Internal Vendor Notes
-            </label>
-            <textarea 
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all placeholder:text-stone-400"
-              placeholder="Mention specific packaging requirements, quality control standards, or delivery instructions..."
-              rows={3}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            />
-          </section>
-        </div>
-
-        {/* ============================================================ */}
-        {/* RIGHT COLUMN - Summary Sidebar */}
-        {/* ============================================================ */}
-        <div className="lg:col-span-4">
-          <div className="sticky top-24 space-y-4">
-            
-            {/* Order Summary Card */}
-            <div className="bg-white rounded-3xl border-2 border-stone-200 p-6 shadow-xl shadow-stone-200/50">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-white" />
+          {/* Right: Summary Sticky */}
+          <div style={{ position: 'sticky', top: '1.5rem' }}>
+            <div style={{ backgroundColor: css.card, borderRadius: 16, border: `1.5px solid ${css.border}`, padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${css.primary}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CreditCard style={{ width: 18, height: 18, color: css.primary }} />
                 </div>
-                <h3 className="text-base font-black text-stone-900 tracking-tight">Order Summary</h3>
+                <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: css.text }}>Order Summary</h2>
               </div>
 
-              <div className="space-y-3">
-                {/* Items — show both USD input and THB equivalent */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Items Subtotal</span>
-                  <div className="text-right">
-                    <span className="font-bold text-stone-400 text-xs mr-2">USD</span>
-                    <span className="font-bold text-stone-900">
-                      ${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="mx-1 text-stone-300">|</span>
-                    <span className="font-bold text-orange-600">
-                      ฿{itemsSubtotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { label: `Items (${items.length})`, value: `$${subtotalUSD.toFixed(2)}`, sub: `฿${subtotalTHB.toLocaleString()}` },
+                  ...(logUSD > 0 ? [{ label: 'Logistics', value: `$${logUSD.toFixed(2)}`, sub: `฿${logTHB.toLocaleString()}` }] : []),
+                  { label: 'Est. Tax (7%)', value: `฿${taxTHB.toLocaleString()}`, sub: '' },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.875rem', color: css.textMuted }}>{row.label}</span>
+                    <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.875rem', color: css.text }}>
+                      {row.value}
+                      {row.sub && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: css.primary, marginLeft: 4 }}>{row.sub}</span>}
                     </span>
                   </div>
-                </div>
+                ))}
 
-                {/* Logistics */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Logistics Total</span>
-                  <div className="text-right">
-                    <span className="font-bold text-orange-600">
-                      ฿{logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Tax */}
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Est. Tax (7%)</span>
-                  <span className="font-bold text-orange-600">
-                    ฿{calculateTax().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                  </span>
-                </div>
-                
-                <div className="h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent my-4" />
-                
-                {/* GRAND TOTAL — Always THB */}
-                <div className="py-4 px-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Grand Total (THB)</span>
-                    <span className="text-2xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                      ฿{calculateGrandTotal().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-medium text-stone-400">
-                      ≈ $ {calculateGrandTotalUSD().toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
-                    </span>
-                  </div>
+                <div style={{ marginTop: 4, padding: '1rem', background: `linear-gradient(135deg, ${css.primary}12, ${css.primary}06)`, borderRadius: 14, border: `1.5px solid ${css.primary}30` }}>
+                  <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: css.textMuted, marginBottom: 4 }}>Grand Total</p>
+                  <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.75rem', color: css.primary, letterSpacing: '-0.02em' }}>
+                    ฿{totalTHB.toLocaleString()}
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: css.textMuted, marginTop: 4 }}>
+                    ≈ ${(totalTHB / rate).toFixed(2)} {currency}
+                  </p>
                 </div>
               </div>
 
-              {/* MOBILE STICKY CTA BAR — only visible on mobile */}
-              <div className="md:hidden mt-6 space-y-2.5">
-                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
-                  <Send className="w-4 h-4" />
-                  Confirm Order
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: '1.25rem' }}>
+                <button onClick={handleConfirm} disabled={saving}
+                  style={{
+                    width: '100%', height: 48, borderRadius: 12, border: 'none',
+                    background: `linear-gradient(135deg, ${css.primary}, ${css.primaryDark})`,
+                    color: 'white', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '0.9375rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: `0 4px 16px rgba(249,115,22,0.3)`,
+                    opacity: saving ? 0.6 : 1,
+                  }}>
+                  <CheckCircle style={{ width: 18, height: 18 }} />
+                  {saving ? 'Saving…' : 'Confirm Order'}
                 </button>
-                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleSaveDraft}>
-                  <Save className="w-4 h-4" />
-                  Save as Draft
+                <button onClick={handleSaveDraft} disabled={saving}
+                  style={{
+                    width: '100%', height: 44, borderRadius: 12,
+                    border: `1.5px solid ${css.border}`, background: 'transparent', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: css.text,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                  <Save style={{ width: 16, height: 16 }} />
+                  Save Draft
                 </button>
               </div>
-            </div>
 
-            {/* Info Note */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-100/50">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Info className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-                <p className="text-[11px] font-medium text-amber-800 leading-relaxed">
-                  Prices are calculated using the current exchange rate. Final settlement occurs upon inventory receipt.
+              <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--surface-container-low)', borderRadius: 12, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <AlertCircle style={{ width: 14, height: 14, color: css.amber, flexShrink: 0, marginTop: 2 }} />
+                <p style={{ fontSize: '0.6875rem', color: css.textMuted, lineHeight: 1.5 }}>
+                  Final settlement on inventory receipt. Exchange rate: 1 USD = ฿{rate.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -596,18 +965,16 @@ export default function PurchasePage() {
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* FOOTER */}
-      {/* ============================================================ */}
-      <footer className="mt-10 flex justify-center">
-        <div className="flex items-center gap-2.5 opacity-15">
-          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-stone-400">
-            MORIX ERP • Executive Procurement System
-          </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-        </div>
-      </footer>
+      {/* ── SHEETS ─────────────────────────── */}
+      <AddItemSheet open={sheetOpen} onClose={() => setSheetOpen(false)} onAdd={addItem} />
+      <SummarySheet
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        items={items}
+        logistics={logistics}
+        rate={rate}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }
