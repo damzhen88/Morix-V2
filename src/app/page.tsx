@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, Warehouse, ShoppingCart, Plus, ArrowRight, Clock, TrendingDown } from 'lucide-react';
 import { formatTHB } from '@/lib/format';
+import { api } from '@/lib/supabase';
 
 const kpis = [
   { label: 'Total Products',  value: '248',  change: '+12%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
@@ -36,6 +38,24 @@ function getBadgeColor(change: string, polarity: 'higher_is_better' | 'lower_is_
 }
 
 export default function Dashboard() {
+  // Load real data from Supabase
+  const [stats, setStats] = useState({ totalProducts: 0, totalRevenue: 0, totalOrders: 0, totalCustomers: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getDashboardStats().then(data => {
+      setStats(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const kpis = [
+    { label: 'Total Products',  value: loading ? '...' : stats.totalProducts.toString(),  change: '+5%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
+    { label: 'Pending Orders',  value: loading ? '...' : stats.totalOrders.toString(),    change: '-3%',  icon: ShoppingCart, href: '/sales',    polarity: 'lower_is_better' as const },
+    { label: 'Revenue MTD',     value: loading ? '...' : formatTHB(stats.totalRevenue),   change: '+12%', icon: TrendingUp,  href: '/sales',    polarity: 'higher_is_better' as const },
+    { label: 'Active Clients',  value: loading ? '...' : stats.totalCustomers.toString(),change: '+8%',  icon: Users,       href: '/crm',      polarity: 'higher_is_better' as const },
+  ];
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
 
