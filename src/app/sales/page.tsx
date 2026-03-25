@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import SaleFormModal from '@/components/ui/SaleFormModal';
+import { useFormModal } from '@/components/ui/FormModalContext';
 import { TrendingUp, Plus, Download, Filter, Calendar, DollarSign, Package, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { formatTHB } from '@/lib/format';
 
@@ -22,7 +22,7 @@ const kpis = [
 
 export default function SalesPage() {
   const [filter, setFilter] = useState('all');
-  const [showAdd, setShowAdd] = useState(false);
+  const { openForm } = useFormModal();
 
   const filtered = filter === 'all' ? salesData : salesData.filter(s => s.status === filter);
 

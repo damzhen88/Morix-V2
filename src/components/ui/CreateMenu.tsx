@@ -1,77 +1,114 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Package, TrendingUp, Users, ShoppingCart, X, Plus } from 'lucide-react';
-import ProductFormModal from './ProductFormModal';
-import ClientFormModal from './ClientFormModal';
-import SaleFormModal from './SaleFormModal';
-import PurchaseOrderFormModal from './PurchaseOrderFormModal';
+import React from 'react';
+import { Package, TrendingUp, Users, ShoppingCart, X } from 'lucide-react';
 
 interface CreateMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenForm: (key: 'product' | 'client' | 'sale' | 'purchase') => void;
 }
 
-export default function CreateMenu({ isOpen, onClose }: CreateMenuProps) {
-  const router = useRouter();
+const ITEMS = [
+  { label: 'New Product',          desc: 'Add to catalog & inventory', icon: Package,      key: 'product'  as const, color: '#F97316' },
+  { label: 'New Sale',            desc: 'Record a customer sale',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
+  { label: 'New Client',          desc: 'Add a business partner',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
+  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart,key: 'purchase' as const, color: '#D97706' },
+];
 
-  const handleAction = (href: string) => {
-    onClose();
-    if (href === '#') {
-      // These open modals on their respective pages
-      router.push('/products');
-    } else {
-      router.push(href);
-    }
-  };
-
+export default function CreateMenu({ isOpen, onClose, onOpenForm }: CreateMenuProps) {
   if (!isOpen) return null;
 
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[150]" onClick={onClose} />
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 150,
+          backgroundColor: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(4px)',
+        }}
+      />
 
-      {/* Menu */}
-      <div className="fixed bottom-24 right-6 z-[160] animate-fade-in-up">
+      {/* Menu card */}
+      <div
+        style={{
+          position: 'fixed', zIndex: 160,
+          bottom: '6rem', right: '1.5rem',
+          maxWidth: 320, width: '100%',
+        }}
+      >
         <div
-          className="bg-[var(--surface-container-lowest)] rounded-2xl shadow-2xl border border-[var(--outline-variant)] p-2 min-w-[240px] overflow-hidden"
-          style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.15)' }}
+          style={{
+            backgroundColor: 'var(--surface-container-lowest)',
+            borderRadius: 20,
+            boxShadow: '0 16px 48px rgba(0,0,0,0.18)',
+            border: '1px solid var(--outline-variant)',
+            width: 280,
+            overflow: 'hidden',
+          }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 mb-1">
-            <span className="text-xs font-bold text-[var(--on-surface-variant)] uppercase tracking-wider">
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0.75rem 1rem',
+              borderBottom: '1px solid var(--outline-variant)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: 'var(--on-surface-variant)',
+              }}
+            >
               Create New
             </span>
-            <button onClick={onClose}
-              className="p-1 rounded-lg hover:bg-[var(--surface-container-high)] transition-colors">
-              <X className="w-3.5 h-3.5 text-[var(--on-surface-variant)]" />
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: '0.25rem', borderRadius: 8,
+              }}
+            >
+              <X style={{ width: 16, height: 16, color: 'var(--on-surface-variant)' }} />
             </button>
           </div>
 
           {/* Items */}
-          <div className="space-y-0.5">
-            {[
-              { label: 'New Product',        desc: 'Add to catalog & inventory', icon: Package,      href: '/products',  color: '#F97316' },
-              { label: 'New Sale',          desc: 'Record a customer sale',     icon: TrendingUp,  href: '/sales',     color: '#2563EB' },
-              { label: 'New Client',        desc: 'Add a business partner',     icon: Users,       href: '/crm',        color: '#7C3AED' },
-              { label: 'New Purchase Order',desc: 'Procure import products',    icon: ShoppingCart,href: '/purchase',  color: '#D97706' },
-            ].map(item => {
+          <div style={{ padding: '0.5rem' }}>
+            {ITEMS.map(item => {
               const Icon = item.icon;
               return (
                 <button
-                  key={item.href}
-                  onClick={() => handleAction(item.href)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[var(--surface-container-low)] transition-colors group text-left"
+                  key={item.key}
+                  onClick={() => { onOpenForm(item.key); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    padding: '0.75rem', borderRadius: 12,
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { const btn = e.currentTarget as HTMLButtonElement; btn.style.backgroundColor = 'var(--surface-container-low)'; }}
+                  onMouseLeave={e => { const btn = e.currentTarget as HTMLButtonElement; btn.style.backgroundColor = 'transparent'; }}
                 >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-                    style={{ backgroundColor: `${item.color}18` }}>
-                    <Icon className="w-4 h-4" style={{ color: item.color }} />
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: 12,
+                      backgroundColor: `${item.color}18`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon style={{ width: 20, height: 20, color: item.color }} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[var(--on-surface)]">{item.label}</p>
-                    <p className="text-xs text-[var(--on-surface-variant)]">{item.desc}</p>
+                    <p style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)' }}>
+                      {item.label}
+                    </p>
+                    <p style={{ fontFamily: 'var(--font-body)', fontWeight: 400, fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>
+                      {item.desc}
+                    </p>
                   </div>
                 </button>
               );
