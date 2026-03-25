@@ -180,7 +180,8 @@ export default function SettingsPage() {
                   <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.75rem' }}>M</span>
                 </div>
                 <div>
-                  <button style={{ backgroundColor: 'var(--surface-container-highest)', color: 'var(--on-surface)', padding: '0.5rem 1.5rem', borderRadius: 9999, border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
+                  <button onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if(file) alert("Profile image upload: " + file.name); }; input.click(); }}
+                    style={{ backgroundColor: 'var(--surface-container-highest)', color: 'var(--on-surface)', padding: '0.5rem 1.5rem', borderRadius: 9999, border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
                     Replace Image
                   </button>
                   <p style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', marginTop: '0.5rem' }}>PNG, SVG or WEBP · Max 2MB</p>

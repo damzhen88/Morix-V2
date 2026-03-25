@@ -33,6 +33,10 @@ export default function ExpensesPage() {
   const { openForm } = useFormModal();
   const { state } = useApp();
 
+
+  // Load data from store
+  useEffect(() => { }, []);
+
   const filtered = state.expenses.filter((e: any) => {
     const match = e.desc.toLowerCase().includes(search.toLowerCase()) || e.vendor.toLowerCase().includes(search.toLowerCase());
     return cat === 'all' ? match : match && e.category === cat;
@@ -59,7 +63,7 @@ export default function ExpensesPage() {
           <p className="page-header-subtitle">March 2026 — ฿{expenses.reduce((s, e) => s + e.amount, 0).toLocaleString()} total expenses</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }}>
+          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }} onClick={() => alert("Export: Coming soon — expenses will be exported as CSV")}>
             <Download className="w-4 h-4" />
             Export
           </button>

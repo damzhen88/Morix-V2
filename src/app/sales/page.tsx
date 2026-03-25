@@ -18,6 +18,10 @@ export default function SalesPage() {
   const { openForm } = useFormModal();
   const { state } = useApp();
 
+
+  // Load data from store
+  useEffect(() => { }, []);
+
   const filtered = filter === 'all'
     ? state.salesOrders
     : state.salesOrders.filter((s: any) => s.status === filter);

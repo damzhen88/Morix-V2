@@ -82,6 +82,10 @@ export default function CrmPage() {
   const [search, setSearch]   = useState('');
   const { openForm } = useFormModal();
   const { state } = useApp();
+
+  // Load data from store
+  useEffect(() => { }, []);
+
   const [tier, setTier]       = useState('all');
 
   const filtered = clients.filter(c => {

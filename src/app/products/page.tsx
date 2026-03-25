@@ -51,6 +51,12 @@ export default function ProductsPage() {
 
   const products = state.products;
 
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    dispatch({ type: 'LOAD_ALL' });
+  }, [dispatch]);
+
   // Category counts from real data
   const catCounts: Record<string, number> = { All: products.length };
   CATEGORIES.slice(1).forEach(cat => {
@@ -446,7 +452,7 @@ export default function ProductsPage() {
           <p className="empty-state-desc">
             Try adjusting your search or filter, or add your first product to get started.
           </p>
-          <button className="btn-primary touch-action">
+          <button className="btn-primary touch-action" onClick={() => openForm("product")}>
             <Plus className="w-4 h-4" />
             Add First Product
           </button>
