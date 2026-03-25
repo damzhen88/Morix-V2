@@ -69,20 +69,11 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
       await api.createSalesOrder({
         order_number: `SO-${Date.now()}`,
         customer_id: client.id,
-        customer_name: client.name,
-        customer_type: 'dealer',
         status: 'confirmed',
-        items: items.map(item => ({
-          product_id: item.productId,
-          description: item.name,
-          quantity: item.qty,
-          unit_price: item.price,
-          total: item.qty * item.price,
-        })),
-        subtotal: subtotal,
-        total: grandTotal,
+        total_thb: grandTotal,
         profit_thb: grandTotal - subtotal,
-        payment_status: 'unpaid',
+        cost_thb: subtotal,
+        shipping_thb: 0,
       });
       toast(`Sale order created — ฿${grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
       onClose();

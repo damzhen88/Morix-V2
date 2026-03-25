@@ -146,7 +146,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div className="overflow-x-auto">
           <table className="w-full">
           <thead>
             <tr className="bg-[var(--surface-container-low)]">

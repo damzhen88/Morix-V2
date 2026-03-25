@@ -55,12 +55,9 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
       await api.createExpense({
         description: form.description,
         category: form.category,
-        vendor: form.vendor || null,
-        expense_date: form.date,
+        date: form.date,
         amount_thb: parseFloat(form.amount) || 0,
-        amount_currency: parseFloat(form.amount) || 0,
-        currency: form.currency,
-        reference_po: form.ref || null,
+        
         notes: form.note || null,
       });
       toast(`Expense "${form.description}" recorded!`, 'success');

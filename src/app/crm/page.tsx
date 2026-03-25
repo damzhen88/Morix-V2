@@ -161,7 +161,48 @@ export default function CrmPage() {
       </div>
 
       {/* Client Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
+      {/* ── MOBILE CARD LIST ── */}
+      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+        {filtered.map(client => (
+          <div key={client.id} className="card-elevated p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-headline font-black text-base text-white flex-shrink-0
+                  ${client.tier === 'gold' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                    client.tier === 'silver' ? 'bg-gradient-to-br from-slate-300 to-slate-500' :
+                    'bg-gradient-to-br from-orange-300 to-orange-500'}`}>
+                  {client.name.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-sm text-[var(--on-surface)] truncate">{client.name}</h3>
+                  <p className="text-xs text-[var(--on-surface-variant)]">{client.phone}</p>
+                </div>
+              </div>
+              <span className={`badge ${client.status === 'active' ? 'badge-success' : 'badge-secondary'} capitalize flex-shrink-0`}>
+                {client.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <span className="badge badge-secondary capitalize">{client.type}</span>
+              <span className="text-xs text-[var(--on-surface-variant)]">
+                {client.totalOrders} orders · ฿{(client.totalValue / 1000).toFixed(0)}K
+              </span>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="empty-state py-8">
+            <div className="empty-state-icon">
+              <Users className="w-8 h-8" style={{ color: 'var(--primary)' }} />
+            </div>
+            <h3 className="empty-state-title">No clients found</h3>
+            <p className="empty-state-desc">Try adjusting your search or add a new client.</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP GRID ── */}
+      <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
         {filtered.map(client => (
           <div key={client.id} className="card-elevated p-6 group hover:border-[var(--primary-pale)] transition-all">
 

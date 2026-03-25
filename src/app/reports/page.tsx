@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, TrendingUp, Download, Calendar, DollarSign, Package, ShoppingCart, Users, ChevronDown } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Calendar, DollarSign, Package, ShoppingCart, Users, ChevronDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const periods = ['Today', 'Last 7 Days', 'This Month', 'Last Quarter', 'YTD'];
 
@@ -72,8 +72,35 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
+      {/* ── MOBILE KEY STATS (simplified) ── */}
+      <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={i} className="card-elevated p-4">
+              <div className="kpi-value text-base mb-1">{kpi.value}</div>
+              <div className="kpi-label text-xs">{kpi.label}</div>
+              <div className={`flex items-center gap-1 text-xs font-bold mt-1 ${
+                kpi.up ? 'text-[var(--success)]' : 'text-[var(--error)]'
+              }`}>
+                {kpi.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {kpi.change}
+              </div>
+            </div>
+          );
+        })}
+        {/* Export CTA on mobile */}
+        <button
+          className="col-span-2 btn-primary justify-center"
+          onClick={() => alert('Export PDF: Coming soon')}
+        >
+          <Download className="w-4 h-4" />
+          Export PDF Report
+        </button>
+      </div>
+
+      {/* KPI Cards — DESKTOP */}
+      <div className="hidden lg:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         {kpis.map((kpi, i) => {
           const Icon = kpi.icon;
           return (

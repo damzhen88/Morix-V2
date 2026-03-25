@@ -147,6 +147,7 @@ export default function InventoryPage() {
 
       {/* Inventory Table — DESKTOP ONLY */}
       <div className="hidden lg:block card-elevated overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-[var(--surface-container-low)]">
@@ -208,6 +209,7 @@ export default function InventoryPage() {
             })}
           </tbody>
         </table>
+        </div>
 
         {filtered.length === 0 && (
           <div className="p-12 text-center">
