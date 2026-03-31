@@ -26,10 +26,12 @@ import {
 export default function PurchasePage() {
   const { state } = useApp();
   
-  // Mobile detection
-  const [isMobile, setIsMobile] = useState(false);
+  // Mobile detection - start with false to avoid SSR mismatch
+  const [isMobile, setIsMobile] = useState(true);
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
+    setMounted(true);
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
@@ -37,6 +39,11 @@ export default function PurchasePage() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Show loading state during SSR to avoid hydration mismatch
+  if (!mounted) {
+    return <PageLoader />;
+  }
 
   // Show mobile version on small screens
   if (isMobile) {
