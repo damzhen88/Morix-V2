@@ -4,9 +4,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useApp } from '@/store';
 import { PageLoader } from '@/components/ui';
-import MobilePurchaseOrder from '@/components/ui/MobilePurchaseOrder';
+// Dynamic import for mobile version to avoid SSR hydration issues
+const MobilePurchaseOrder = dynamic(
+  () => import('@/components/ui/MobilePurchaseOrder').then(mod => mod.default),
+  { 
+    ssr: false,
+    loading: () => <PageLoader />
+  }
+);
 import { 
   Save, Send, CheckCircle, Package, Truck, Globe, 
   Delete, Plus, Info, ChevronRight,
@@ -26,8 +34,8 @@ import {
 export default function PurchasePage() {
   const { state } = useApp();
   
-  // Mobile detection - start with false to avoid SSR mismatch
-  const [isMobile, setIsMobile] = useState(true);
+  // Mobile detection - ALL hooks at top level
+  const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -40,16 +48,7 @@ export default function PurchasePage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Show loading state during SSR to avoid hydration mismatch
-  if (!mounted) {
-    return <PageLoader />;
-  }
-
-  // Show mobile version on small screens
-  if (isMobile) {
-    return <MobilePurchaseOrder />;
-  }
-
+  // ALL other hooks AFTER mobile detection hooks
   const [activeCurrency, setActiveCurrency] = useState('USD');
   const [showNewVendorForm, setShowNewVendorForm] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
@@ -170,6 +169,11 @@ export default function PurchasePage() {
   // ============================================================
   if (state.isLoading) {
     return <PageLoader />;
+  }
+
+  // Show mobile version on small screens
+  if (isMobile) {
+    return <MobilePurchaseOrder />;
   }
 
   return (
