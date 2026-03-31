@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { 
   Save, Send, CheckCircle, Package, Truck, Globe, 
   Delete, Plus, ChevronRight, ChevronLeft,
-  CreditCard, Factory, PlaneTakeoff, Warehouse, X, FileText
+  CreditCard, Factory, PlaneTakeoff, Warehouse, X, Info
 } from 'lucide-react';
 
 // ============================================================
-// MOBILE PURCHASE ORDER FORM - MORIX V2
-// Full-featured mobile version matching desktop
+// MOBILE PURCHASE ORDER - FULL FEATURES LIKE DESKTOP
+// Morix V2 - All features included
 // ============================================================
 
 interface LineItem {
@@ -25,30 +25,58 @@ interface LogisticsCost {
   currency: 'CNY' | 'USD' | 'THB';
 }
 
-interface MobilePurchaseOrderProps {
-  poNumber?: string;
+interface VendorForm {
+  name: string;
+  email: string;
+  phone: string;
 }
 
-export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toString().slice(-6)}` }: MobilePurchaseOrderProps) {
+export default function MobilePurchaseOrder() {
+  const poNumber = `PO-${Date.now().toString().slice(-6)}`;
+  
+  // PO Status workflow
+  type POStatus = 'draft' | 'confirmed' | 'received';
+  const [poStatus, setPoStatus] = useState<POStatus>('draft');
+  
+  // Step for the wizard
+  type WizardStep = 'vendor' | 'items' | 'logistics' | 'notes' | 'summary';
+  const [currentStep, setCurrentStep] = useState<WizardStep>('vendor');
+  const steps: WizardStep[] = ['vendor', 'items', 'logistics', 'notes', 'summary'];
+  
+  // Vendor state
   const [vendor, setVendor] = useState('');
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [showNewVendorForm, setShowNewVendorForm] = useState(false);
+  const [newVendor, setNewVendor] = useState<VendorForm>({ name: '', email: '', phone: '' });
+  
+  // Currency state
+  const [activeCurrency, setActiveCurrency] = useState<'USD' | 'CNY' | 'THB'>('USD');
   const [exchangeRate, setExchangeRate] = useState('35.42');
+  
+  // Items state
   const [items, setItems] = useState<LineItem[]>([
     { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
     { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
   ]);
-  const [notes, setNotes] = useState('');
+  
+  // Logistics state
   const [logistics, setLogistics] = useState<Record<string, LogisticsCost>>({
     chinaDomestic: { amount: '', currency: 'CNY' },
     chinaThailand: { amount: '', currency: 'USD' },
     localDelivery: { amount: '', currency: 'THB' },
   });
-  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'info' | 'items' | 'logistics' | 'summary'>('info');
-  const [poStatus, setPoStatus] = useState<'draft' | 'confirmed' | 'received'>('draft');
+  
+  // Notes state
+  const [notes, setNotes] = useState('');
 
-  // Validation
-  const canProceedFromInfo = vendor !== '';
-  const canConfirm = items.length > 0 && items.some(i => i.name.trim() !== '');
+  // Vendor list
+  const vendors = [
+    'Global Logistics Pro',
+    'Shenzhen Tech Supplies',
+    'Bangkok Hardware Co.',
+    'Pacific Trade Co.',
+    'China Direct Import Co.',
+  ];
 
   // Calculations
   const RATE = parseFloat(exchangeRate) || 35.42;
@@ -71,6 +99,7 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
 
   const tax = itemsSubtotalTHB * 0.07;
   const grandTotalTHB = itemsSubtotalTHB + logisticsTotalTHB + tax;
+  const grandTotalUSD = grandTotalTHB / RATE;
 
   // Item functions
   const addItem = () => {
@@ -92,26 +121,41 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
     setItems(items.filter(item => item.id !== id));
   };
 
-  const vendors = [
-    'Global Logistics Pro',
-    'Shenzhen Tech Supplies',
-    'Bangkok Hardware Co.',
-    'Pacific Trade Co.',
-    'China Direct Import Co.',
-  ];
-
-  // Workflow steps
-  const workflowSteps = [
-    { key: 'draft', label: 'ฉบับร่าง', status: 'active' },
-    { key: 'confirmed', label: 'ยืนยันแล้ว', status: 'pending' },
-    { key: 'received', label: 'รับของแล้ว', status: 'pending' },
-  ];
-
-  const handleSaveDraft = () => {
-    if (!vendor) {
-      alert('กรุณาเลือกผู้จัดจำหน่าย');
-      return;
+  // Navigation
+  const goNext = () => {
+    const idx = steps.indexOf(currentStep);
+    if (idx < steps.length - 1) {
+      setCurrentStep(steps[idx + 1]);
     }
+  };
+
+  const goBack = () => {
+    const idx = steps.indexOf(currentStep);
+    if (idx > 0) {
+      setCurrentStep(steps[idx - 1]);
+    }
+  };
+
+  const canProceed = () => {
+    if (currentStep === 'vendor' && !vendor) {
+      alert('กรุณาเลือกผู้จัดจำหน่าย');
+      return false;
+    }
+    if (currentStep === 'items' && items.length === 0) {
+      alert('กรุณาเพิ่มอย่างน้อย 1 รายการ');
+      return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (canProceed()) {
+      goNext();
+    }
+  };
+
+  // Actions
+  const handleSaveDraft = () => {
     setPoStatus('draft');
     alert(`บันทึกฉบับร่างสำเร็จ!\n\nเลขที่ PO: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nจำนวนรายการ: ${items.length}\nรวมทั้งสิ้น: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
   };
@@ -121,7 +165,7 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
       alert('กรุณาเลือกผู้จัดจำหน่าย');
       return;
     }
-    if (!canConfirm) {
+    if (items.filter(i => i.name).length === 0) {
       alert('กรุณาเพิ่มอย่างน้อย 1 รายการ');
       return;
     }
@@ -129,36 +173,23 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
     alert(`ยืนยันคำสั่งซื้อสำเร็จ!\n\nเลขที่ PO: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nจำนวนรายการ: ${items.length}\nรวมทั้งสิ้น: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
   };
 
-  const nextStep = () => {
-    if (currentStep === 'info' && !canProceedFromInfo) {
-      alert('กรุณาเลือกผู้จัดจำหน่าย');
-      return;
-    }
-    if (currentStep === 'items' && !canConfirm) {
-      alert('กรุณาเพิ่มอย่างน้อย 1 รายการ');
-      return;
-    }
-    const steps: typeof currentStep[] = ['info', 'items', 'logistics', 'summary'];
-    const idx = steps.indexOf(currentStep);
-    if (idx < steps.length - 1) {
-      setCurrentStep(steps[idx + 1]);
+  const handleAddNewVendor = () => {
+    if (newVendor.name.trim()) {
+      setVendor(newVendor.name.trim());
+      setShowNewVendorForm(false);
+      setNewVendor({ name: '', email: '', phone: '' });
     }
   };
 
-  const prevStep = () => {
-    const steps: typeof currentStep[] = ['info', 'items', 'logistics', 'summary'];
-    const idx = steps.indexOf(currentStep);
-    if (idx > 0) {
-      setCurrentStep(steps[idx - 1]);
-    }
-  };
-
-  const stepLabels = {
-    info: 'ข้อมูล',
+  const stepLabels: Record<WizardStep, string> = {
+    vendor: 'ผู้จัดจำหน่าย',
     items: 'รายการ',
     logistics: 'ขนส่ง',
+    notes: 'หมายเหตุ',
     summary: 'สรุป',
   };
+
+  const currentStepIndex = steps.indexOf(currentStep);
 
   return (
     <div className="min-h-screen bg-[#faf9f7] text-stone-900 pb-36">
@@ -167,8 +198,8 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
         {/* PO Header */}
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {currentStep !== 'info' ? (
-              <button onClick={prevStep} className="p-2 -ml-2 rounded-lg hover:bg-stone-100 active:bg-stone-200">
+            {currentStep !== 'vendor' ? (
+              <button onClick={goBack} className="p-2 -ml-2 rounded-lg hover:bg-stone-100 active:bg-stone-200">
                 <ChevronLeft className="w-5 h-5 text-stone-600" />
               </button>
             ) : (
@@ -183,38 +214,61 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
           </div>
           <button 
             onClick={handleSaveDraft}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/20"
+            className="px-4 py-2 bg-white border border-stone-200 text-stone-700 text-sm font-semibold rounded-xl"
           >
             บันทึก
           </button>
         </div>
 
-        {/* Step Indicator */}
-        <div className="flex items-center justify-between px-4 pb-3">
-          {Object.entries(stepLabels).map(([key, label], idx) => {
-            const steps: typeof currentStep[] = ['info', 'items', 'logistics', 'summary'];
-            const currentIdx = steps.indexOf(currentStep);
-            const isActive = key === currentStep;
-            const isCompleted = idx < currentIdx;
-            
+        {/* Workflow Steps */}
+        <div className="px-4 pb-3 flex items-center gap-1">
+          {(['draft', 'confirmed', 'received'] as POStatus[]).map((status, idx) => {
+            const isActive = status === poStatus;
+            const isPast = (['draft', 'confirmed', 'received'].indexOf(poStatus) > idx);
             return (
-              <div key={key} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                    isCompleted ? 'bg-green-500 text-white' :
-                    isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-orange-500/30' :
+              <div key={status} className="flex items-center flex-1">
+                <div className={`flex flex-col items-center flex-1`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    isPast ? 'bg-green-500 text-white' :
+                    isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' :
                     'bg-stone-100 text-stone-400'
                   }`}>
-                    {isCompleted ? '✓' : idx + 1}
+                    {isPast ? '✓' : idx + 1}
                   </div>
-                  <span className={`text-[10px] font-bold mt-1 ${isActive ? 'text-amber-600' : 'text-stone-400'}`}>
-                    {label}
+                  <span className={`text-[9px] font-medium mt-1 ${isActive ? 'text-amber-600' : 'text-stone-400'}`}>
+                    {status === 'draft' ? 'ฉบับร่าง' : status === 'confirmed' ? 'ยืนยัน' : 'รับของ'}
                   </span>
                 </div>
-                {idx < 3 && (
-                  <div className={`w-6 h-0.5 mx-1 ${isCompleted ? 'bg-green-500' : 'bg-stone-200'}`} />
+                {idx < 2 && (
+                  <div className={`h-0.5 flex-1 mx-1 ${isPast ? 'bg-green-500' : 'bg-stone-200'}`} />
                 )}
               </div>
+            );
+          })}
+        </div>
+
+        {/* Wizard Steps */}
+        <div className="flex px-4 pb-3 gap-1 overflow-x-auto">
+          {steps.map((step) => {
+            const isActive = step === currentStep;
+            const isCompleted = steps.indexOf(step) < currentStepIndex;
+            return (
+              <button
+                key={step}
+                onClick={() => {
+                  const idx = steps.indexOf(step);
+                  if (idx <= currentStepIndex || (step === 'vendor' || canProceed())) {
+                    setCurrentStep(step);
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
+                  isCompleted ? 'bg-amber-100 text-amber-700' :
+                  'bg-stone-100 text-stone-500'
+                }`}
+              >
+                {stepLabels[step]}
+              </button>
             );
           })}
         </div>
@@ -223,10 +277,10 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
       {/* Content */}
       <div className="px-4 py-4 space-y-4">
         
-        {/* STEP 1: Info */}
-        {currentStep === 'info' && (
+        {/* STEP: Vendor */}
+        {currentStep === 'vendor' && (
           <>
-            {/* Vendor Card */}
+            {/* Vendor Selection */}
             <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
               <label className="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
                 <Factory className="w-4 h-4" />
@@ -235,7 +289,7 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
               
               <div className="relative">
                 <button
-                  onClick={() => setShowVendorDropdown(!showVendorDropdown)}
+                  onClick={() => { setShowVendorDropdown(!showVendorDropdown); setShowNewVendorForm(false); }}
                   className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-left font-medium text-stone-900 flex items-center justify-between"
                 >
                   {vendor || 'เลือกผู้จัดจำหน่าย...'}
@@ -255,55 +309,110 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                           {v}
                         </button>
                       ))}
+                      <button
+                        onClick={() => { setShowVendorDropdown(false); setShowNewVendorForm(true); }}
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 border-t border-amber-200"
+                      >
+                        + เพิ่มผู้จัดจำหน่ายใหม่
+                      </button>
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Exchange Rate Card */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
-              <label className="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
-                <Globe className="w-4 h-4" />
-                อัตราแลกเปลี่ยน
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-[10px] text-stone-400 mb-1">1 USD =</p>
+            {/* New Vendor Form */}
+            {showNewVendorForm && (
+              <div className="bg-orange-50 rounded-2xl border border-orange-200 p-4 shadow-sm">
+                <label className="text-xs font-bold text-orange-700 uppercase tracking-wider flex items-center gap-2 mb-3">
+                  <Factory className="w-4 h-4" />
+                  ผู้จัดจำหน่ายใหม่
+                </label>
+                
+                <div className="space-y-3">
                   <input
-                    type="number"
-                    value={exchangeRate}
-                    onChange={(e) => setExchangeRate(e.target.value)}
-                    className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-lg font-bold text-stone-900 text-center"
+                    type="text"
+                    placeholder="ชื่อผู้จัดจำหน่าย..."
+                    value={newVendor.name}
+                    onChange={(e) => setNewVendor({...newVendor, name: e.target.value})}
+                    className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
                   />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] text-stone-400 mb-1">THB</p>
-                  <div className="h-12 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-center">
-                    <span className="text-lg font-bold text-amber-600">บาท</span>
+                  <input
+                    type="email"
+                    placeholder="อีเมลติดต่อ (optional)..."
+                    value={newVendor.email}
+                    onChange={(e) => setNewVendor({...newVendor, email: e.target.value})}
+                    className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="เบอร์โทรศัพท์ (optional)..."
+                    value={newVendor.phone}
+                    onChange={(e) => setNewVendor({...newVendor, phone: e.target.value})}
+                    className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddNewVendor}
+                      className="flex-1 h-10 bg-orange-500 text-white text-xs font-bold rounded-lg"
+                    >
+                      เพิ่ม
+                    </button>
+                    <button
+                      onClick={() => { setShowNewVendorForm(false); setNewVendor({ name: '', email: '', phone: '' }); }}
+                      className="px-4 h-10 bg-stone-100 text-stone-600 text-xs font-bold rounded-lg"
+                    >
+                      ยกเลิก
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Notes Card */}
+            {/* Currency Selection */}
             <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
               <label className="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
-                <FileText className="w-4 h-4" />
-                หมายเหตุ
+                <CreditCard className="w-4 h-4" />
+                สกุลเงินสินค้านำเข้า
               </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="เพิ่มหมายเหตุหรือรายละเอียดเพิ่มเติม..."
-                rows={3}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 resize-none"
-              />
+              <div className="flex bg-stone-100 rounded-xl p-1.5">
+                {(['USD', 'CNY', 'THB'] as const).map((curr) => (
+                  <button 
+                    key={curr}
+                    onClick={() => setActiveCurrency(curr)}
+                    className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+                      activeCurrency === curr 
+                        ? 'bg-white text-orange-600 shadow-sm' 
+                        : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    {curr}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Exchange Rate */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
+                <Globe className="w-4 h-4" />
+                อัตราแลกเปลี่ยน (THB)
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-stone-500">1 {activeCurrency} =</span>
+                <input
+                  type="number"
+                  value={exchangeRate}
+                  onChange={(e) => setExchangeRate(e.target.value)}
+                  className="flex-1 h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-lg font-bold text-stone-900 text-center"
+                />
+                <span className="text-sm font-bold text-stone-500">THB</span>
+              </div>
             </div>
           </>
         )}
 
-        {/* STEP 2: Items */}
+        {/* STEP: Items */}
         {currentStep === 'items' && (
           <>
             {/* Items List */}
@@ -316,11 +425,10 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                       onClick={() => deleteItem(item.id)}
                       className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
                     >
-                      <X className="w-4 h-4" />
+                      <Delete className="w-4 h-4" />
                     </button>
                   </div>
                   
-                  {/* Item Name */}
                   <input
                     type="text"
                     value={item.name}
@@ -329,7 +437,6 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                     className="w-full h-11 bg-stone-50 border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900 mb-2"
                   />
                   
-                  {/* SKU */}
                   <input
                     type="text"
                     value={item.sku}
@@ -338,7 +445,6 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                     className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-4 text-xs font-mono text-stone-500 mb-2"
                   />
                   
-                  {/* Qty & Price */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] font-bold text-stone-400 uppercase">จำนวน</label>
@@ -350,7 +456,7 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-stone-400 uppercase">ราคา/หน่วย ($)</label>
+                      <label className="text-[10px] font-bold text-stone-400 uppercase">ราคา/หน่วย ({activeCurrency})</label>
                       <input
                         type="number"
                         value={item.unit_price}
@@ -376,7 +482,6 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
               ))}
             </div>
 
-            {/* Add Item Button */}
             <button
               onClick={addItem}
               className="w-full h-12 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-sm font-bold text-amber-600 flex items-center justify-center gap-2 hover:bg-amber-100 transition-colors"
@@ -387,17 +492,17 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
           </>
         )}
 
-        {/* STEP 3: Logistics */}
+        {/* STEP: Logistics */}
         {currentStep === 'logistics' && (
           <>
             {/* China Domestic */}
             <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <PlaneTakeoff className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                  <Truck className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-stone-900">China Domestic Freight</p>
+                  <p className="text-sm font-bold text-stone-900">China Domestic</p>
                   <p className="text-xs text-stone-400">ขนส่งในประเทศจีน</p>
                 </div>
                 <select
@@ -419,20 +524,20 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
               />
             </div>
 
-            {/* China to Thailand */}
-            <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+            {/* China-Thailand */}
+            <div className="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+                  <PlaneTakeoff className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-stone-900">China → Thailand Freight</p>
+                  <p className="text-sm font-bold text-stone-900">China - Thailand</p>
                   <p className="text-xs text-stone-400">ขนส่งข้ามพรมแดน</p>
                 </div>
                 <select
                   value={logistics.chinaThailand.currency}
                   onChange={(e) => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, currency: e.target.value as any}})}
-                  className="h-8 bg-stone-50 border border-stone-200 rounded-lg px-2 text-xs font-medium"
+                  className="h-8 bg-white border-2 border-dashed border-stone-200 rounded-lg px-2 text-xs font-medium"
                 >
                   <option value="USD">USD</option>
                   <option value="CNY">CNY</option>
@@ -444,15 +549,15 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                 placeholder="0.00"
                 value={logistics.chinaThailand.amount}
                 onChange={(e) => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, amount: e.target.value}})}
-                className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-lg font-semibold text-stone-900"
+                className="w-full h-12 bg-white border-2 border-dashed border-stone-200 rounded-xl px-4 text-lg font-semibold text-stone-900"
               />
             </div>
 
             {/* Local Delivery */}
             <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Truck className="w-4 h-4 text-green-600" />
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                  <Warehouse className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-stone-900">Local Delivery</p>
@@ -489,12 +594,41 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
           </>
         )}
 
-        {/* STEP 4: Summary */}
+        {/* STEP: Notes */}
+        {currentStep === 'notes' && (
+          <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+            <label className="text-xs font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
+              <Info className="w-4 h-4" />
+              หมายเหตุภายใน
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="ระบุข้อกำหนดบรรจุภัณฑ์, มาตรฐานควบคุมคุณภาพ, หรือคำแนะนำการจัดส่ง..."
+              rows={5}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none placeholder:text-stone-400"
+            />
+            
+            <div className="mt-4 bg-amber-50 rounded-xl p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-amber-500 mt-0.5" />
+                <p className="text-xs font-medium text-amber-800 leading-relaxed">
+                  ราคาคำนวณตามอัตราแลกเปลี่ยนปัจจุบัน การชำระเงินสุทธิจะเกิดขึ้นเมื่อรับสินค้าเข้าคลังแล้ว
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP: Summary */}
         {currentStep === 'summary' && (
           <>
             {/* Summary Card */}
             <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-2xl p-5 text-white shadow-xl">
-              <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest mb-4">สรุปคำสั่งซื้อ</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <CreditCard className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">สรุปคำสั่งซื้อ</h3>
+              </div>
               
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -505,31 +639,40 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                   <span className="text-stone-400">จำนวนรายการ</span>
                   <span className="font-semibold">{items.length} รายการ</span>
                 </div>
+                
                 <div className="border-t border-stone-700 pt-3 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-stone-400">ราคาสินค้า (USD)</span>
-                    <span>${itemsSubtotalUSD.toFixed(2)}</span>
+                    <span className="text-stone-400">ราคาสินค้า</span>
+                    <div className="text-right">
+                      <span className="text-stone-300 mr-2">USD</span>
+                      <span>${itemsSubtotalUSD.toFixed(2)}</span>
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-400">ราคาสินค้า (THB)</span>
-                    <span>฿{itemsSubtotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+                    <span className="text-orange-400">฿{itemsSubtotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-400">ค่าขนส่ง</span>
-                    <span>฿{logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+                    <span className="text-orange-400">฿{logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-stone-400">ภาษี 7%</span>
-                    <span>฿{tax.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+                    <span className="text-orange-400">฿{tax.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
                   </div>
                 </div>
                 
-                <div className="border-t border-stone-700 pt-3 flex justify-between items-baseline">
-                  <span className="text-stone-300 font-semibold">รวมทั้งสิ้น</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-amber-400">
-                      ฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                    </span>
+                <div className="border-t border-stone-700 pt-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-stone-300 font-semibold">รวมทั้งสิ้น (THB)</span>
+                    <div className="text-right">
+                      <span className="text-2xl font-black text-amber-400">
+                        ฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
+                      </span>
+                      <span className="block text-xs text-stone-400 mt-1">
+                        ≈ $ {grandTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -539,7 +682,7 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
             <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
               <h3 className="text-sm font-bold text-stone-900 mb-3">รายการสินค้า</h3>
               <div className="space-y-2">
-                {items.filter(i => i.name).map((item, idx) => (
+                {items.filter(i => i.name).map((item) => (
                   <div key={item.id} className="flex justify-between items-center py-2 border-b border-stone-100 last:border-b-0">
                     <div>
                       <p className="text-sm font-medium text-stone-900">{item.name}</p>
@@ -550,6 +693,9 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
                     </span>
                   </div>
                 ))}
+                {items.filter(i => i.name).length === 0 && (
+                  <p className="text-xs text-stone-400 text-center py-2">ยังไม่มีรายการสินค้า</p>
+                )}
               </div>
             </div>
 
@@ -566,32 +712,31 @@ export default function MobilePurchaseOrder({ poNumber = `PO-${Date.now().toStri
 
       {/* Bottom Fixed Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 z-20">
-        <div className="flex gap-3">
-          {currentStep !== 'info' && (
-            <button
-              onClick={prevStep}
-              className="flex-1 h-12 border border-stone-200 rounded-xl text-sm font-semibold text-stone-600"
-            >
-              กลับ
-            </button>
-          )}
-          {currentStep !== 'summary' ? (
-            <button
-              onClick={nextStep}
-              className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/20"
-            >
-              ต่อไป
-            </button>
-          ) : (
+        {currentStep === 'summary' ? (
+          <div className="space-y-2">
             <button
               onClick={handleConfirm}
-              className="flex-1 h-12 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+              className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2"
             >
-              <CheckCircle className="w-4 h-4" />
+              <Send className="w-4 h-4" />
               ยืนยันคำสั่งซื้อ
             </button>
-          )}
-        </div>
+            <button
+              onClick={handleSaveDraft}
+              className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 text-sm font-semibold rounded-xl flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              บันทึกฉบับร่าง
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleNext}
+            className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/20"
+          >
+            ต่อไป
+          </button>
+        )}
       </div>
     </div>
   );
