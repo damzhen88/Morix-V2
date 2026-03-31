@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { 
-  Save, Send, Package, Truck, Globe, 
-  Delete, Plus, ChevronDown, ChevronUp,
-  CreditCard, Factory, PlaneTakeoff, Warehouse, X, Info
+  Save, Send, Package, Truck, PlaneTakeoff, 
+  Warehouse, ChevronDown, ChevronUp,
+  CreditCard, Factory, X, Info, FileText, Trash2
 } from 'lucide-react';
 
 // ============================================================
-// MOBILE PURCHASE ORDER - ALL IN ONE PAGE LIKE DESKTOP
-// Morix V2 - No wizard, full scrollable form
+// MOBILE PURCHASE ORDER - COMPLETE REDESIGN
+// Morix V2 - Full Featured Mobile Form
 // ============================================================
 
 interface LineItem {
@@ -20,59 +20,75 @@ interface LineItem {
   unit_price: number;
 }
 
-interface LogisticsCost {
+interface LogisticsEntry {
   amount: string;
   currency: 'CNY' | 'USD' | 'THB';
 }
 
 export default function MobilePurchaseOrder() {
+  // Generate PO number
   const poNumber = `PO-${Date.now().toString().slice(-6)}`;
-  
-  // Collapsible sections
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+  const today = new Date().toLocaleDateString('th-TH', { 
+    day: '2-digit', month: 'short', year: 'numeric' 
+  });
+
+  // ========================================
+  // SECTION STATE
+  // ========================================
+  const [sections, setSections] = useState({
     vendor: true,
     items: true,
     logistics: true,
     notes: false,
+    summary: false,
   });
 
-  const toggleSection = (key: string) => {
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleSection = (key: keyof typeof sections) => {
+    setSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // Vendor state
+  // ========================================
+  // VENDOR STATE
+  // ========================================
   const [vendor, setVendor] = useState('');
-  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
-  const [showNewVendor, setShowNewVendor] = useState(false);
-  const [newVendorName, setNewVendorName] = useState('');
-  const [newVendorEmail, setNewVendorEmail] = useState('');
-  const [newVendorPhone, setNewVendorPhone] = useState('');
+  const [showVendorList, setShowVendorList] = useState(false);
+  const [showNewVendorForm, setShowNewVendorForm] = useState(false);
+  const [newVendor, setNewVendor] = useState({ name: '', email: '', phone: '' });
 
-  // Currency state
+  // Currency
   const [activeCurrency, setActiveCurrency] = useState<'USD' | 'CNY' | 'THB'>('USD');
   const [exchangeRate, setExchangeRate] = useState('35.42');
 
-  // Items state
+  // ========================================
+  // ITEMS STATE
+  // ========================================
   const [items, setItems] = useState<LineItem[]>([
     { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
     { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
   ]);
 
-  // Logistics state
-  const [logistics, setLogistics] = useState<Record<string, LogisticsCost>>({
+  // ========================================
+  // LOGISTICS STATE
+  // ========================================
+  const [logistics, setLogistics] = useState<Record<string, LogisticsEntry>>({
     chinaDomestic: { amount: '', currency: 'CNY' },
     chinaThailand: { amount: '', currency: 'USD' },
     localDelivery: { amount: '', currency: 'THB' },
   });
 
-  // Notes state
+  // ========================================
+  // NOTES STATE
+  // ========================================
   const [notes, setNotes] = useState('');
 
-  // PO Status
-  type POStatus = 'draft' | 'confirmed' | 'received';
-  const [poStatus, setPoStatus] = useState<POStatus>('draft');
+  // ========================================
+  // PO STATUS
+  // ========================================
+  const [poStatus, setPoStatus] = useState<'draft' | 'confirmed' | 'received'>('draft');
 
-  // Vendor list
+  // ========================================
+  // VENDORS LIST
+  // ========================================
   const vendors = [
     'Global Logistics Pro',
     'Shenzhen Tech Supplies',
@@ -81,31 +97,29 @@ export default function MobilePurchaseOrder() {
     'China Direct Import Co.',
   ];
 
-  // Calculations
+  // ========================================
+  // CALCULATIONS
+  // ========================================
   const RATE = parseFloat(exchangeRate) || 35.42;
-  const CNY_RATE = RATE / 7.2;
+  const CNY_TO_THB = RATE / 7.2;
 
   const itemsSubtotalUSD = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const itemsSubtotalTHB = itemsSubtotalUSD * RATE;
 
-  const calculateLogisticsTHB = () => {
-    let total = 0;
-    Object.values(logistics).forEach(log => {
-      const amount = parseFloat(log.amount) || 0;
-      if (log.currency === 'CNY') total += amount * CNY_RATE;
-      else if (log.currency === 'USD') total += amount * RATE;
-      else total += amount;
-    });
-    return total;
-  };
-  const logisticsTotalTHB = calculateLogisticsTHB();
-  const logisticsTotalUSD = logisticsTotalTHB / RATE;
+  const logisticsTotalTHB = Object.values(logistics).reduce((sum, log) => {
+    const amount = parseFloat(log.amount) || 0;
+    if (log.currency === 'CNY') return sum + amount * CNY_TO_THB;
+    if (log.currency === 'USD') return sum + amount * RATE;
+    return sum + amount;
+  }, 0);
 
   const tax = itemsSubtotalTHB * 0.07;
   const grandTotalTHB = itemsSubtotalTHB + logisticsTotalTHB + tax;
   const grandTotalUSD = grandTotalTHB / RATE;
 
-  // Item functions
+  // ========================================
+  // ITEM FUNCTIONS
+  // ========================================
   const addItem = () => {
     const newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
     setItems([...items, { id: newId, name: '', sku: '', quantity: 1, unit_price: 0 }]);
@@ -125,20 +139,28 @@ export default function MobilePurchaseOrder() {
     setItems(items.filter(item => item.id !== id));
   };
 
-  const handleAddNewVendor = () => {
-    if (newVendorName.trim()) {
-      setVendor(newVendorName.trim());
-      setShowNewVendor(false);
-      setNewVendorName('');
-      setNewVendorEmail('');
-      setNewVendorPhone('');
+  // ========================================
+  // VENDOR FUNCTIONS
+  // ========================================
+  const handleSelectVendor = (v: string) => {
+    setVendor(v);
+    setShowVendorList(false);
+  };
+
+  const handleAddVendor = () => {
+    if (newVendor.name.trim()) {
+      setVendor(newVendor.name.trim());
+      setShowNewVendorForm(false);
+      setNewVendor({ name: '', email: '', phone: '' });
     }
   };
 
-  // Actions
+  // ========================================
+  // ACTIONS
+  // ========================================
   const handleSaveDraft = () => {
     setPoStatus('draft');
-    alert(`บันทึกฉบับร่างสำเร็จ!\n\nเลขที่ PO: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nจำนวนรายการ: ${items.length}\nรวมทั้งสิ้น: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
+    alert(`✅ บันทึกฉบับร่างสำเร็จ!\n\nเลขที่: ${poNumber}\nผู้จัดจำหน่าย: ${vendor || '-'}\nรายการ: ${items.length} รายการ\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`);
   };
 
   const handleConfirm = () => {
@@ -146,28 +168,43 @@ export default function MobilePurchaseOrder() {
       alert('กรุณาเลือกผู้จัดจำหน่าย');
       return;
     }
-    if (items.filter(i => i.name).length === 0) {
+    if (items.filter(i => i.name.trim()).length === 0) {
       alert('กรุณาเพิ่มอย่างน้อย 1 รายการสินค้า');
       return;
     }
     setPoStatus('confirmed');
-    alert(`ยืนยันคำสั่งซื้อสำเร็จ!\n\nเลขที่ PO: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nจำนวนรายการ: ${items.length}\nรวมทั้งสิ้น: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
+    alert(`✅ ยืนยันคำสั่งซื้อสำเร็จ!\n\nเลขที่: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nรายการ: ${items.length} รายการ\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`);
   };
 
-  // Section Header Component
-  const SectionHeader = ({ title, icon: Icon, sectionKey, count }: { title: string; icon: any; sectionKey: string; count?: string }) => (
+  // ========================================
+  // SECTION HEADER COMPONENT
+  // ========================================
+  const SectionHeader = ({ title, icon: Icon, section, badge }: { 
+    title: string; 
+    icon: any; 
+    section: keyof typeof sections;
+    badge?: string;
+  }) => (
     <button
-      onClick={() => toggleSection(sectionKey)}
-      className="w-full flex items-center justify-between p-4 bg-white border-b border-stone-200"
+      onClick={() => toggleSection(section)}
+      className="w-full flex items-center justify-between p-4 bg-white border-b border-stone-200 active:bg-stone-50"
     >
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+          section === 'vendor' ? 'bg-gradient-to-br from-blue-500 to-indigo-500' :
+          section === 'items' ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
+          section === 'logistics' ? 'bg-gradient-to-br from-green-500 to-emerald-500' :
+          section === 'notes' ? 'bg-gradient-to-br from-purple-500 to-pink-500' :
+          'bg-gradient-to-br from-stone-500 to-stone-600'
+        }`}>
           <Icon className="w-4 h-4 text-white" />
         </div>
-        <span className="text-sm font-bold text-stone-900">{title}</span>
-        {count && <span className="text-xs text-stone-400">({count})</span>}
+        <div className="text-left">
+          <span className="text-sm font-bold text-stone-900">{title}</span>
+          {badge && <span className="block text-xs text-stone-400">{badge}</span>}
+        </div>
       </div>
-      {openSections[sectionKey] ? (
+      {sections[section] ? (
         <ChevronUp className="w-5 h-5 text-stone-400" />
       ) : (
         <ChevronDown className="w-5 h-5 text-stone-400" />
@@ -175,118 +212,130 @@ export default function MobilePurchaseOrder() {
     </button>
   );
 
+  // ========================================
+  // RENDER
+  // ========================================
   return (
-    <div className="min-h-screen bg-[#fafaf8] text-stone-900 pb-48">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-stone-200 z-20 px-4 py-3">
+    <div className="min-h-screen bg-stone-100 text-stone-900 pb-44">
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-4 py-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-black text-stone-900">{poNumber}</h1>
-            <p className="text-xs text-stone-400">
+            <h1 className="text-xl font-black">{poNumber}</h1>
+            <p className="text-amber-100 text-xs mt-0.5">{today}</p>
+          </div>
+          <div className="text-right">
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+              poStatus === 'draft' ? 'bg-amber-500/30 text-amber-100' :
+              poStatus === 'confirmed' ? 'bg-green-500/30 text-green-100' :
+              'bg-blue-500/30 text-blue-100'
+            }`}>
               {poStatus === 'draft' ? 'ฉบับร่าง' : poStatus === 'confirmed' ? 'ยืนยันแล้ว' : 'รับของแล้ว'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={handleSaveDraft}
-              className="px-3 py-2 bg-white border border-stone-200 text-stone-700 text-xs font-semibold rounded-lg"
-            >
-              บันทึก
-            </button>
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* PO Number & Date */}
-      <div className="bg-white border-b border-stone-200 px-4 py-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-stone-500">เลขที่ PO</span>
-          <span className="font-semibold text-stone-900">{poNumber}</span>
-        </div>
-        <div className="flex justify-between text-sm mt-1">
-          <span className="text-stone-500">วันที่</span>
-          <span className="font-semibold text-stone-900">{new Date().toLocaleDateString('th-TH')}</span>
+        
+        {/* Quick Summary Bar */}
+        <div className="mt-3 flex gap-4 text-amber-100">
+          <div>
+            <span className="text-xs opacity-70">รายการ</span>
+            <p className="text-sm font-bold text-white">{items.length} รายการ</p>
+          </div>
+          <div>
+            <span className="text-xs opacity-70">ยอดรวม</span>
+            <p className="text-sm font-black text-white">฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
+          </div>
         </div>
       </div>
 
       {/* ======================================== */}
       {/* SECTION 1: VENDOR */}
       {/* ======================================== */}
-      <SectionHeader title="ผู้จัดจำหน่าย" icon={Factory} sectionKey="vendor" />
-      {openSections.vendor && (
+      <SectionHeader 
+        title="ผู้จัดจำหน่าย" 
+        icon={Factory} 
+        section="vendor"
+        badge={vendor || 'ยังไม่เลือก'}
+      />
+      
+      {sections.vendor && (
         <div className="bg-white p-4 space-y-4">
-          {/* Vendor Selection */}
+          {/* Vendor Selector */}
           <div>
-            <label className="text-xs font-bold uppercase text-stone-400 mb-2 block">เลือกผู้จัดจำหน่าย</label>
-            <div className="relative">
-              <button
-                onClick={() => setShowVendorDropdown(!showVendorDropdown)}
-                className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-left font-medium text-stone-900 flex items-center justify-between"
-              >
-                {vendor || 'เลือกผู้จัดจำหน่าย...'}
-                <ChevronDown className="w-4 h-4 text-stone-400" />
-              </button>
-              
-              {showVendorDropdown && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowVendorDropdown(false)} />
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-stone-200 rounded-xl shadow-xl z-20 overflow-hidden">
-                    {vendors.map(v => (
-                      <button
-                        key={v}
-                        onClick={() => { setVendor(v); setShowVendorDropdown(false); }}
-                        className="w-full px-4 py-3 text-left text-sm font-medium text-stone-900 hover:bg-amber-50 border-b border-stone-100 last:border-b-0"
-                      >
-                        {v}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => { setShowVendorDropdown(false); setShowNewVendor(true); }}
-                      className="w-full px-4 py-3 text-left text-sm font-semibold text-amber-600 bg-amber-50 border-t border-amber-200"
-                    >
-                      + เพิ่มผู้จัดจำหน่ายใหม่
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">
+              เลือกผู้จัดจำหน่าย
+            </label>
+            <button
+              onClick={() => setShowVendorList(!showVendorList)}
+              className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-left font-medium text-stone-900 flex items-center justify-between"
+            >
+              <span className={vendor ? 'text-stone-900' : 'text-stone-400'}>
+                {vendor || 'เลือกหรือเพิ่มผู้จัดจำหน่าย...'}
+              </span>
+              <ChevronDown className="w-5 h-5 text-stone-400" />
+            </button>
+            
+            {showVendorList && (
+              <div className="mt-2 bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden z-20 relative">
+                {vendors.map(v => (
+                  <button
+                    key={v}
+                    onClick={() => handleSelectVendor(v)}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-stone-900 hover:bg-amber-50 border-b border-stone-100 last:border-b-0"
+                  >
+                    {v}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setShowVendorList(false); setShowNewVendorForm(true); }}
+                  className="w-full px-4 py-3 text-left text-sm font-bold text-amber-600 bg-amber-50 border-t border-amber-200"
+                >
+                  + เพิ่มผู้จัดจำหน่ายใหม่
+                </button>
+              </div>
+            )}
           </div>
 
           {/* New Vendor Form */}
-          {showNewVendor && (
-            <div className="bg-orange-50 rounded-xl p-4 space-y-3 border border-orange-200">
-              <label className="text-xs font-bold uppercase text-orange-700">ผู้จัดจำหน่ายใหม่</label>
+          {showNewVendorForm && (
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-orange-700 uppercase">เพิ่มผู้จัดจำหน่ายใหม่</span>
+                <button onClick={() => setShowNewVendorForm(false)} className="p-1 text-stone-400 hover:text-stone-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
               <input
                 type="text"
-                placeholder="ชื่อผู้จัดจำหน่าย..."
-                value={newVendorName}
-                onChange={(e) => setNewVendorName(e.target.value)}
-                className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
+                placeholder="ชื่อบริษัท..."
+                value={newVendor.name}
+                onChange={e => setNewVendor({...newVendor, name: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
               />
               <input
                 type="email"
                 placeholder="อีเมล (optional)..."
-                value={newVendorEmail}
-                onChange={(e) => setNewVendorEmail(e.target.value)}
-                className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
+                value={newVendor.email}
+                onChange={e => setNewVendor({...newVendor, email: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
               />
               <input
                 type="tel"
                 placeholder="โทรศัพท์ (optional)..."
-                value={newVendorPhone}
-                onChange={(e) => setNewVendorPhone(e.target.value)}
-                className="w-full h-11 bg-white border border-orange-200 rounded-xl px-4 text-sm text-stone-900"
+                value={newVendor.phone}
+                onChange={e => setNewVendor({...newVendor, phone: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
               />
               <div className="flex gap-2">
                 <button
-                  onClick={handleAddNewVendor}
-                  className="flex-1 h-10 bg-orange-500 text-white text-xs font-bold rounded-lg"
+                  onClick={handleAddVendor}
+                  className="flex-1 h-10 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-lg"
                 >
-                  เพิ่ม
+                  บันทึก
                 </button>
                 <button
-                  onClick={() => setShowNewVendor(false)}
-                  className="px-4 h-10 bg-stone-100 text-stone-600 text-xs font-bold rounded-lg"
+                  onClick={() => setShowNewVendorForm(false)}
+                  className="px-4 h-10 bg-stone-200 hover:bg-stone-300 text-stone-600 text-sm font-bold rounded-lg"
                 >
                   ยกเลิก
                 </button>
@@ -294,32 +343,38 @@ export default function MobilePurchaseOrder() {
             </div>
           )}
 
-          {/* Currency & Exchange Rate */}
+          {/* Currency & Rate */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold uppercase text-stone-400 mb-2 block">สกุลเงิน</label>
+              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">
+                สกุลเงินนำเข้า
+              </label>
               <div className="flex bg-stone-100 rounded-xl p-1">
-                {(['USD', 'CNY', 'THB'] as const).map(curr => (
+                {(['USD', 'CNY', 'THB'] as const).map(c => (
                   <button
-                    key={curr}
-                    onClick={() => setActiveCurrency(curr)}
-                    className={`flex-1 h-8 rounded-lg text-xs font-bold transition-all ${
-                      activeCurrency === curr ? 'bg-white text-orange-600 shadow-sm' : 'text-stone-500'
+                    key={c}
+                    onClick={() => setActiveCurrency(c)}
+                    className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
+                      activeCurrency === c 
+                        ? 'bg-white text-orange-600 shadow' 
+                        : 'text-stone-500'
                     }`}
                   >
-                    {curr}
+                    {c}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase text-stone-400 mb-2 block">อัตราแลกเปลี่ยน</label>
+              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">
+                อัตราแลกเปลี่ยน
+              </label>
               <div className="relative">
                 <input
                   type="number"
                   value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-sm font-semibold text-stone-900 text-center pr-8"
+                  onChange={e => setExchangeRate(e.target.value)}
+                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-center text-sm font-semibold pr-10"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">THB</span>
               </div>
@@ -331,19 +386,27 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* SECTION 2: ITEMS */}
       {/* ======================================== */}
-      <SectionHeader title="รายการสินค้า" icon={Package} sectionKey="items" count={`${items.length} รายการ`} />
-      {openSections.items && (
+      <SectionHeader 
+        title="รายการสินค้า" 
+        icon={Package} 
+        section="items"
+        badge={`${items.length} รายการ • $${itemsSubtotalUSD.toFixed(2)}`}
+      />
+      
+      {sections.items && (
         <div className="bg-white p-4 space-y-3">
           {/* Items List */}
           {items.map((item, idx) => (
             <div key={item.id} className="bg-stone-50 rounded-xl p-4 border border-stone-200">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-stone-400">#{idx + 1}</span>
+                <span className="text-xs font-bold text-stone-400 bg-stone-200 px-2 py-0.5 rounded">
+                  #{idx + 1}
+                </span>
                 <button
                   onClick={() => deleteItem(item.id)}
                   className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
                 >
-                  <X className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
@@ -351,48 +414,47 @@ export default function MobilePurchaseOrder() {
                 <input
                   type="text"
                   value={item.name}
-                  onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                  placeholder="ชื่อสินค้า"
-                  className="w-full h-11 bg-white border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900"
+                  onChange={e => updateItem(item.id, 'name', e.target.value)}
+                  placeholder="ชื่อสินค้า..."
+                  className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-sm font-medium"
                 />
-                
                 <input
                   type="text"
                   value={item.sku}
-                  onChange={(e) => updateItem(item.id, 'sku', e.target.value)}
-                  placeholder="SKU"
-                  className="w-full h-10 bg-white border border-stone-200 rounded-xl px-4 text-xs font-mono text-stone-500"
+                  onChange={e => updateItem(item.id, 'sku', e.target.value)}
+                  placeholder="SKU / รหัสสินค้า..."
+                  className="w-full h-10 bg-white border border-stone-200 rounded-xl px-4 text-xs font-mono"
                 />
-
+                
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">จำนวน</label>
+                    <label className="text-[9px] font-bold text-stone-400 uppercase mb-1 block">จำนวน</label>
                     <input
                       type="number"
                       value={item.quantity}
-                      onChange={(e) => updateItem(item.id, 'quantity', e.target.value)}
-                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-sm font-semibold text-stone-900 text-center"
+                      onChange={e => updateItem(item.id, 'quantity', e.target.value)}
+                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-stone-400 uppercase mb-1 block">ราคา/{activeCurrency}</label>
+                    <label className="text-[9px] font-bold text-stone-400 uppercase mb-1 block">ราคา/{activeCurrency}</label>
                     <input
                       type="number"
                       value={item.unit_price}
-                      onChange={(e) => updateItem(item.id, 'unit_price', e.target.value)}
-                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-sm font-semibold text-stone-900 text-center"
+                      onChange={e => updateItem(item.id, 'unit_price', e.target.value)}
+                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold"
                     />
                   </div>
                 </div>
 
-                {/* Subtotal */}
+                {/* Item Subtotal */}
                 <div className="flex justify-between items-center pt-2 border-t border-stone-200 mt-2">
                   <span className="text-xs text-stone-500">รวม</span>
                   <div className="text-right">
                     <span className="text-sm font-bold text-stone-900">
                       ${(item.quantity * item.unit_price).toFixed(2)}
                     </span>
-                    <span className="text-xs text-stone-400 ml-2">
+                    <span className="text-xs text-orange-500 ml-2">
                       ≈ ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
@@ -404,9 +466,9 @@ export default function MobilePurchaseOrder() {
           {/* Add Item Button */}
           <button
             onClick={addItem}
-            className="w-full h-12 bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl text-sm font-bold text-amber-600 flex items-center justify-center gap-2 hover:bg-amber-100 transition-colors"
+            className="w-full h-12 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-300 rounded-xl text-sm font-bold text-amber-600 flex items-center justify-center gap-2 hover:from-amber-100 hover:to-orange-100"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             เพิ่มรายการสินค้า
           </button>
         </div>
@@ -415,14 +477,20 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* SECTION 3: LOGISTICS */}
       {/* ======================================== */}
-      <SectionHeader title="ค่าขนส่ง" icon={Truck} sectionKey="logistics" />
-      {openSections.logistics && (
+      <SectionHeader 
+        title="ค่าขนส่ง" 
+        icon={Truck} 
+        section="logistics"
+        badge={`฿${logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`}
+      />
+      
+      {sections.logistics && (
         <div className="bg-white p-4 space-y-3">
           {/* China Domestic */}
-          <div className="bg-red-50 rounded-xl p-4 border border-red-100">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                <Truck className="w-4 h-4 text-white" />
+          <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                <Truck className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-stone-900">China Domestic</p>
@@ -430,7 +498,7 @@ export default function MobilePurchaseOrder() {
               </div>
               <select
                 value={logistics.chinaDomestic.currency}
-                onChange={(e) => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, currency: e.target.value as any}})}
+                onChange={e => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, currency: e.target.value as any}})}
                 className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium"
               >
                 <option value="CNY">CNY</option>
@@ -440,27 +508,27 @@ export default function MobilePurchaseOrder() {
             </div>
             <input
               type="number"
-              placeholder="0.00"
               value={logistics.chinaDomestic.amount}
-              onChange={(e) => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, amount: e.target.value}})}
-              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold text-stone-900"
+              onChange={e => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, amount: e.target.value}})}
+              placeholder="0.00"
+              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold"
             />
           </div>
 
           {/* China-Thailand */}
-          <div className="bg-blue-50 rounded-xl p-4 border-2 border-dashed border-blue-200">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-                <PlaneTakeoff className="w-4 h-4 text-white" />
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-dashed border-blue-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+                <PlaneTakeoff className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-stone-900">China - Thailand</p>
+                <p className="text-sm font-bold text-stone-900">China → Thailand</p>
                 <p className="text-xs text-stone-400">ขนส่งข้ามพรมแดน</p>
               </div>
               <select
                 value={logistics.chinaThailand.currency}
-                onChange={(e) => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, currency: e.target.value as any}})}
-                className="h-8 bg-white border-2 border-dashed border-stone-200 rounded-lg px-2 text-xs font-medium"
+                onChange={e => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, currency: e.target.value as any}})}
+                className="h-8 bg-white border-2 border-dashed border-stone-300 rounded-lg px-2 text-xs font-medium"
               >
                 <option value="USD">USD</option>
                 <option value="CNY">CNY</option>
@@ -469,18 +537,18 @@ export default function MobilePurchaseOrder() {
             </div>
             <input
               type="number"
-              placeholder="0.00"
               value={logistics.chinaThailand.amount}
-              onChange={(e) => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, amount: e.target.value}})}
-              className="w-full h-12 bg-white border-2 border-dashed border-stone-200 rounded-xl px-4 text-lg font-semibold text-stone-900"
+              onChange={e => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, amount: e.target.value}})}
+              placeholder="0.00"
+              className="w-full h-12 bg-white border-2 border-dashed border-stone-300 rounded-xl px-4 text-lg font-semibold"
             />
           </div>
 
           {/* Local Delivery */}
-          <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-                <Warehouse className="w-4 h-4 text-white" />
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <Warehouse className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-stone-900">Local Delivery</p>
@@ -488,7 +556,7 @@ export default function MobilePurchaseOrder() {
               </div>
               <select
                 value={logistics.localDelivery.currency}
-                onChange={(e) => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, currency: e.target.value as any}})}
+                onChange={e => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, currency: e.target.value as any}})}
                 className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium"
               >
                 <option value="THB">THB</option>
@@ -498,10 +566,10 @@ export default function MobilePurchaseOrder() {
             </div>
             <input
               type="number"
-              placeholder="0.00"
               value={logistics.localDelivery.amount}
-              onChange={(e) => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, amount: e.target.value}})}
-              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold text-stone-900"
+              onChange={e => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, amount: e.target.value}})}
+              placeholder="0.00"
+              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold"
             />
           </div>
 
@@ -520,15 +588,20 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* SECTION 4: NOTES */}
       {/* ======================================== */}
-      <SectionHeader title="หมายเหตุ" icon={Info} sectionKey="notes" />
-      {openSections.notes && (
+      <SectionHeader 
+        title="หมายเหตุ" 
+        icon={FileText} 
+        section="notes"
+      />
+      
+      {sections.notes && (
         <div className="bg-white p-4">
           <textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={e => setNotes(e.target.value)}
             placeholder="ระบุข้อกำหนดบรรจุภัณฑ์, มาตรฐานควบคุมคุณภาพ, หรือคำแนะนำการจัดส่ง..."
             rows={4}
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none placeholder:text-stone-400"
+            className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm leading-relaxed resize-none"
           />
         </div>
       )}
@@ -536,10 +609,10 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* SUMMARY SECTION */}
       {/* ======================================== */}
-      <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-t-3xl p-5 mt-4 text-white shadow-2xl">
+      <div className="mx-4 mt-4 bg-gradient-to-br from-stone-800 to-stone-900 rounded-2xl p-5 text-white shadow-xl">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="w-5 h-5 text-amber-400" />
-          <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">สรุปคำสั่งซื้อ</h3>
+          <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider">สรุปคำสั่งซื้อ</h3>
         </div>
 
         <div className="space-y-2 text-sm">
@@ -562,7 +635,7 @@ export default function MobilePurchaseOrder() {
           
           <div className="border-t border-stone-700 pt-3 mt-3">
             <div className="flex justify-between items-baseline">
-              <span className="text-stone-300 font-semibold">รวมทั้งสิ้น (THB)</span>
+              <span className="text-stone-300 font-semibold">ยอดรวมทั้งสิ้น</span>
               <div className="text-right">
                 <span className="text-2xl font-black text-amber-400">
                   ฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
@@ -589,18 +662,18 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* BOTTOM ACTION BUTTONS */}
       {/* ======================================== */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 z-30 shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-2xl z-50">
         <div className="space-y-2">
           <button
             onClick={handleConfirm}
-            className="w-full h-14 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white text-base font-bold rounded-xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2"
+            className="w-full h-14 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white text-base font-bold rounded-xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Send className="w-5 h-5" />
             ยืนยันคำสั่งซื้อ
           </button>
           <button
             onClick={handleSaveDraft}
-            className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 text-sm font-semibold rounded-xl flex items-center justify-center gap-2"
+            className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 active:bg-stone-50 transition-colors"
           >
             <Save className="w-4 h-4" />
             บันทึกฉบับร่าง
