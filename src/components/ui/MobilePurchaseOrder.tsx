@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { 
   Save, Send, Package, Truck, PlaneTakeoff, 
   Warehouse, ChevronDown, ChevronUp,
-  CreditCard, Factory, X, Info, FileText, Trash2
+  CreditCard, Factory, X, Info, FileText, Trash2, Plus
 } from 'lucide-react';
 
 // ============================================================
