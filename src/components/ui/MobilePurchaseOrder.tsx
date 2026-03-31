@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 
 // ============================================================
-// MOBILE PURCHASE ORDER - COMPLETE REDESIGN
-// Morix V2 - Full Featured Mobile Form
+// MOBILE PURCHASE ORDER - UI FIXED VERSION
+// Morix V2 - Fixed text overflow, overlaps, and calculations
 // ============================================================
 
 interface LineItem {
@@ -26,7 +26,7 @@ interface LogisticsEntry {
 }
 
 export default function MobilePurchaseOrder() {
-  // Generate PO number
+  // Generate PO number and date
   const poNumber = `PO-${Date.now().toString().slice(-6)}`;
   const today = new Date().toLocaleDateString('th-TH', { 
     day: '2-digit', month: 'short', year: 'numeric' 
@@ -40,7 +40,6 @@ export default function MobilePurchaseOrder() {
     items: true,
     logistics: true,
     notes: false,
-    summary: false,
   });
 
   const toggleSection = (key: keyof typeof sections) => {
@@ -98,14 +97,16 @@ export default function MobilePurchaseOrder() {
   ];
 
   // ========================================
-  // CALCULATIONS
+  // CALCULATIONS - ALL IN ONE PLACE
   // ========================================
   const RATE = parseFloat(exchangeRate) || 35.42;
   const CNY_TO_THB = RATE / 7.2;
 
+  // Items subtotal
   const itemsSubtotalUSD = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
   const itemsSubtotalTHB = itemsSubtotalUSD * RATE;
 
+  // Logistics total (THB)
   const logisticsTotalTHB = Object.values(logistics).reduce((sum, log) => {
     const amount = parseFloat(log.amount) || 0;
     if (log.currency === 'CNY') return sum + amount * CNY_TO_THB;
@@ -113,6 +114,7 @@ export default function MobilePurchaseOrder() {
     return sum + amount;
   }, 0);
 
+  // Grand total
   const tax = itemsSubtotalTHB * 0.07;
   const grandTotalTHB = itemsSubtotalTHB + logisticsTotalTHB + tax;
   const grandTotalUSD = grandTotalTHB / RATE;
@@ -160,24 +162,18 @@ export default function MobilePurchaseOrder() {
   // ========================================
   const handleSaveDraft = () => {
     setPoStatus('draft');
-    alert(`✅ บันทึกฉบับร่างสำเร็จ!\n\nเลขที่: ${poNumber}\nผู้จัดจำหน่าย: ${vendor || '-'}\nรายการ: ${items.length} รายการ\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`);
+    alert(`บันทึกฉบับร่าง\nเลขที่: ${poNumber}\nผู้จัด: ${vendor || '-'}\nรายการ: ${items.length}\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
   };
 
   const handleConfirm = () => {
-    if (!vendor) {
-      alert('กรุณาเลือกผู้จัดจำหน่าย');
-      return;
-    }
-    if (items.filter(i => i.name.trim()).length === 0) {
-      alert('กรุณาเพิ่มอย่างน้อย 1 รายการสินค้า');
-      return;
-    }
+    if (!vendor) { alert('เลือกผู้จัดจำหน่าย'); return; }
+    if (items.filter(i => i.name.trim()).length === 0) { alert('เพิ่มอย่างน้อย 1 รายการ'); return; }
     setPoStatus('confirmed');
-    alert(`✅ ยืนยันคำสั่งซื้อสำเร็จ!\n\nเลขที่: ${poNumber}\nผู้จัดจำหน่าย: ${vendor}\nรายการ: ${items.length} รายการ\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`);
+    alert(`ยืนยันคำสั่งซื้อ\nเลขที่: ${poNumber}\nผู้จัด: ${vendor}\nรายการ: ${items.length}\nยอดรวม: ฿${grandTotalTHB.toLocaleString('th-TH')}`);
   };
 
   // ========================================
-  // SECTION HEADER COMPONENT
+  // SECTION HEADER
   // ========================================
   const SectionHeader = ({ title, icon: Icon, section, badge }: { 
     title: string; 
@@ -189,8 +185,8 @@ export default function MobilePurchaseOrder() {
       onClick={() => toggleSection(section)}
       className="w-full flex items-center justify-between p-4 bg-white border-b border-stone-200 active:bg-stone-50"
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
           section === 'vendor' ? 'bg-gradient-to-br from-blue-500 to-indigo-500' :
           section === 'items' ? 'bg-gradient-to-br from-amber-500 to-orange-500' :
           section === 'logistics' ? 'bg-gradient-to-br from-green-500 to-emerald-500' :
@@ -199,51 +195,52 @@ export default function MobilePurchaseOrder() {
         }`}>
           <Icon className="w-4 h-4 text-white" />
         </div>
-        <div className="text-left">
-          <span className="text-sm font-bold text-stone-900">{title}</span>
-          {badge && <span className="block text-xs text-stone-400">{badge}</span>}
+        <div className="text-left min-w-0">
+          <span className="text-sm font-bold text-stone-900 truncate block">{title}</span>
+          {badge && <span className="text-xs text-stone-400 truncate block max-w-[200px]">{badge}</span>}
         </div>
       </div>
       {sections[section] ? (
-        <ChevronUp className="w-5 h-5 text-stone-400" />
+        <ChevronUp className="w-5 h-5 text-stone-400 flex-shrink-0 ml-2" />
       ) : (
-        <ChevronDown className="w-5 h-5 text-stone-400" />
+        <ChevronDown className="w-5 h-5 text-stone-400 flex-shrink-0 ml-2" />
       )}
     </button>
   );
 
   // ========================================
-  // RENDER
+  // FORMAT NUMBER
   // ========================================
+  const fmtTHB = (n: number) => `฿${n.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`;
+  const fmtUSD = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 pb-44">
+    <div className="min-h-screen bg-stone-100 text-stone-900 pb-36">
       {/* HEADER */}
       <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-4 py-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black">{poNumber}</h1>
-            <p className="text-amber-100 text-xs mt-0.5">{today}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-black truncate">{poNumber}</h1>
+            <p className="text-amber-100 text-xs">{today}</p>
           </div>
-          <div className="text-right">
-            <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-              poStatus === 'draft' ? 'bg-amber-500/30 text-amber-100' :
-              poStatus === 'confirmed' ? 'bg-green-500/30 text-green-100' :
-              'bg-blue-500/30 text-blue-100'
-            }`}>
-              {poStatus === 'draft' ? 'ฉบับร่าง' : poStatus === 'confirmed' ? 'ยืนยันแล้ว' : 'รับของแล้ว'}
-            </span>
-          </div>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
+            poStatus === 'draft' ? 'bg-amber-500/30 text-amber-100' :
+            poStatus === 'confirmed' ? 'bg-green-500/30 text-green-100' :
+            'bg-blue-500/30 text-blue-100'
+          }`}>
+            {poStatus === 'draft' ? 'ฉบับร่าง' : poStatus === 'confirmed' ? 'ยืนยันแล้ว' : 'รับของแล้ว'}
+          </span>
         </div>
         
         {/* Quick Summary Bar */}
-        <div className="mt-3 flex gap-4 text-amber-100">
-          <div>
-            <span className="text-xs opacity-70">รายการ</span>
-            <p className="text-sm font-bold text-white">{items.length} รายการ</p>
+        <div className="mt-3 flex gap-4 text-amber-100 overflow-hidden">
+          <div className="min-w-0">
+            <span className="text-[10px] opacity-70 block">รายการ</span>
+            <p className="text-sm font-bold text-white truncate">{items.length} รายการ</p>
           </div>
-          <div>
-            <span className="text-xs opacity-70">ยอดรวม</span>
-            <p className="text-sm font-black text-white">฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
+          <div className="min-w-0">
+            <span className="text-[10px] opacity-70 block">ยอดรวม</span>
+            <p className="text-sm font-black text-white truncate">{fmtTHB(grandTotalTHB)}</p>
           </div>
         </div>
       </div>
@@ -269,19 +266,19 @@ export default function MobilePurchaseOrder() {
               onClick={() => setShowVendorList(!showVendorList)}
               className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-left font-medium text-stone-900 flex items-center justify-between"
             >
-              <span className={vendor ? 'text-stone-900' : 'text-stone-400'}>
+              <span className={`truncate ${vendor ? 'text-stone-900' : 'text-stone-400'}`}>
                 {vendor || 'เลือกหรือเพิ่มผู้จัดจำหน่าย...'}
               </span>
-              <ChevronDown className="w-5 h-5 text-stone-400" />
+              <ChevronDown className="w-5 h-5 text-stone-400 flex-shrink-0 ml-2" />
             </button>
             
             {showVendorList && (
-              <div className="mt-2 bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden z-20 relative">
+              <div className="mt-2 bg-white border border-stone-200 rounded-xl shadow-xl overflow-hidden z-20 relative max-h-60 overflow-y-auto">
                 {vendors.map(v => (
                   <button
                     key={v}
                     onClick={() => handleSelectVendor(v)}
-                    className="w-full px-4 py-3 text-left text-sm font-medium text-stone-900 hover:bg-amber-50 border-b border-stone-100 last:border-b-0"
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-stone-900 hover:bg-amber-50 border-b border-stone-100 last:border-b-0 truncate"
                   >
                     {v}
                   </button>
@@ -305,40 +302,15 @@ export default function MobilePurchaseOrder() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <input
-                type="text"
-                placeholder="ชื่อบริษัท..."
-                value={newVendor.name}
-                onChange={e => setNewVendor({...newVendor, name: e.target.value})}
-                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
-              />
-              <input
-                type="email"
-                placeholder="อีเมล (optional)..."
-                value={newVendor.email}
-                onChange={e => setNewVendor({...newVendor, email: e.target.value})}
-                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
-              />
-              <input
-                type="tel"
-                placeholder="โทรศัพท์ (optional)..."
-                value={newVendor.phone}
-                onChange={e => setNewVendor({...newVendor, phone: e.target.value})}
-                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm"
-              />
+              <input type="text" placeholder="ชื่อบริษัท..." value={newVendor.name} onChange={e => setNewVendor({...newVendor, name: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm" />
+              <input type="email" placeholder="อีเมล (optional)..." value={newVendor.email} onChange={e => setNewVendor({...newVendor, email: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm" />
+              <input type="tel" placeholder="โทรศัพท์ (optional)..." value={newVendor.phone} onChange={e => setNewVendor({...newVendor, phone: e.target.value})}
+                className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm" />
               <div className="flex gap-2">
-                <button
-                  onClick={handleAddVendor}
-                  className="flex-1 h-10 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-lg"
-                >
-                  บันทึก
-                </button>
-                <button
-                  onClick={() => setShowNewVendorForm(false)}
-                  className="px-4 h-10 bg-stone-200 hover:bg-stone-300 text-stone-600 text-sm font-bold rounded-lg"
-                >
-                  ยกเลิก
-                </button>
+                <button onClick={handleAddVendor} className="flex-1 h-10 bg-orange-500 text-white text-sm font-bold rounded-lg">บันทึก</button>
+                <button onClick={() => setShowNewVendorForm(false)} className="px-4 h-10 bg-stone-200 text-stone-600 text-sm font-bold rounded-lg">ยกเลิก</button>
               </div>
             </div>
           )}
@@ -346,36 +318,21 @@ export default function MobilePurchaseOrder() {
           {/* Currency & Rate */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">
-                สกุลเงินนำเข้า
-              </label>
+              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">สกุลเงิน</label>
               <div className="flex bg-stone-100 rounded-xl p-1">
                 {(['USD', 'CNY', 'THB'] as const).map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setActiveCurrency(c)}
-                    className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${
-                      activeCurrency === c 
-                        ? 'bg-white text-orange-600 shadow' 
-                        : 'text-stone-500'
-                    }`}
-                  >
+                  <button key={c} onClick={() => setActiveCurrency(c)}
+                    className={`flex-1 h-9 rounded-lg text-xs font-bold transition-all ${activeCurrency === c ? 'bg-white text-orange-600 shadow' : 'text-stone-500'}`}>
                     {c}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">
-                อัตราแลกเปลี่ยน
-              </label>
+              <label className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mb-2 block">อัตราแลกเปลี่ยน</label>
               <div className="relative">
-                <input
-                  type="number"
-                  value={exchangeRate}
-                  onChange={e => setExchangeRate(e.target.value)}
-                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-center text-sm font-semibold pr-10"
-                />
+                <input type="number" value={exchangeRate} onChange={e => setExchangeRate(e.target.value)}
+                  className="w-full h-10 bg-stone-50 border border-stone-200 rounded-xl px-3 text-center text-sm font-semibold pr-10" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">THB</span>
               </div>
             </div>
@@ -390,7 +347,7 @@ export default function MobilePurchaseOrder() {
         title="รายการสินค้า" 
         icon={Package} 
         section="items"
-        badge={`${items.length} รายการ • $${itemsSubtotalUSD.toFixed(2)}`}
+        badge={`${items.length} รายการ • ${fmtUSD(itemsSubtotalUSD)}`}
       />
       
       {sections.items && (
@@ -399,51 +356,28 @@ export default function MobilePurchaseOrder() {
           {items.map((item, idx) => (
             <div key={item.id} className="bg-stone-50 rounded-xl p-4 border border-stone-200">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-stone-400 bg-stone-200 px-2 py-0.5 rounded">
-                  #{idx + 1}
-                </span>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                >
+                <span className="text-xs font-bold text-stone-400 bg-stone-200 px-2 py-0.5 rounded">#{idx + 1}</span>
+                <button onClick={() => deleteItem(item.id)} className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="space-y-2">
-                <input
-                  type="text"
-                  value={item.name}
-                  onChange={e => updateItem(item.id, 'name', e.target.value)}
-                  placeholder="ชื่อสินค้า..."
-                  className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-sm font-medium"
-                />
-                <input
-                  type="text"
-                  value={item.sku}
-                  onChange={e => updateItem(item.id, 'sku', e.target.value)}
-                  placeholder="SKU / รหัสสินค้า..."
-                  className="w-full h-10 bg-white border border-stone-200 rounded-xl px-4 text-xs font-mono"
-                />
+                <input type="text" value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)}
+                  placeholder="ชื่อสินค้า..." className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-sm font-medium" />
+                <input type="text" value={item.sku} onChange={e => updateItem(item.id, 'sku', e.target.value)}
+                  placeholder="SKU / รหัสสินค้า..." className="w-full h-10 bg-white border border-stone-200 rounded-xl px-4 text-xs font-mono" />
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[9px] font-bold text-stone-400 uppercase mb-1 block">จำนวน</label>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={e => updateItem(item.id, 'quantity', e.target.value)}
-                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold"
-                    />
+                    <input type="number" value={item.quantity} onChange={e => updateItem(item.id, 'quantity', e.target.value)}
+                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold" />
                   </div>
                   <div>
                     <label className="text-[9px] font-bold text-stone-400 uppercase mb-1 block">ราคา/{activeCurrency}</label>
-                    <input
-                      type="number"
-                      value={item.unit_price}
-                      onChange={e => updateItem(item.id, 'unit_price', e.target.value)}
-                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold"
-                    />
+                    <input type="number" value={item.unit_price} onChange={e => updateItem(item.id, 'unit_price', e.target.value)}
+                      className="w-full h-11 bg-white border border-stone-200 rounded-xl px-3 text-center font-semibold" />
                   </div>
                 </div>
 
@@ -451,12 +385,8 @@ export default function MobilePurchaseOrder() {
                 <div className="flex justify-between items-center pt-2 border-t border-stone-200 mt-2">
                   <span className="text-xs text-stone-500">รวม</span>
                   <div className="text-right">
-                    <span className="text-sm font-bold text-stone-900">
-                      ${(item.quantity * item.unit_price).toFixed(2)}
-                    </span>
-                    <span className="text-xs text-orange-500 ml-2">
-                      ≈ ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                    </span>
+                    <span className="text-sm font-bold text-stone-900">{fmtUSD(item.quantity * item.unit_price)}</span>
+                    <span className="text-xs text-orange-500 ml-2">≈ {fmtTHB(item.quantity * item.unit_price * RATE)}</span>
                   </div>
                 </div>
               </div>
@@ -464,10 +394,8 @@ export default function MobilePurchaseOrder() {
           ))}
 
           {/* Add Item Button */}
-          <button
-            onClick={addItem}
-            className="w-full h-12 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-300 rounded-xl text-sm font-bold text-amber-600 flex items-center justify-center gap-2 hover:from-amber-100 hover:to-orange-100"
-          >
+          <button onClick={addItem}
+            className="w-full h-12 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-300 rounded-xl text-sm font-bold text-amber-600 flex items-center justify-center gap-2">
             <Plus className="w-5 h-5" />
             เพิ่มรายการสินค้า
           </button>
@@ -481,7 +409,7 @@ export default function MobilePurchaseOrder() {
         title="ค่าขนส่ง" 
         icon={Truck} 
         section="logistics"
-        badge={`฿${logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`}
+        badge={fmtTHB(logisticsTotalTHB)}
       />
       
       {sections.logistics && (
@@ -489,97 +417,77 @@ export default function MobilePurchaseOrder() {
           {/* China Domestic */}
           <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-100">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Truck className="w-5 h-5 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-stone-900">China Domestic</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-stone-900 truncate">China Domestic</p>
                 <p className="text-xs text-stone-400">ขนส่งในประเทศจีน</p>
               </div>
-              <select
-                value={logistics.chinaDomestic.currency}
+              <select value={logistics.chinaDomestic.currency}
                 onChange={e => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, currency: e.target.value as any}})}
-                className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium"
-              >
+                className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium flex-shrink-0">
                 <option value="CNY">CNY</option>
                 <option value="USD">USD</option>
                 <option value="THB">THB</option>
               </select>
             </div>
-            <input
-              type="number"
-              value={logistics.chinaDomestic.amount}
+            <input type="number" value={logistics.chinaDomestic.amount}
               onChange={e => setLogistics({...logistics, chinaDomestic: {...logistics.chinaDomestic, amount: e.target.value}})}
-              placeholder="0.00"
-              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold"
-            />
+              placeholder="0.00" className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold" />
           </div>
 
           {/* China-Thailand */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-dashed border-blue-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
                 <PlaneTakeoff className="w-5 h-5 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-stone-900">China → Thailand</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-stone-900 truncate">China → Thailand</p>
                 <p className="text-xs text-stone-400">ขนส่งข้ามพรมแดน</p>
               </div>
-              <select
-                value={logistics.chinaThailand.currency}
+              <select value={logistics.chinaThailand.currency}
                 onChange={e => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, currency: e.target.value as any}})}
-                className="h-8 bg-white border-2 border-dashed border-stone-300 rounded-lg px-2 text-xs font-medium"
-              >
+                className="h-8 bg-white border-2 border-dashed border-stone-300 rounded-lg px-2 text-xs font-medium flex-shrink-0">
                 <option value="USD">USD</option>
                 <option value="CNY">CNY</option>
                 <option value="THB">THB</option>
               </select>
             </div>
-            <input
-              type="number"
-              value={logistics.chinaThailand.amount}
+            <input type="number" value={logistics.chinaThailand.amount}
               onChange={e => setLogistics({...logistics, chinaThailand: {...logistics.chinaThailand, amount: e.target.value}})}
-              placeholder="0.00"
-              className="w-full h-12 bg-white border-2 border-dashed border-stone-300 rounded-xl px-4 text-lg font-semibold"
-            />
+              placeholder="0.00" className="w-full h-12 bg-white border-2 border-dashed border-stone-300 rounded-xl px-4 text-lg font-semibold" />
           </div>
 
           {/* Local Delivery */}
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
                 <Warehouse className="w-5 h-5 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-stone-900">Local Delivery</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-stone-900 truncate">Local Delivery</p>
                 <p className="text-xs text-stone-400">ขนส่งในประเทศไทย</p>
               </div>
-              <select
-                value={logistics.localDelivery.currency}
+              <select value={logistics.localDelivery.currency}
                 onChange={e => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, currency: e.target.value as any}})}
-                className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium"
-              >
+                className="h-8 bg-white border border-stone-200 rounded-lg px-2 text-xs font-medium flex-shrink-0">
                 <option value="THB">THB</option>
                 <option value="USD">USD</option>
                 <option value="CNY">CNY</option>
               </select>
             </div>
-            <input
-              type="number"
-              value={logistics.localDelivery.amount}
+            <input type="number" value={logistics.localDelivery.amount}
               onChange={e => setLogistics({...logistics, localDelivery: {...logistics.localDelivery, amount: e.target.value}})}
-              placeholder="0.00"
-              className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold"
-            />
+              placeholder="0.00" className="w-full h-12 bg-white border border-stone-200 rounded-xl px-4 text-lg font-semibold" />
           </div>
 
           {/* Logistics Total */}
           <div className="bg-stone-100 rounded-xl p-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-stone-600">รวมค่าขนส่ง</span>
-              <span className="text-lg font-bold text-stone-900">
-                ฿{logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-              </span>
+              <span className="text-lg font-bold text-stone-900">{fmtTHB(logisticsTotalTHB)}</span>
             </div>
           </div>
         </div>
@@ -588,21 +496,13 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* SECTION 4: NOTES */}
       {/* ======================================== */}
-      <SectionHeader 
-        title="หมายเหตุ" 
-        icon={FileText} 
-        section="notes"
-      />
+      <SectionHeader title="หมายเหตุ" icon={FileText} section="notes" />
       
       {sections.notes && (
         <div className="bg-white p-4">
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="ระบุข้อกำหนดบรรจุภัณฑ์, มาตรฐานควบคุมคุณภาพ, หรือคำแนะนำการจัดส่ง..."
-            rows={4}
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm leading-relaxed resize-none"
-          />
+          <textarea value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="ระบุข้อกำหนดบรรจุภัณฑ์, มาตรฐานควบคุมคุณภาพ..."
+            rows={4} className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm leading-relaxed resize-none" />
         </div>
       )}
 
@@ -618,31 +518,27 @@ export default function MobilePurchaseOrder() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-stone-400">ราคาสินค้า (USD)</span>
-            <span className="font-semibold">${itemsSubtotalUSD.toFixed(2)}</span>
+            <span className="font-semibold">{fmtUSD(itemsSubtotalUSD)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-stone-400">ราคาสินค้า (THB)</span>
-            <span className="font-semibold text-orange-400">฿{itemsSubtotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-orange-400">{fmtTHB(itemsSubtotalTHB)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-stone-400">ค่าขนส่ง</span>
-            <span className="font-semibold text-orange-400">฿{logisticsTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-orange-400">{fmtTHB(logisticsTotalTHB)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-stone-400">ภาษี 7%</span>
-            <span className="font-semibold text-orange-400">฿{tax.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-orange-400">{fmtTHB(tax)}</span>
           </div>
           
           <div className="border-t border-stone-700 pt-3 mt-3">
-            <div className="flex justify-between items-baseline">
+            <div className="flex justify-between items-baseline gap-2">
               <span className="text-stone-300 font-semibold">ยอดรวมทั้งสิ้น</span>
               <div className="text-right">
-                <span className="text-2xl font-black text-amber-400">
-                  ฿{grandTotalTHB.toLocaleString('th-TH', { maximumFractionDigits: 0 })}
-                </span>
-                <span className="block text-xs text-stone-400 mt-1">
-                  ≈ ${grandTotalUSD.toFixed(2)} USD
-                </span>
+                <span className="text-xl font-black text-amber-400">{fmtTHB(grandTotalTHB)}</span>
+                <span className="block text-xs text-stone-400 mt-1">≈ {fmtUSD(grandTotalUSD)} USD</span>
               </div>
             </div>
           </div>
@@ -651,7 +547,7 @@ export default function MobilePurchaseOrder() {
         {/* Info Note */}
         <div className="mt-4 bg-white/10 rounded-xl p-3">
           <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-amber-400 mt-0.5" />
+            <Info className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
             <p className="text-xs font-medium text-stone-300 leading-relaxed">
               ราคาคำนวณตามอัตราแลกเปลี่ยนปัจจุบัน การชำระเงินสุทธิจะเกิดขึ้นเมื่อรับสินค้าเข้าคลังแล้ว
             </p>
@@ -662,19 +558,15 @@ export default function MobilePurchaseOrder() {
       {/* ======================================== */}
       {/* BOTTOM ACTION BUTTONS */}
       {/* ======================================== */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-2xl z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-2xl z-50 pb-safe">
         <div className="space-y-2">
-          <button
-            onClick={handleConfirm}
-            className="w-full h-14 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white text-base font-bold rounded-xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-          >
+          <button onClick={handleConfirm}
+            className="w-full h-14 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white text-base font-bold rounded-xl shadow-xl shadow-orange-500/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
             <Send className="w-5 h-5" />
             ยืนยันคำสั่งซื้อ
           </button>
-          <button
-            onClick={handleSaveDraft}
-            className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 active:bg-stone-50 transition-colors"
-          >
+          <button onClick={handleSaveDraft}
+            className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 active:bg-stone-50 transition-colors">
             <Save className="w-4 h-4" />
             บันทึกฉบับร่าง
           </button>
