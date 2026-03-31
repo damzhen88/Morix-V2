@@ -6,18 +6,18 @@ import { useFormModal } from '@/components/ui/FormModalContext';
 import { TrendingUp, Plus, Download, Filter, Calendar, DollarSign, Package, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { formatTHB } from '@/lib/format';
 
-const kpis = [
-  { label: 'Revenue (MTD)',    value: formatTHB(state.salesOrders.reduce((s, o) => s + (o.total || 0), 0)),   change: '+18.4%', up: true,  icon: DollarSign, polarity: 'higher_is_better' as const },
-  { label: 'Orders (MTD)',      value: state.salesOrders.length.toString(),       change: '+6',    up: true,  icon: Package,    polarity: 'higher_is_better' as const },
-  { label: 'Avg. Order Value',  value: '฿80.8K',  change: '+12.2%', up: true,  icon: TrendingUp, polarity: 'higher_is_better' as const },
-  { label: 'Active Clients',     value: state.crmDeals.length.toString(),       change: '-2',    up: false, icon: Users,      polarity: 'higher_is_better' as const },
-];
-
 export default function SalesPage() {
   const [filter, setFilter] = useState('all');
   const { openForm } = useFormModal();
   const { state } = useApp();
 
+  // KPIs - computed inside component to have access to state
+  const kpis = [
+    { label: 'Revenue (MTD)',    value: formatTHB(state.salesOrders.reduce((s: number, o: any) => s + (o.total || 0), 0)),   change: '+18.4%', up: true,  icon: DollarSign, polarity: 'higher_is_better' as const },
+    { label: 'Orders (MTD)',      value: state.salesOrders.length.toString(),       change: '+6',    up: true,  icon: Package,    polarity: 'higher_is_better' as const },
+    { label: 'Avg. Order Value',  value: '฿80.8K',  change: '+12.2%', up: true,  icon: TrendingUp, polarity: 'higher_is_better' as const },
+    { label: 'Active Clients',   value: state.crmDeals.length.toString(),       change: '-2',    up: false, icon: Users,      polarity: 'higher_is_better' as const },
+  ];
 
   // Load data from store
   useEffect(() => { }, []);

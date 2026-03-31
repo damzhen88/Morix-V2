@@ -372,7 +372,14 @@ export const api = {
   async createExpense(expense: Partial<Expense>) {
     const { data, error } = await supabase
       .from('expenses')
-      .insert(expense)
+      .insert({
+        description: expense.description,
+        category: expense.category,
+        date: expense.date,
+        amount_thb: expense.amount_thb,
+        purchase_order_id: expense.purchase_order_id || null,
+        sales_order_id: expense.sales_order_id || null,
+      })
       .select()
       .single();
     if (error) throw error;

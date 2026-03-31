@@ -8,9 +8,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   Users, Receipt, TrendingUp, Settings, Menu, X,
-  Home, Plus, LogOut, Search, Bell, ChevronLeft, ChevronRight, FileText,
+  Home, Plus, LogOut, Search, Bell, ChevronLeft, ChevronRight, FileText, Globe, Upload,
+
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useI18n } from '@/lib/i18n';
 import SearchModal from '@/components/ui/SearchModal';
 import ProductFormModal from '@/components/ui/ProductFormModal';
 import ClientFormModal from '@/components/ui/ClientFormModal';
@@ -30,6 +32,7 @@ const menuItems = [
   { id: 'expenses',  label: 'Expenses',          icon: Receipt,      href: '/expenses' },
   { id: 'reports',   label: 'Reports',            icon: FileText,      href: '/reports' },
   { id: 'settings',  label: 'Settings',          icon: Settings,      href: '/settings' },
+  { id: 'import',        label: 'นำเข้า Excel',     icon: Upload,         href: '/import' },
 ];
 
 const SIDEBAR_KEY = 'morix-sidebar-collapsed';
@@ -43,6 +46,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const { user, signOut, loading } = useAuth();
+  const { language, setLanguage, t } = useI18n();
 
   useEffect(() => {
     try {
@@ -93,11 +97,24 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
   // Nav item
   const NavItem = ({ item }: { item: typeof menuItems[0] }) => {
-    const isActive = pathname === item.href;
-    const Icon = item.icon;
+    // Handle divider
+    if ('divider' in item && item.divider) {
+      return (
+        <div
+          key="divider"
+          style={{
+            height: 1,
+            backgroundColor: 'var(--outline-variant)',
+            margin: '0.5rem 1rem',
+          }}
+        />
+      );
+    }
+    const isActive = pathname === (item as typeof menuItems[0]).href;
+    const Icon = (item as typeof menuItems[0]).icon;
     return (
-      <Link key={item.id} href={item.href}
-        title={collapsed ? item.label : undefined}
+      <Link key={item.id as string} href={(item as typeof menuItems[0]).href}
+        title={collapsed ? (item as typeof menuItems[0]).label : undefined}
         style={{
           display: 'flex', alignItems: 'center', gap: '0.75rem',
           padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
@@ -115,7 +132,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           <span style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 4, height: '2rem', borderRadius: '0 4px 4px 0', backgroundColor: 'var(--primary)' }} />
         )}
         <Icon style={{ width: 20, height: 20, flexShrink: 0 }} />
-        {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>}
+        {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(item as typeof menuItems[0]).label}</span>}
       </Link>
     );
   };
@@ -163,6 +180,22 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
         {/* Bottom */}
         <div style={{ borderTop: '1px solid var(--outline-variant)', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+          {/* Language Toggle */}
+          <button onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer',
+              color: 'var(--primary)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', width: '100%',
+            }}>
+            <Globe style={{ width: 20, height: 20, flexShrink: 0 }} />
+            {!collapsed && (
+              <span style={{ fontWeight: 600 }}>
+                {language === 'en' ? '🌐 EN' : '🌐 TH'}
+              </span>
+            )}
+          </button>
           <button onClick={toggleCollapse}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem',
@@ -171,7 +204,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
               borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer',
               color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', width: '100%',
             }}>
-            {collapsed ? <ChevronRight style={{ width: 20, height: 20 }} /> : <><ChevronLeft style={{ width: 20, height: 20 }} /><span>Collapse</span></>}
+            {collapsed ? <ChevronRight style={{ width: 20, height: 20 }} /> : <><ChevronLeft style={{ width: 20, height: 20 }} /><span>{t('nav.collapse')}</span></>}
           </button>
           <button onClick={handleSignOut}
             style={{
@@ -182,7 +215,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
               color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', width: '100%',
             }}>
             <LogOut style={{ width: 20, height: 20, flexShrink: 0 }} />
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span>{t('nav.logout')}</span>}
           </button>
         </div>
       </aside>
@@ -216,10 +249,16 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
             <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
               {menuItems.map(item => <NavItem key={item.id} item={item} />)}
             </nav>
+            {/* Language Toggle Mobile */}
+            <button onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--primary)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 600 }}>
+              <Globe style={{ width: 20, height: 20 }} />
+              {language === 'en' ? '🌐 English' : '🌐 ภาษาไทย'}
+            </button>
             <button onClick={handleSignOut}
               style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--error)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', borderTop: '1px solid var(--outline-variant)', marginTop: '0.5rem', paddingTop: '1rem' }}>
               <LogOut style={{ width: 20, height: 20 }} />
-              Logout
+              {t('nav.logout')}
             </button>
           </div>
         </div>

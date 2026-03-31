@@ -465,16 +465,40 @@ export default function SettingsPage() {
       )}
 
       {/* ── STICKY SAVE BAR ── */}
-      {/* Desktop: fixed bottom-right; Mobile: full-width bottom bar above bottom nav */}
-      <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 flex gap-3 lg:flex-nowrap">
-        <button onClick={discard} className="flex-1 lg:flex-none" style={{ padding: '0.75rem 1.5rem', borderRadius: 9999, border: '1.5px solid var(--outline-variant)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-          <X style={{ width: 16, height: 16 }} />
-          Discard
-        </button>
-        <button onClick={save} className="flex-1 lg:flex-none" style={{ padding: '0.75rem 1.5rem', borderRadius: 9999, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 700, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 16px rgba(249,115,22,0.3)' }}>
-          <Save style={{ width: 16, height: 16 }} />
-          Save Changes
-        </button>
+      <div 
+        className="fixed bottom-20 lg:bottom-6 left-4 lg:left-auto lg:right-6 right-4 z-50 w-auto lg:w-auto"
+        style={{ maxWidth: 'calc(100vw - 2rem)' }}
+      >
+        {/* Desktop: pill shape, right side */}
+        <div className="hidden lg:flex items-center gap-2.5 px-3 py-2.5 rounded-2xl shadow-xl border border-[var(--outline-variant)]" 
+          style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)' }}>
+          <button onClick={discard} 
+            style={{ padding: '0.625rem 1.25rem', borderRadius: 9999, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}>
+            <X style={{ width: 14, height: 14 }} />
+            Discard
+          </button>
+          <button onClick={save} 
+            style={{ padding: '0.625rem 1.25rem', borderRadius: 9999, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '0.375rem', boxShadow: '0 2px 8px rgba(249,115,22,0.3)', whiteSpace: 'nowrap' }}>
+            <Save style={{ width: 14, height: 14 }} />
+            Save Changes
+          </button>
+        </div>
+        
+        {/* Mobile: full width bottom bar */}
+        <div className="lg:hidden flex gap-2.5 w-full" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderRadius: 20, padding: '0.75rem', border: '1px solid var(--outline-variant)' }}>
+          <button onClick={discard} 
+            className="flex-1" 
+            style={{ padding: '0.75rem', borderRadius: 16, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}>
+            <X style={{ width: 14, height: 14 }} />
+            Discard
+          </button>
+          <button onClick={save} 
+            className="flex-[2]" 
+            style={{ padding: '0.75rem', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', boxShadow: '0 2px 8px rgba(249,115,22,0.3)' }}>
+            <Save style={{ width: 14, height: 14 }} />
+            Save Changes
+          </button>
+        </div>
       </div>
     </div>
   );

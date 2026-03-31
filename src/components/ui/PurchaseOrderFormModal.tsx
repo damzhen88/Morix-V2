@@ -39,6 +39,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
   const [loading, setLoading] = useState(false);
   const [supplier, setSupplier] = useState('');
   const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [expectedDate, setExpectedDate] = useState('');
   const [status, setStatus] = useState('draft');
   const [items, setItems] = useState<LineItem[]>([{ product: 0, qty: 100, unitPrice: IMPORT_PRODUCTS[0].price }]);
   const [logistics, setLogistics] = useState<LogisticsItem[]>([]);

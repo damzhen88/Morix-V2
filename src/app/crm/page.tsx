@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import { Users, Plus, Search, Mail, Phone, MapPin, Building2, MoreVertical, ChevronRight, Star, Edit } from 'lucide-react';

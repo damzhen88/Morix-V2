@@ -405,13 +405,8 @@ export default function LoginPage() {
           </div>
           
           {/* Footer - Exact from HTML */}
-          <footer className="absolute bottom-12 w-full px-8 lg:px-16 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-[10px] md:text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          <footer className="absolute bottom-12 w-full px-8 lg:px-16 flex justify-center text-[10px] md:text-xs font-semibold uppercase tracking-widest text-zinc-400">
             <span>© 2026 Morix V2 Executive Suite</span>
-            <div className="flex space-x-8">
-              <a className="hover:text-primary transition-colors" href="#">Privacy Policy</a>
-              <a className="hover:text-primary transition-colors" href="#">Terms of Service</a>
-              <a className="hover:text-primary transition-colors" href="#">Security Architecture</a>
-            </div>
           </footer>
         </div>
       </main>

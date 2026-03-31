@@ -25,6 +25,8 @@ import {
 export default function PurchasePage() {
   const { state } = useApp();
   const [activeCurrency, setActiveCurrency] = useState('USD');
+  const [showNewVendorForm, setShowNewVendorForm] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
   const [logistics, setLogistics] = useState({
     chinaDomestic: { amount: '', currency: 'CNY' },
     chinaThailand: { amount: '', currency: 'USD' },
@@ -146,17 +148,6 @@ export default function PurchasePage() {
               <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
             </h1>
           </div>
-          {/* DESKTOP CTA — only visible on desktop */}
-          <div className="hidden md:flex items-center gap-3">
-            <button className="h-11 px-5 bg-white border border-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-50 hover:border-stone-300 transition-all flex items-center gap-2 shadow-sm" onClick={handleSaveDraft}>
-              <Save className="w-4 h-4" />
-              Save Draft
-            </button>
-            <button className="h-11 px-7 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-xl hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all flex items-center gap-2" onClick={handleConfirm}>
-              <Send className="w-4 h-4" />
-              Confirm Order
-            </button>
-          </div>
         </div>
       </div>
 
@@ -239,7 +230,15 @@ export default function PurchasePage() {
                   <select 
                     className="w-full h-12 bg-stone-50 border border-stone-200 rounded-xl px-4 text-sm font-medium text-stone-900 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all cursor-pointer pr-10"
                     value={formData.vendor}
-                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+                    onChange={(e) => {
+                      if (e.target.value === 'new') {
+                        setShowNewVendorForm(true);
+                        setFormData({ ...formData, vendor: '' });
+                      } else {
+                        setShowNewVendorForm(false);
+                        setFormData({ ...formData, vendor: e.target.value });
+                      }
+                    }}
                   >
                     <option value="">Select a Vendor...</option>
                     <option>Global Logistics Pro</option>
@@ -249,6 +248,55 @@ export default function PurchasePage() {
                   <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 rotate-90 pointer-events-none" />
                 </div>
               </div>
+
+              {/* New Vendor Form */}
+              {showNewVendorForm && (
+                <div className="space-y-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Factory className="w-4 h-4 text-orange-600" />
+                    <label className="text-xs font-bold text-orange-700 uppercase tracking-wider">
+                      New Vendor Details
+                    </label>
+                  </div>
+                  <input
+                    className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                    placeholder="Enter vendor name..."
+                    value={newVendorName}
+                    onChange={(e) => setNewVendorName(e.target.value)}
+                  />
+                  <input
+                    className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                    placeholder="Contact email (optional)"
+                  />
+                  <input
+                    className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
+                    placeholder="Phone number (optional)"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (newVendorName.trim()) {
+                          setFormData({ ...formData, vendor: newVendorName.trim() });
+                          setShowNewVendorForm(false);
+                          setNewVendorName('');
+                        }
+                      }}
+                      className="flex-1 h-10 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Add Vendor
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNewVendorForm(false);
+                        setNewVendorName('');
+                      }}
+                      className="px-4 h-10 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Import Pricing Currency */}
               <div className="space-y-2">
@@ -566,18 +614,45 @@ export default function PurchasePage() {
                     </span>
                   </div>
                 </div>
-              </div>
 
-              {/* MOBILE STICKY CTA BAR — only visible on mobile */}
-              <div className="md:hidden mt-6 space-y-2.5">
-                <button className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleConfirm}>
-                  <Send className="w-4 h-4" />
-                  Confirm Order
-                </button>
-                <button className="w-full h-12 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-bold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" onClick={handleSaveDraft}>
-                  <Save className="w-4 h-4" />
-                  Save as Draft
-                </button>
+                {/* ACTION BUTTONS — Inside Order Summary at the bottom */}
+                <div className="mt-6 pt-5 border-t-2 border-dashed border-stone-200">
+                  {/* Desktop: Side by side */}
+                  <div className="hidden md:flex flex-col gap-2.5">
+                    <button 
+                      className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
+                      onClick={handleConfirm}
+                    >
+                      <Send className="w-4 h-4" />
+                      Confirm Order
+                    </button>
+                    <button 
+                      className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-semibold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
+                      onClick={handleSaveDraft}
+                    >
+                      <Save className="w-4 h-4" />
+                      Save as Draft
+                    </button>
+                  </div>
+
+                  {/* Mobile: Stacked */}
+                  <div className="md:hidden space-y-2.5">
+                    <button 
+                      className="w-full h-12 bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white rounded-xl font-bold shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
+                      onClick={handleConfirm}
+                    >
+                      <Send className="w-4 h-4" />
+                      Confirm Order
+                    </button>
+                    <button 
+                      className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-semibold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
+                      onClick={handleSaveDraft}
+                    >
+                      <Save className="w-4 h-4" />
+                      Save as Draft
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

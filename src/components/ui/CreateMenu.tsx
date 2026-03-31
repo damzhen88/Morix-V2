@@ -6,7 +6,7 @@ import { Package, TrendingUp, Users, ShoppingCart, X, Receipt } from 'lucide-rea
 interface CreateMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenForm: (key: 'product' | 'client' | 'sale' | 'purchase') => void;
+  onOpenForm: (key: 'product' | 'client' | 'sale' | 'purchase' | 'expense') => void;
   onNavigate: (path: string) => void;
 }
 

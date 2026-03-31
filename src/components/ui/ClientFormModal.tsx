@@ -30,21 +30,23 @@ export default function ClientFormModal({ isOpen, onClose }: ClientFormModalProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email) {
-      toast('Please fill in Company Name and Email', 'error');
+    if (!form.name) {
+      toast('Please fill in Company Name', 'error');
       return;
     }
     setLoading(true);
     try {
       await api.createCustomer({
         name: form.name,
+        company_name: form.name,
         phone: form.phone || null,
         email: form.email || null,
-        address: form.address || null,
-        customer_type: form.type.toLowerCase().replace(' ', '_'),
-        status: 'active',
+        province: form.location || null,
+        customer_type: form.type.toLowerCase().replace(/[\s-]+/g, '_'),
       });
       toast(`Client "${form.name}" added successfully!`, 'success');
+      // Reset form
+      setForm({ name: '', contact: '', email: '', phone: '', location: '', type: 'Architectural Firm', tier: 'silver', address: '', taxId: '', note: '' });
       onClose();
     } catch (err: any) {
       toast('Failed to add client: ' + (err.message || 'Unknown error'), 'error');

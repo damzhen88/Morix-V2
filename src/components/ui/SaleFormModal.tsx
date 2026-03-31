@@ -11,8 +11,11 @@ interface SaleFormModalProps {
 }
 
 const CLIENTS = [
-  'AEC Living Co., Ltd.', 'Skyline Interior Design', 'Modern Home Corporation',
-  'Urban Build Co.', 'Lumpoon Architecture Studio', 'New Client…',
+  { id: 'c1', name: 'AEC Living Co., Ltd.' },
+  { id: 'c2', name: 'Skyline Interior Design' },
+  { id: 'c3', name: 'Modern Home Corporation' },
+  { id: 'c4', name: 'Urban Build Co.' },
+  { id: 'c5', name: 'Lumpoon Architecture Studio' },
 ];
 
 const PRODUCTS = [
@@ -32,7 +35,7 @@ interface LineItem {
 export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [client, setClient] = useState('');
+  const [client, setClient] = useState<{ id: string; name: string } | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [status, setStatus] = useState('confirmed');
   const [items, setItems] = useState<LineItem[]>([
@@ -136,9 +139,12 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
                 <label style={labelStyle}><User style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />Client *</label>
                 <div style={{ position: 'relative' }}>
                   <select style={{ ...fieldStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}
-                    value={client} onChange={e => setClient(e.target.value)}>
+                    value={client?.id || ''} onChange={e => {
+                      const selected = CLIENTS.find(c => c.id === e.target.value);
+                      setClient(selected || null);
+                    }}>
                     <option value="">Select client…</option>
-                    {CLIENTS.map(c => <option key={c}>{c}</option>)}
+                    {CLIENTS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   <ChevronDown style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
                 </div>

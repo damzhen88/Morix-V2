@@ -19,7 +19,9 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { 
             key: 'Content-Security-Policy', 
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://ltciqzjcnlrkgbcdnegt.supabase.co wss://ltciqzjcnlrkgbcdnegt.supabase.co; frame-ancestors 'none';" 
+            // Note: 'unsafe-eval' is required for Next.js with Turbopack in development
+            // For production builds without Turbopack, this can be removed
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://ltciqzjcnlrkgbcdnegt.supabase.co wss://ltciqzjcnlrkgbcdnegt.supabase.co https://accounts.google.com; frame-ancestors 'none'; frame-src 'self' https://accounts.google.com; child-src 'self' https://accounts.google.com;" 
           },
         ],
       },

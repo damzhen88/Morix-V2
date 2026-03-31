@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
 import { Receipt, Plus, Download, Search, CreditCard, Truck, Package, Zap, Wrench, Building, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
@@ -38,15 +38,20 @@ export default function ExpensesPage() {
   useEffect(() => { }, []);
 
   const filtered = state.expenses.filter((e: any) => {
-    const match = e.desc.toLowerCase().includes(search.toLowerCase()) || e.vendor.toLowerCase().includes(search.toLowerCase());
+    const desc = (e.description || e.desc || '').toLowerCase();
+    const vendor = (e.vendor || '').toLowerCase();
+    const match = desc.includes(search.toLowerCase()) || vendor.includes(search.toLowerCase());
     return cat === 'all' ? match : match && e.category === cat;
   });
 
-  const total = filtered.reduce((s, e) => s + e.amount, 0);
+  const getAmount = (e: any) => e.amount_thb ?? e.amount ?? 0;
+  const getDesc = (e: any) => e.description || e.desc || '';
+
+  const total = filtered.reduce((s, e) => s + getAmount(e), 0);
 
   const catData = categories.filter(c => c.id !== 'all').map(c => ({
     ...c,
-    amount: expenses.filter(e => e.category === c.id).reduce((s, e) => s + e.amount, 0),
+    amount: filtered.filter(e => e.category === c.id).reduce((s, e) => s + getAmount(e), 0),
   }));
 
   return (
@@ -60,7 +65,7 @@ export default function ExpensesPage() {
             Financial Tracking
           </div>
           <h1 className="page-header-title">Expenses</h1>
-          <p className="page-header-subtitle">March 2026 — ฿{expenses.reduce((s, e) => s + e.amount, 0).toLocaleString()} total expenses</p>
+          <p className="page-header-subtitle">March 2026 — ฿{total.toLocaleString()} total expenses</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }} onClick={() => alert("Export: Coming soon — expenses will be exported as CSV")}>
@@ -125,7 +130,7 @@ export default function ExpensesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[var(--on-surface)]">{exp.desc}</p>
+                      <p className="text-sm font-semibold text-[var(--on-surface)]">{getDesc(exp)}</p>
                       <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{exp.vendor}</p>
                       {exp.ref && (
                         <span className="text-xs font-mono text-[var(--primary-dark)] mt-0.5 inline-block">{exp.ref}</span>
@@ -133,7 +138,7 @@ export default function ExpensesPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="font-headline font-bold text-[var(--on-surface)]">
-                        ฿{exp.amount.toLocaleString()}
+                        ฿{getAmount(exp).toLocaleString()}
                       </p>
                       <p className="text-xs text-[var(--on-surface-variant)]">{exp.date}</p>
                     </div>
@@ -170,7 +175,7 @@ export default function ExpensesPage() {
                 <CatIcon className="w-5 h-5" style={{ color: catInfo?.color }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--on-surface)] truncate">{exp.desc}</p>
+                <p className="text-sm font-semibold text-[var(--on-surface)] truncate">{getDesc(exp)}</p>
                 <div className="flex items-center gap-3 mt-0.5">
                   <span className="text-xs text-[var(--on-surface-variant)]">{exp.vendor}</span>
                   {exp.ref && (
@@ -183,7 +188,7 @@ export default function ExpensesPage() {
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="font-headline font-bold text-[var(--on-surface)]">
-                  ฿{exp.amount.toLocaleString()}
+                  ฿{getAmount(exp).toLocaleString()}
                 </p>
                 <p className="text-xs text-[var(--on-surface-variant)]">{exp.date}</p>
               </div>

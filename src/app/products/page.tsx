@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/Toast';
 import { Package, Plus, Search, Grid, List, MoreVertical, Edit, Copy, Archive, Trash2, Eye, X } from 'lucide-react';
 import { useFormModal } from '@/components/ui/FormModalContext';

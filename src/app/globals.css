@@ -36,9 +36,9 @@
   --on-secondary:       #FFFFFF;
   --on-secondary-container:#374151;
 
-  /* Text */
+  /* Text - Improved contrast for accessibility */
   --on-surface:         #111827;
-  --on-surface-variant: #6B7280;
+  --on-surface-variant: #4B5563;  /* Increased from #6B7280 for better contrast */
   --on-background:      #111827;
 
   /* Outline */
@@ -182,7 +182,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .input-field::placeholder {
-  color: var(--on-surface-variant);
+  color: #6B7280; /* WCAG AA compliant */
 }
 
 /* Search input variant — icon-aware left padding */
@@ -206,7 +206,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .input-field-search::placeholder {
-  color: var(--on-surface-variant);
+  color: #6B7280; /* WCAG AA compliant */
 }
 
 .input-label {
@@ -359,16 +359,52 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* ============================================================
-   FOCUS STATES
+   FOCUS STATES (Keyboard Accessibility)
    ============================================================ */
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.15);
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+/* All interactive elements: visible focus for keyboard users */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users (keep for keyboard) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--primary);
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
 }
 
 /* ============================================================

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 
-type FormKey = 'product' | 'client' | 'sale' | 'purchase';
+type FormKey = 'product' | 'client' | 'sale' | 'purchase' | 'expense';
 
 interface FormModalContextValue {
   activeForm: FormKey | null;
@@ -23,8 +23,14 @@ export function useFormModal() {
 export function FormModalProvider({ children }: { children: React.ReactNode }) {
   const [activeForm, setActiveForm] = useState<FormKey | null>(null);
 
-  const openForm = (key: FormKey) => setActiveForm(key);
-  const closeForm = () => setActiveForm(null);
+  const openForm = (key: FormKey) => {
+    console.log('Opening form:', key);
+    setActiveForm(key);
+  };
+  const closeForm = () => {
+    console.log('Closing form');
+    setActiveForm(null);
+  };
 
   return (
     <FormModalContext.Provider value={{ activeForm, openForm, closeForm }}>

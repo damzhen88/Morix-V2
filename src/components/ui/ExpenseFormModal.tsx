@@ -57,10 +57,10 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
         category: form.category,
         date: form.date,
         amount_thb: parseFloat(form.amount) || 0,
-        
-        notes: form.note || null,
       });
       toast(`Expense "${form.description}" recorded!`, 'success');
+      // Reset form
+      setForm({ description: '', category: 'logistics', vendor: '', date: new Date().toISOString().split('T')[0], amount: '', currency: 'THB', ref: '', note: '' });
       onClose();
     } catch (err: any) {
       toast('Failed to record expense: ' + (err.message || 'Unknown error'), 'error');

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Package, TrendingUp, Users, Receipt, Warehouse, ShoppingCart, Plus, ArrowRight, Clock, TrendingDown } from 'lucide-react';
 import { formatTHB } from '@/lib/format';
 import { api } from '@/lib/supabase';
+import { useI18n } from '@/lib/i18n';
 
 const kpis = [
   { label: 'Total Products',  value: '248',  change: '+12%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
@@ -38,6 +39,8 @@ function getBadgeColor(change: string, polarity: 'higher_is_better' | 'lower_is_
 }
 
 export default function Dashboard() {
+  const { t } = useI18n();
+  
   // Load real data from Supabase
   const [stats, setStats] = useState({ totalProducts: 0, totalRevenue: 0, totalOrders: 0, totalCustomers: 0 });
   const [loading, setLoading] = useState(true);
@@ -50,10 +53,10 @@ export default function Dashboard() {
   }, []);
 
   const kpis = [
-    { label: 'Total Products',  value: loading ? '...' : stats.totalProducts.toString(),  change: '+5%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
-    { label: 'Pending Orders',  value: loading ? '...' : stats.totalOrders.toString(),    change: '-3%',  icon: ShoppingCart, href: '/sales',    polarity: 'lower_is_better' as const },
-    { label: 'Revenue MTD',     value: loading ? '...' : formatTHB(stats.totalRevenue),   change: '+12%', icon: TrendingUp,  href: '/sales',    polarity: 'higher_is_better' as const },
-    { label: 'Active Clients',  value: loading ? '...' : stats.totalCustomers.toString(),change: '+8%',  icon: Users,       href: '/crm',      polarity: 'higher_is_better' as const },
+    { label: t('dashboard.kpi.totalProducts'),  value: loading ? '...' : stats.totalProducts.toString(),  change: '+5%', icon: Package,      href: '/products', polarity: 'higher_is_better' as const },
+    { label: t('dashboard.kpi.pendingOrders'),  value: loading ? '...' : stats.totalOrders.toString(),    change: '-3%',  icon: ShoppingCart, href: '/sales',    polarity: 'lower_is_better' as const },
+    { label: t('dashboard.kpi.revenue'),         value: loading ? '...' : formatTHB(stats.totalRevenue),   change: '+12%', icon: TrendingUp,  href: '/sales',    polarity: 'higher_is_better' as const },
+    { label: t('dashboard.kpi.activeClients'), value: loading ? '...' : stats.totalCustomers.toString(),change: '+8%',  icon: Users,       href: '/crm',      polarity: 'higher_is_better' as const },
   ];
 
   return (
@@ -63,9 +66,9 @@ export default function Dashboard() {
       <div className="page-header mb-8">
         <div className="page-header-eyebrow">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
-          Executive Briefing
+          {t('dashboard.title')}
         </div>
-        <h1 className="page-header-title">Dashboard Overview</h1>
+        <h1 className="page-header-title">{t('dashboard.title')}</h1>
         <p className="page-header-subtitle">Wednesday, March 25, 2026 — Bangkok, Thailand</p>
       </div>
 
@@ -101,10 +104,10 @@ export default function Dashboard() {
         {/* Recent Activity */}
         <div className="lg:col-span-7 card-elevated p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-headline font-bold text-[var(--on-surface)]">Recent Activity</h2>
+            <h2 className="font-headline font-bold text-[var(--on-surface)]">{t('dashboard.recentActivity')}</h2>
             <Link href="/reports"
               className="text-xs font-bold text-[var(--primary)] hover:underline">
-              View All
+              {t('dashboard.viewAll')}
             </Link>
           </div>
 
@@ -151,13 +154,13 @@ export default function Dashboard() {
         <div className="lg:col-span-5 space-y-4">
           {/* Quick Actions */}
           <div className="card-elevated p-6">
-            <h2 className="font-headline font-bold text-[var(--on-surface)] mb-5">Quick Actions</h2>
+            <h2 className="font-headline font-bold text-[var(--on-surface)] mb-5">{t('dashboard.quickActions')}</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Purchase Order', icon: ShoppingCart, href: '/purchase', color: '#2563EB' },
-                { label: 'New Sale',      icon: TrendingUp,   href: '/sales',    color: 'var(--primary)' },
-                { label: 'Add Product',   icon: Package,      href: '/products', color: '#7C3AED' },
-                { label: 'Add Client',    icon: Users,        href: '/crm',      color: '#059669' },
+                { label: t('nav.purchase'), icon: ShoppingCart, href: '/purchase', color: '#2563EB' },
+                { label: t('sales.newSale'),      icon: TrendingUp,   href: '/sales',    color: 'var(--primary)' },
+                { label: t('products.addNew'),   icon: Package,      href: '/products', color: '#7C3AED' },
+                { label: t('crm.addClient'),    icon: Users,        href: '/crm',      color: '#059669' },
               ].map((action, i) => {
                 const Icon = action.icon;
                 return (
@@ -177,11 +180,11 @@ export default function Dashboard() {
 
           {/* This Month */}
           <div className="card-surface p-6">
-            <h3 className="font-headline font-bold text-sm text-[var(--on-surface)] mb-4">This Month</h3>
+            <h3 className="font-headline font-bold text-sm text-[var(--on-surface)] mb-4">{t('dashboard.thisMonth')}</h3>
             <div className="space-y-3">
               {[
-                { label: 'Purchase Orders', value: '24', sub: '+8 vs last month' },
-                { label: 'Expenses',        value: '฿423K', sub: 'Logistics: 60%' },
+                { label: t('nav.purchase'), value: '24', sub: '+8 vs last month' },
+                { label: t('expenses.title'),        value: '฿423K', sub: 'Logistics: 60%' },
                 { label: 'Avg. Delivery',   value: '18 days', sub: 'China → Bangkok' },
               ].map((row, i) => (
                 <div key={i} className="flex items-center justify-between">
