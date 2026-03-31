@@ -3,9 +3,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/store';
 import { PageLoader } from '@/components/ui';
+import MobilePurchaseOrder from '@/components/ui/MobilePurchaseOrder';
 import { 
   Save, Send, CheckCircle, Package, Truck, Globe, 
   Delete, Plus, Info, ChevronRight,
@@ -24,6 +25,24 @@ import {
 
 export default function PurchasePage() {
   const { state } = useApp();
+  
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Show mobile version on small screens
+  if (isMobile) {
+    return <MobilePurchaseOrder />;
+  }
+
   const [activeCurrency, setActiveCurrency] = useState('USD');
   const [showNewVendorForm, setShowNewVendorForm] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
