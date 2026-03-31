@@ -84,6 +84,31 @@ export default function PurchasePage() {
     });
   };
 
+  const updateItem = (id: number, field: string, value: string | number) => {
+    setFormData({
+      ...formData,
+      items: formData.items.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    });
+  };
+
+  const addItem = () => {
+    const newId = formData.items.length > 0 
+      ? Math.max(...formData.items.map(i => i.id)) + 1 
+      : 1;
+    setFormData({
+      ...formData,
+      items: [...formData.items, { 
+        id: newId, 
+        name: '', 
+        sku: '', 
+        quantity: 1, 
+        unit_price: 0 
+      }],
+    });
+  };
+
   const updateLogisticsAmount = (key: string, amount: string) => {
     setLogistics({
       ...logistics,
@@ -351,7 +376,7 @@ export default function PurchasePage() {
                 </div>
                 <h3 className="text-sm font-bold text-stone-900">Purchase Items</h3>
               </div>
-              <button className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
+              <button onClick={addItem} className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
                 <Plus className="w-3 h-3" />
                 Add Item
               </button>
@@ -374,36 +399,54 @@ export default function PurchasePage() {
                 <tbody className="divide-y divide-stone-100">
                   {formData.items.map((item, index) => (
                     <tr key={item.id} className={`group transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-stone-50/30'} hover:bg-amber-50/20`}>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center text-stone-500 font-bold text-xs">
-                            {item.name.charAt(0)}
-                          </div>
-                          <span className="text-sm font-semibold text-stone-900">{item.name}</span>
-                        </div>
+                      <td className="py-3 px-3">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateItem(item.id, 'name', e.target.value)}
+                          placeholder="Item name"
+                          className="w-full text-sm font-semibold text-stone-900 bg-transparent border-b border-stone-200 focus:border-orange-400 outline-none py-1 px-2 rounded transition-colors"
+                        />
                       </td>
-                      <td className="py-4 px-3">
-                        <span className="text-xs font-mono text-stone-500 bg-stone-100 px-2 py-0.5 rounded">
-                          {item.sku}
-                        </span>
+                      <td className="py-3 px-2">
+                        <input
+                          type="text"
+                          value={item.sku}
+                          onChange={(e) => updateItem(item.id, 'sku', e.target.value)}
+                          placeholder="SKU"
+                          className="w-full text-xs font-mono text-stone-500 bg-stone-50 px-2 py-1 rounded border border-stone-200 focus:border-orange-400 outline-none"
+                        />
                       </td>
-                      <td className="py-4 px-3 text-center">
-                        <span className="text-sm font-semibold text-stone-700">{item.quantity}</span>
+                      <td className="py-3 px-2">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                          className="w-16 text-sm font-semibold text-stone-700 text-center bg-stone-50 px-2 py-1 rounded border border-stone-200 focus:border-orange-400 outline-none"
+                        />
                       </td>
-                      <td className="py-4 px-3 text-right">
-                        <span className="text-sm font-semibold text-stone-700">${item.unit_price.toFixed(2)}</span>
+                      <td className="py-3 px-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unit_price}
+                          onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-sm font-semibold text-stone-700 text-right bg-stone-50 px-2 py-1 rounded border border-stone-200 focus:border-orange-400 outline-none"
+                        />
                       </td>
-                      <td className="py-4 px-3 text-right">
+                      <td className="py-3 px-3 text-right">
                         <span className="text-sm font-black text-stone-900">
                           ${(item.quantity * item.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
-                      <td className="py-4 px-3 text-right">
+                      <td className="py-3 px-3 text-right">
                         <span className="text-sm font-bold text-orange-600">
                           ฿{(item.quantity * item.unit_price * RATE).toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                         </span>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-3">
                         <button 
                           onClick={() => deleteItem(item.id)}
                           className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
