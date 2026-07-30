@@ -265,16 +265,13 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         </button>
       </header>
 
-      {/* ── MAIN CONTENT ─────────────────────── */}
-      <div className="hidden md:block" style={{ paddingLeft: sidebarW, transition: 'padding-left 300ms ease' }}>
-        <div style={{ minHeight: '100vh' }}>
-          <main style={{ padding: '2.5rem', paddingBottom: '6rem' }}>{children}</main>
-        </div>
-      </div>
-      <div className="md:hidden dashboard-main-mobile" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top, 0px))' }}>
-        <main style={{ padding: '1.5rem', paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
-          {children}
-        </main>
+      {/* ── MAIN CONTENT ───────────────────────
+          เดิมมีสอง container (มือถือ/เดสก์ท็อป) ที่ render {children} คนละชุด
+          ทั้งสองอยู่ใน DOM ตลอดโดยซ่อนด้วย CSS ทำให้ทุกหน้าถูก render ซ้ำสองรอบ
+          (เจอจาก .kpi-card ที่ควรมี 4 แต่นับได้ 8) แก้ให้เหลือชุดเดียว
+          ความต่างของ padding ย้ายไปจัดที่ CSS แทน */}
+      <div className="app-main" style={{ '--sidebar-w': sidebarW } as React.CSSProperties}>
+        <main>{children}</main>
       </div>
 
       {/* ── MOBILE BOTTOM NAV ───────────────── */}

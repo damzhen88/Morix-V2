@@ -684,10 +684,27 @@ table {
   }
 }
 
-/* Mobile main content: extra bottom padding for bottom nav */
-@media (max-width: 1023px) {
-  .dashboard-main-mobile {
-    padding-bottom: 7rem !important;
+/* ── เนื้อหาหลัก: container เดียวสำหรับทุกขนาดจอ ──────────────
+   มือถือเว้นที่ให้ header ด้านบนและแถบเมนูด้านล่าง
+   ตั้งแต่ md ขึ้นไปเว้นซ้ายให้ sidebar (ความกว้างส่งมาทาง --sidebar-w) */
+.app-main {
+  padding-top: calc(64px + env(safe-area-inset-top, 0px));
+}
+.app-main > main {
+  padding: 1.5rem;
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    min-height: 100vh;
+    padding-top: 0;
+    padding-left: var(--sidebar-w, 5rem);
+    transition: padding-left 300ms ease;
+  }
+  .app-main > main {
+    padding: 2.5rem;
+    padding-bottom: 6rem;
   }
 }
 
@@ -920,4 +937,9 @@ table {
   .swipeable-card {
     touch-action: pan-y;
   }
+}
+
+/* ── Toast: ตำแหน่งต่างกันระหว่างมือถือ (มีแถบเมนูล่าง) กับเดสก์ท็อป ── */
+@media (min-width: 768px) {
+  .toast-stack { bottom: 1.5rem !important; }
 }
