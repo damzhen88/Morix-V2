@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, TrendingUp, User, Package, Plus, Trash2, Calendar, ChevronDown, CalendarClock, Wallet } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useApp, useMutations } from '@/store';
-import { StorageFullError } from '@/lib/local-db';
+import { StorageFullError, readSettings } from '@/lib/local-db';
 import { formatTHB } from '@/lib/format';
 import { CREDIT_TERM_OPTIONS, creditTermLabelTH, computeDueDate, toDateOnly } from '@/lib/payment';
 import { formatThaiDate } from '@/lib/format';
@@ -32,7 +32,7 @@ const STATUS_OPTIONS: { value: SalesOrder['status']; label: string }[] = [
   { value: 'draft', label: 'ฉบับร่าง' },
 ];
 
-const VAT_RATE = 0.07;
+
 
 export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   const { toast } = useToast();
@@ -49,6 +49,8 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   const [depositAmount, setDepositAmount] = useState(0);
   const [creditTermDays, setCreditTermDays] = useState(0);
   const [note, setNote] = useState('');
+  /** อัตรา VAT มาจากหน้าตั้งค่า อ่านหลัง mount เพราะ localStorage ไม่มีตอน SSR */
+  const [vatPercent, setVatPercent] = useState(7);
 
   const products = state.products;
   const customers = state.customers;
@@ -57,6 +59,7 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   // ล้างฟอร์มทุกครั้งที่เปิดใหม่ ไม่ให้ค่าจากบิลก่อนค้างมา
   useEffect(() => {
     if (!isOpen) return;
+    setVatPercent(readSettings().vatPercent);
     setCustomerId('');
     setOrderDate(toDateOnly(new Date()));
     setStatus('confirmed');
@@ -79,14 +82,14 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
     const productCost = items.reduce((sum, i) => sum + i.qty * i.unitCost, 0);
 
     const afterDiscount = subtotal - discount;
-    const vat = afterDiscount * VAT_RATE;
+    const vat = afterDiscount * (vatPercent / 100);
     const total = afterDiscount + vat + transportCost;
 
     const grossProfit = afterDiscount - productCost;
     const netProfit = grossProfit - transportCost;
 
     return { subtotal, productCost, afterDiscount, vat, total, grossProfit, netProfit };
-  }, [items, discount, transportCost]);
+  }, [items, discount, transportCost, vatPercent]);
 
   const dueDate = computeDueDate(orderDate, creditTermDays);
 
@@ -212,7 +215,7 @@ export default function SaleFormModal({ isOpen, onClose }: SaleFormModalProps) {
   const summaryRows = [
     { label: 'รวมค่าสินค้า', value: formatTHB(totals.subtotal) },
     ...(discount > 0 ? [{ label: 'ส่วนลด', value: `-${formatTHB(discount)}` }] : []),
-    { label: `VAT ${VAT_RATE * 100}%`, value: formatTHB(totals.vat) },
+    { label: `VAT ${Number(vatPercent.toFixed(2))}%`, value: formatTHB(totals.vat) },
     ...(transportCost > 0 ? [{ label: 'ค่าขนส่ง', value: formatTHB(transportCost) }] : []),
   ];
 

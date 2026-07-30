@@ -219,7 +219,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
                   <p style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.2em', color: 'var(--on-surface-variant)', textTransform: 'uppercase' }}>PRO</p>
                 </div>
               </div>
-              <button onClick={() => setMobileOpen(false)} style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}>
+              <button onClick={() => setMobileOpen(false)} aria-label="ปิดเมนู" style={{ padding: '0.5rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer' }}>
                 <X style={{ width: 20, height: 20 }} />
               </button>
             </div>
@@ -287,7 +287,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           const isActive = item.kind === 'link' && pathname === item.href;
           if (item.kind === 'fab') {
             return (
-              <button key={i} onClick={() => setCreateOpen(true)}
+              <button key={i} onClick={() => setCreateOpen(true)} aria-label="สร้างรายการใหม่"
                 style={{ position: 'relative', top: -20, width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', boxShadow: '0 4px 16px rgba(249,115,22,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon style={{ width: 24, height: 24, color: 'white' }} />
               </button>
@@ -295,7 +295,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           }
           if (item.kind === 'menu') {
             return (
-              <button key={i} onClick={() => setMobileOpen(true)}
+              <button key={i} onClick={() => setMobileOpen(true)} aria-label="เปิดเมนู"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: 'var(--on-surface-variant)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 <Menu style={{ width: 20, height: 20 }} />
                 <span style={{ fontSize: '0.6875rem', fontWeight: 700 }}>เมนู</span>
