@@ -41,12 +41,30 @@ export function exportSheets(sheets: Sheet[], fileBaseName: string) {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
+  triggerDownload(blob, `${fileBaseName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+/**
+ * สั่งดาวน์โหลด blob
+ *
+ * ต้อง append element ลง DOM ก่อนคลิก เพราะบางเบราว์เซอร์ไม่สนใจ
+ * attribute download ถ้า element ยังไม่อยู่ในเอกสาร ทำให้ได้ไฟล์ชื่อ
+ * "download" ที่ไม่มีนามสกุล
+ */
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${fileBaseName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+
+  // หน่วงก่อน revoke เพราะ Safari ยังอ่าน URL อยู่ตอนเริ่มดาวน์โหลด
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** ทางลัดสำหรับกรณีชีตเดียว */
@@ -64,10 +82,5 @@ export function downloadJson(data: unknown, fileBaseName: string) {
     type: 'application/json',
   });
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${fileBaseName}_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  triggerDownload(blob, `${fileBaseName}_${new Date().toISOString().split('T')[0]}.json`);
 }

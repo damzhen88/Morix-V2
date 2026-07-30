@@ -1,538 +1,362 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Database, CreditCard, Receipt, Truck, UserPlus,
-  ChevronRight, Award, Eye, Save, X, Plus, Bell,
-  Globe, Building2, Info, CreditCardIcon, ShieldCheck
+  Building2, Database, Download, Upload, Trash2, HardDrive,
+  AlertTriangle, Save, Info, ShieldCheck, Image as ImageIcon,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-
-type Tab = 'identity' | 'general' | 'financial' | 'notifications' | 'users';
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'identity',      label: 'Identity' },
-  { id: 'general',       label: 'General' },
-  { id: 'financial',     label: 'Financial' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'users',        label: 'Access Control' },
-];
-
-const teamMembers = [
-  { name: 'Admin User',  email: 'admin@morix.co.th',   role: 'Admin',  status: 'active',  last: 'Today, 09:42 AM',    initial: 'A', color: '#F97316' },
-  { name: 'Editor User', email: 'editor@morix.co.th',  role: 'Editor', status: 'active',  last: 'Yesterday, 04:15 PM', initial: 'E', color: '#3B82F6' },
-  { name: 'Viewer User', email: 'viewer@morix.co.th',  role: 'Viewer', status: 'offline', last: '2 days ago',          initial: 'V', color: '#8B5CF6' },
-];
-
-const ROLE_DESC: Record<string, string> = {
-  Admin:  'Full access — manage users, settings, and all data',
-  Editor: 'Can create and edit products, orders, and clients',
-  Viewer: 'Read-only access to dashboard and reports',
-};
-
-const NOTIFS = [
-  { id: 'low_stock',      label: 'Low Stock Alerts',    desc: 'Alert when inventory falls below reorder level' },
-  { id: 'new_order',     label: 'New Orders',          desc: 'Notify when a new sale or purchase order is created' },
-  { id: 'expense',       label: 'Expense Records',     desc: 'Notify on new expense entries over ฿10,000' },
-  { id: 'new_client',    label: 'New Client Added',   desc: 'Alert when a new client is added to the system' },
-  { id: 'delivery',      label: 'Delivery Updates',   desc: 'Track PO delivery status changes' },
-  { id: 'weekly_report', label: 'Weekly Summary',    desc: 'Receive weekly performance summary via email' },
-];
+import { useApp, useMutations } from '@/store';
+import {
+  readSettings, writeSettings, exportDatabase, importDatabase,
+  estimateUsage, formatBytes, resetDatabase, markBackedUp, getLastBackupAt,
+  StorageFullError, DEFAULT_SETTINGS, type AppSettings,
+} from '@/lib/local-db';
+import { clearImages, estimateImageBytes } from '@/lib/local-images';
+import { downloadJson } from '@/lib/export-excel';
+import { formatThaiDate, timeAgoTH } from '@/lib/format';
+import { CREDIT_TERM_OPTIONS, creditTermLabelTH } from '@/lib/payment';
 
 export default function SettingsPage() {
-  const [tab, setTab]           = useState<Tab>('identity');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole]   = useState('Editor');
-  const [notifs, setNotifs] = useState<Record<string, boolean>>({
-    low_stock: true, new_order: true, expense: false, new_client: true, delivery: false, weekly_report: true,
-  });
-  const [general, setGeneral] = useState({
-    companyName: 'MORIX DECORATIVE', slug: 'decorative',
-    language: 'Thai (ประเทศไทย)', timezone: '(GMT+07:00) Bangkok, Hanoi',
-    currency: 'Thai Baht (THB)', dateFormat: 'DD/MM/YYYY',
-  });
-  const [financial, setFinancial] = useState({
-    currency: 'THB', tax: '7% VAT', carrier: 'Kerry Logistics', prefix: 'INV',
-  });
   const { toast } = useToast();
+  const { state } = useApp();
+  const { reload } = useMutations();
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  // Mobile accordion state
-  const [mobileOpenSection, setMobileOpenSection] = useState<Tab | null>('identity');
-  const toggleMobileSection = (section: Tab) => {
-    setMobileOpenSection(prev => prev === section ? null : section);
-    setTab(section);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [dirty, setDirty] = useState(false);
+  const [usage, setUsage] = useState({ bytes: 0, percent: 0, quota: 0 });
+  const [imageBytes, setImageBytes] = useState(0);
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+
+  // อ่านค่าหลัง mount — localStorage ไม่มีตอน SSR
+  useEffect(() => {
+    setSettings(readSettings());
+    setUsage(estimateUsage());
+    setLastBackup(getLastBackupAt());
+    estimateImageBytes().then(setImageBytes);
+  }, []);
+
+  const refreshUsage = () => {
+    setUsage(estimateUsage());
+    setLastBackup(getLastBackupAt());
+    estimateImageBytes().then(setImageBytes);
   };
 
-  const save = () => toast('Settings saved successfully!', 'success');
-  const discard = () => toast('Changes discarded.', 'info');
-  const invite = () => {
-    if (!inviteEmail) return;
-    toast(`Invitation sent to ${inviteEmail}`, 'success');
-    setShowInvite(false);
-    setInviteEmail('');
+  const set = <K extends keyof AppSettings>(k: K, v: AppSettings[K]) => {
+    setSettings(s => ({ ...s, [k]: v }));
+    setDirty(true);
   };
 
-  const row = (label: string, value: string, icon: React.ElementType, color = 'var(--primary)') => ({
-    label, value, icon, color,
-  });
+  const saveSettings = () => {
+    try {
+      writeSettings(settings);
+      setDirty(false);
+      toast('บันทึกการตั้งค่าแล้ว', 'success');
+    } catch (err) {
+      toast(err instanceof StorageFullError ? err.message : 'บันทึกไม่สำเร็จ', 'error');
+    }
+  };
 
-  return (
-    <div style={{ width: '100%', minHeight: '100vh', backgroundColor: 'var(--surface)', paddingBottom: '7rem' }}>
+  // ── สำรองข้อมูล
+  const handleExport = () => {
+    try {
+      downloadJson(exportDatabase(), 'morix-backup');
+      markBackedUp();
+      refreshUsage();
+      toast('ส่งออกไฟล์สำรองแล้ว เก็บไฟล์ไว้ในที่ปลอดภัย', 'success');
+    } catch {
+      toast('ส่งออกไฟล์สำรองไม่สำเร็จ', 'error');
+    }
+  };
 
-      {/* ── PAGE HEADER ── */}
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--primary)' }} />
-          <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)' }}>
-            Platform Configuration
-          </span>
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--on-surface)', lineHeight: 1.1 }}>
-          System Settings
-        </h1>
-        <p style={{ color: 'var(--on-surface-variant)', marginTop: '0.5rem', fontSize: '0.9375rem' }}>
-          Manage workspace, preferences, and team access
-        </p>
-      </div>
+  const handleImportFile = async (file: File) => {
+    if (!confirm(
+      'การกู้คืนจะแทนที่ข้อมูลทั้งหมดที่มีอยู่บนเครื่องนี้\n\n' +
+      'ข้อมูลปัจจุบันจะหายและกู้กลับไม่ได้ ถ้ายังไม่ได้สำรองไว้ ให้กดยกเลิกแล้วส่งออกก่อน\n\n' +
+      'ต้องการกู้คืนต่อหรือไม่ ?'
+    )) return;
 
-      {/* ── TAB BAR ── */}
-      <div className="hidden md:flex" style={{ gap: '0.25rem', marginBottom: '2.5rem', backgroundColor: 'var(--surface-container-low)', padding: '0.25rem', borderRadius: 16 }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{
-              padding: '0.5rem 1.25rem', borderRadius: 12, border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--font-body)', fontSize: '0.8125rem', fontWeight: 600,
-              transition: 'all 150ms',
-              backgroundColor: tab === t.id ? 'var(--surface-container-lowest)' : 'transparent',
-              color: tab === t.id ? 'var(--primary)' : 'var(--on-surface-variant)',
-              boxShadow: tab === t.id ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-              whiteSpace: 'nowrap',
-            }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+    try {
+      const text = await file.text();
+      importDatabase(JSON.parse(text));
+      reload();
+      refreshUsage();
+      toast('กู้คืนข้อมูลเรียบร้อย', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'อ่านไฟล์สำรองไม่สำเร็จ', 'error');
+    } finally {
+      // เคลียร์ค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  };
 
-      {/* ── MOBILE SECTION ACCORDION ── */}
-      <div className="md:hidden space-y-2 mb-6">
-        <p className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] px-1">Select Section</p>
-        {TABS.map(t => {
-          const icons: Record<string, any> = {
-            identity: Award, general: Globe, financial: CreditCardIcon,
-            notifications: Bell, users: ShieldCheck,
-          };
-          const Icon = icons[t.id];
-          return (
-            <button key={t.id}
-              onClick={() => toggleMobileSection(t.id)}
-              className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all touch-action text-left ${
-                tab === t.id
-                  ? 'border-[var(--primary)] bg-[var(--primary-container)]'
-                  : 'border-[var(--outline-variant)] bg-[var(--surface-container-lowest)] hover:border-[var(--outline)]'
-              }`}>
-              <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5" style={{ color: tab === t.id ? 'var(--primary)' : 'var(--on-surface-variant)' }} />
-                <span className={`font-semibold text-sm ${tab === t.id ? 'text-[var(--primary)]' : 'text-[var(--on-surface)]'}`}>
-                  {t.label}
-                </span>
-              </div>
-              <ChevronRight className={`w-4 h-4 transition-transform ${mobileOpenSection === t.id ? 'rotate-90 text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`} />
-            </button>
-          );
-        })}
-      </div>
+  const handleReset = async () => {
+    if (!confirm(
+      'ล้างข้อมูลทั้งหมดบนเครื่องนี้ แล้วเริ่มใหม่ด้วยข้อมูลตัวอย่าง\n\n' +
+      'บิล ลูกค้า สินค้า การรับเงิน และรูปทั้งหมดจะถูกลบและกู้กลับไม่ได้\n\n' +
+      'ยืนยันหรือไม่ ?'
+    )) return;
 
-      {/* ══════════════════════════════════════
-          IDENTITY
-          ══════════════════════════════════════ */}
-      {tab === 'identity' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    if (!confirm('ยืนยันอีกครั้ง — ข้อมูลจะหายถาวร')) return;
 
-          {/* Workspace Identity */}
-          <div style={{ width: '100%', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 20, border: '1px solid var(--outline-variant)', padding: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Award style={{ width: 22, height: 22, color: 'var(--primary)' }} />
-                </div>
-                <div>
-                  <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>Workspace Identity</h2>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Global branding and logo</p>
-                </div>
-              </div>
-            </div>
+    try {
+      await clearImages();
+      resetDatabase();
+      reload();
+      refreshUsage();
+      toast('ล้างข้อมูลและเริ่มใหม่แล้ว', 'info');
+    } catch {
+      toast('ล้างข้อมูลไม่สำเร็จ', 'error');
+    }
+  };
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-              <Field label="Company Name" value={general.companyName} onChange={v => setGeneral(g => ({ ...g, companyName: v }))} />
-              <Field label="Workspace Slug" value={general.slug} onChange={v => setGeneral(g => ({ ...g, slug: v }))} prefix="morix.v2/" />
-              <Field label="Primary Language" value={general.language} onChange={v => setGeneral(g => ({ ...g, language: v }))} type="select"
-                options={['Thai (ประเทศไทย)', 'English (United States)']} />
-              <Field label="Timezone" value={general.timezone} onChange={v => setGeneral(g => ({ ...g, timezone: v }))} type="select"
-                options={['(GMT+07:00) Bangkok, Hanoi', '(GMT+00:00) UTC']} />
-            </div>
-
-            {/* Logo */}
-            <div style={{ marginTop: '1.5rem' }}>
-              <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)', marginBottom: '0.75rem' }}>Logo</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem', border: '2px dashed var(--outline-variant)', borderRadius: 16, backgroundColor: 'var(--surface-container-low)' }}>
-                <div style={{ width: 72, height: 72, borderRadius: 16, background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '1.75rem' }}>M</span>
-                </div>
-                <div>
-                  <button onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if(file) alert("Profile image upload: " + file.name); }; input.click(); }}
-                    style={{ backgroundColor: 'var(--surface-container-highest)', color: 'var(--on-surface)', padding: '0.5rem 1.5rem', borderRadius: 9999, border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
-                    Replace Image
-                  </button>
-                  <p style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', marginTop: '0.5rem' }}>PNG, SVG or WEBP · Max 2MB</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Supabase */}
-          <div style={{ backgroundColor: '#0f172a', borderRadius: 20, padding: '2rem', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', right: -32, bottom: -32, width: 160, height: 160, borderRadius: '50%', backgroundColor: 'rgba(62,207,142,0.08)', filter: 'blur(40px)' }} />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#3ecf8e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Database style={{ width: 22, height: 22, color: 'white' }} />
-                  </div>
-                  <div>
-                    <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, color: 'white', fontSize: '1.125rem' }}>Supabase Cloud</h2>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>PostgreSQL Database · Real-time · Auth</p>
-                  </div>
-                </div>
-                <span style={{ padding: '0.25rem 0.875rem', backgroundColor: 'rgba(62,207,142,0.15)', color: '#3ecf8e', fontSize: '0.625rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 9999, border: '1px solid rgba(62,207,142,0.3)' }}>
-                  Connected
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div>
-                  <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.25rem' }}>Project ID</p>
-                  <p style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#94a3b8' }}>ltciqzjcnlrkgbcdnegt</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.25rem' }}>API Key</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '0.5rem 0.75rem' }}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: '#64748b', flex: 1 }}>••••••••••••••••••••••••••••••••</span>
-                    <button onClick={() => setShowApiKey(!showApiKey)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                      <Eye style={{ width: 16, height: 16 }} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <p style={{ fontSize: '0.6875rem', color: '#475569' }}>Last sync 14 minutes ago · Region: Southeast Asia</p>
-                <button style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3ecf8e', background: 'transparent', border: 'none', cursor: 'pointer' }}>Test Connection</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          GENERAL
-          ══════════════════════════════════════ */}
-      {tab === 'general' && (
-        <div style={{ width: '100%', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 20, border: '1px solid var(--outline-variant)', padding: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Globe style={{ width: 22, height: 22, color: 'var(--primary)' }} />
-            </div>
-            <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>General Settings</h2>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Language, date format, and regional preferences</p>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <Field label="Primary Language" value={general.language} onChange={v => setGeneral(g => ({ ...g, language: v }))} type="select"
-              options={['Thai (ประเทศไทย)', 'English (United States)', 'Chinese (中文)']} />
-            <Field label="Timezone" value={general.timezone} onChange={v => setGeneral(g => ({ ...g, timezone: v }))} type="select"
-              options={['(GMT+07:00) Bangkok, Hanoi, Jakarta', '(GMT+08:00) Singapore, Hong Kong', '(GMT+00:00) UTC']} />
-            <Field label="Default Currency" value={general.currency} onChange={v => setGeneral(g => ({ ...g, currency: v }))} type="select"
-              options={['Thai Baht (THB)', 'US Dollar (USD)', 'Chinese Yuan (CNY)']} />
-            <Field label="Date Format" value={general.dateFormat} onChange={v => setGeneral(g => ({ ...g, dateFormat: v }))} type="select"
-              options={['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']} />
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          FINANCIAL
-          ══════════════════════════════════════ */}
-      {tab === 'financial' && (
-        <div style={{ width: '100%', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 20, border: '1px solid var(--outline-variant)', padding: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCardIcon style={{ width: 22, height: 22, color: 'var(--primary)' }} />
-            </div>
-            <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>Financial Defaults</h2>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Currency, tax rate, and billing preferences</p>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-            {[
-              { icon: CreditCardIcon, label: 'Default Currency',  value: financial.currency,  color: '#F97316' },
-              { icon: Receipt,       label: 'Default Tax Rate',  value: financial.tax,       color: '#3B82F6' },
-              { icon: Truck,         label: 'Shipping Carrier', value: financial.carrier,   color: '#7C3AED' },
-              { icon: Globe,          label: 'Invoice Prefix',     value: financial.prefix,    color: '#059669' },
-            ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', borderRadius: 16, backgroundColor: 'var(--surface-container-low)', cursor: 'pointer', transition: 'background 150ms' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'var(--surface-container-lowest)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <item.icon style={{ width: 20, height: 20, color: item.color }} />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)' }}>{item.label}</p>
-                    <p style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--on-surface)', marginTop: 2 }}>{item.value}</p>
-                  </div>
-                </div>
-                <ChevronRight style={{ width: 18, height: 18, color: 'var(--on-surface-variant)', flexShrink: 0 }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          NOTIFICATIONS
-          ══════════════════════════════════════ */}
-      {tab === 'notifications' && (
-        <div style={{ width: '100%', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 20, border: '1px solid var(--outline-variant)', padding: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Bell style={{ width: 22, height: 22, color: 'var(--primary)' }} />
-            </div>
-            <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>Notification Preferences</h2>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Choose what to be notified about</p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {NOTIFS.map(n => (
-              <div key={n.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderRadius: 14, backgroundColor: 'var(--surface-container-low)', transition: 'background 150ms' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: 'var(--surface-container-lowest)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Bell style={{ width: 16, height: 16, color: 'var(--on-surface-variant)' }} />
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)' }}>{n.label}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>{n.desc}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setNotifs(p => ({ ...p, [n.id]: !p[n.id] }))}
-                  style={{
-                    width: 48, height: 28, borderRadius: 9999, border: 'none', cursor: 'pointer',
-                    transition: 'all 200ms',
-                    background: notifs[n.id] ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : 'var(--surface-container-high)',
-                    boxShadow: notifs[n.id] ? '0 2px 8px rgba(249,115,22,0.3)' : 'none',
-                    position: 'relative', flexShrink: 0,
-                  }}>
-                  <span style={{
-                    position: 'absolute', top: 2, width: 24, height: 24, borderRadius: '50%', backgroundColor: 'white',
-                    transition: 'left 200ms',
-                    left: notifs[n.id] ? 22 : 2,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                  }} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          USERS
-          ══════════════════════════════════════ */}
-      {tab === 'users' && (
-        <div style={{ width: '100%', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 20, border: '1px solid var(--outline-variant)', overflow: 'hidden' }}>
-          {/* Table header */}
-          <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--outline-variant)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'var(--primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck style={{ width: 22, height: 22, color: 'var(--primary)' }} />
-              </div>
-              <div>
-                <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>User Access Control</h2>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>{teamMembers.length} team members</p>
-              </div>
-            </div>
-            <button onClick={() => setShowInvite(true)}
-              style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', padding: '0.625rem 1.5rem', borderRadius: 9999, border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 700, fontFamily: 'var(--font-body)', boxShadow: '0 2px 8px rgba(249,115,22,0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <UserPlus style={{ width: 16, height: 16 }} />
-              Invite User
-            </button>
-          </div>
-
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--surface-container-low)' }}>
-                  {['Team Member', 'Role', 'Status', 'Last Active'].map((h, i) => (
-                    <th key={i} style={{ padding: '0.875rem 2rem', textAlign: 'left', fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)', whiteSpace: 'nowrap' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {teamMembers.map((m, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid var(--outline-variant)' }}>
-                    <td style={{ padding: '1.25rem 2rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'white', fontSize: '0.875rem', flexShrink: 0 }}>
-                          {m.initial}
-                        </div>
-                        <div>
-                          <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--on-surface)' }}>{m.name}</p>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>{m.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                        <span style={{
-                          display: 'inline-block', padding: '0.25rem 0.75rem', borderRadius: 9999, fontSize: '0.6875rem', fontWeight: 700,
-                          backgroundColor: m.role === 'Admin' ? 'var(--primary-container)' : m.role === 'Editor' ? '#DBEAFE' : 'var(--surface-container-high)',
-                          color: m.role === 'Admin' ? 'var(--primary-dark)' : m.role === 'Editor' ? '#1D4ED8' : 'var(--on-surface-variant)',
-                        }}>
-                          {m.role}
-                        </span>
-                        <div style={{ position: 'relative' }}>
-                          <Info style={{ width: 14, height: 14, color: 'var(--outline)', cursor: 'help' }} />
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: m.status === 'active' ? 'var(--success)' : 'var(--on-surface-variant)', flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--on-surface)', textTransform: 'capitalize' }}>{m.status}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '1.25rem', fontSize: '0.75rem', color: 'var(--on-surface-variant)', whiteSpace: 'nowrap' }}>{m.last}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ── INVITE MODAL ── */}
-      {showInvite && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }} onClick={() => setShowInvite(false)} />
-          <div style={{ position: 'relative', backgroundColor: 'var(--surface-container-lowest)', borderRadius: 24, padding: '2rem', width: '100%', maxWidth: 440, boxShadow: '0 24px 80px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.25rem', color: 'var(--on-surface)' }}>Invite Team Member</h3>
-              <button onClick={() => setShowInvite(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', borderRadius: 8, color: 'var(--on-surface-variant)' }}>
-                <X style={{ width: 20, height: 20 }} />
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)', marginBottom: '0.5rem' }}>Email Address</p>
-                <input style={{ backgroundColor: 'var(--surface-container-low)', border: '1px solid transparent', borderRadius: 12, padding: '0.75rem 1rem', width: '100%', fontSize: '0.875rem', color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none' }}
-                  type="email" placeholder="colleague@company.com" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} />
-              </div>
-              <div>
-                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)', marginBottom: '0.5rem' }}>Role</p>
-                <select style={{ backgroundColor: 'var(--surface-container-low)', border: 'none', borderRadius: 12, padding: '0.75rem 1rem', width: '100%', fontSize: '0.875rem', color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer' }}
-                  value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
-                  {Object.entries(ROLE_DESC).map(([role, desc]) => (
-                    <option key={role} value={role}>{role} — {desc}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-              <button onClick={() => setShowInvite(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: 9999, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)' }}>Cancel</button>
-              <button onClick={invite} style={{ flex: 1, padding: '0.75rem', borderRadius: 9999, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 700, fontFamily: 'var(--font-body)', boxShadow: '0 2px 8px rgba(249,115,22,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <Plus style={{ width: 16, height: 16 }} />
-                Send Invite
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── STICKY SAVE BAR ── */}
-      <div 
-        className="fixed bottom-20 lg:bottom-6 left-4 lg:left-auto lg:right-6 right-4 z-50 w-auto lg:w-auto"
-        style={{ maxWidth: 'calc(100vw - 2rem)' }}
-      >
-        {/* Desktop: pill shape, right side */}
-        <div className="hidden md:flex items-center gap-2.5 px-3 py-2.5 rounded-2xl shadow-xl border border-[var(--outline-variant)]" 
-          style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)' }}>
-          <button onClick={discard} 
-            style={{ padding: '0.625rem 1.25rem', borderRadius: 9999, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}>
-            <X style={{ width: 14, height: 14 }} />
-            Discard
-          </button>
-          <button onClick={save} 
-            style={{ padding: '0.625rem 1.25rem', borderRadius: 9999, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '0.375rem', boxShadow: '0 2px 8px rgba(249,115,22,0.3)', whiteSpace: 'nowrap' }}>
-            <Save style={{ width: 14, height: 14 }} />
-            Save Changes
-          </button>
-        </div>
-        
-        {/* Mobile: full width bottom bar */}
-        <div className="md:hidden flex gap-2.5 w-full" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderRadius: 20, padding: '0.75rem', border: '1px solid var(--outline-variant)' }}>
-          <button onClick={discard} 
-            className="flex-1" 
-            style={{ padding: '0.75rem', borderRadius: 16, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}>
-            <X style={{ width: 14, height: 14 }} />
-            Discard
-          </button>
-          <button onClick={save} 
-            className="flex-[2]" 
-            style={{ padding: '0.75rem', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', color: 'white', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 700, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem', boxShadow: '0 2px 8px rgba(249,115,22,0.3)' }}>
-            <Save style={{ width: 14, height: 14 }} />
-            Save Changes
-          </button>
-        </div>
-      </div>
-    </div>
+  const recordCounts = useMemo(
+    () => [
+      { label: 'สินค้า', value: state.products.length },
+      { label: 'ลูกค้า', value: state.customers.length },
+      { label: 'บิลขาย', value: state.salesOrders.length },
+      { label: 'การรับเงิน', value: state.payments.length },
+      { label: 'ใบสั่งซื้อ', value: state.purchaseOrders.length },
+      { label: 'ค่าใช้จ่าย', value: state.expenses.length },
+    ],
+    [state]
   );
-}
 
-// ── Shared Field Component ──────────────────────────────────
-function Field({
-  label, value, onChange, type = 'text', options, prefix,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  type?: string; options?: string[]; prefix?: string;
-}) {
+  const backupStale = !lastBackup || Date.now() - new Date(lastBackup).getTime() > 7 * 86_400_000;
+
+  const fieldStyle: React.CSSProperties = {
+    backgroundColor: 'var(--surface-container-low)',
+    border: '1px solid transparent',
+    borderRadius: 12, padding: '0.75rem 1rem',
+    width: '100%', fontSize: '0.875rem',
+    color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: '0.75rem', fontWeight: 700,
+    letterSpacing: '0.02em',
+    color: 'var(--on-surface-variant)', marginBottom: '0.5rem',
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)' }}>
-        {label}
-      </label>
-      {type === 'select' ? (
-        <div style={{ position: 'relative' }}>
-          <select
-            style={{ backgroundColor: 'var(--surface-container-low)', border: 'none', borderRadius: 12, padding: '0.75rem 2.5rem 0.75rem 1rem', width: '100%', fontSize: '0.875rem', color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none', cursor: 'pointer', appearance: 'none' }}
-            value={value} onChange={e => onChange(e.target.value)}>
-            {(options || []).map(o => <option key={o}>{o}</option>)}
-          </select>
-          <ChevronRight style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(90deg)', width: 16, height: 16, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
+
+      {/* หัวหน้า */}
+      <div className="page-header">
+        <div className="page-header-eyebrow">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+          ตั้งค่าระบบ
         </div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--surface-container-low)', borderRadius: 12, padding: '0 1rem', gap: '0.5rem' }}>
-          {prefix && <span style={{ fontSize: '0.875rem', color: 'var(--on-surface-variant)', flexShrink: 0 }}>{prefix}</span>}
-          <input
-            style={{ backgroundColor: 'transparent', border: 'none', padding: '0.75rem 0', width: '100%', fontSize: '0.875rem', color: 'var(--on-surface)', fontFamily: 'var(--font-body)', outline: 'none' }}
-            type={type} value={value} onChange={e => onChange(e.target.value)} />
+        <h1 className="page-header-title">ตั้งค่า</h1>
+        <p className="page-header-subtitle">ข้อมูลกิจการ และการสำรองข้อมูล</p>
+      </div>
+
+      {/* เตือนสำรองข้อมูล — ขึ้นก่อนทุกอย่างเพราะเป็นความเสี่ยงจริงของแอปที่เก็บข้อมูลบนเครื่อง */}
+      {backupStale && state.products.length > 0 && (
+        <div className="card-elevated p-5 mb-6 border-l-4" style={{ borderLeftColor: 'var(--warning)' }}>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-[var(--on-surface)]">
+                {lastBackup ? 'ควรสำรองข้อมูลอีกครั้ง' : 'ยังไม่เคยสำรองข้อมูล'}
+              </p>
+              <p className="text-xs text-[var(--on-surface-variant)] mt-1 leading-relaxed">
+                ข้อมูลทั้งหมดเก็บอยู่บนเครื่องนี้เท่านั้น ถ้าล้างข้อมูลเบราว์เซอร์
+                ลบแอปออกจากหน้าจอโฮม หรือเครื่องหาย ข้อมูลจะหายถาวรและกู้กลับไม่ได้
+                {lastBackup && ` · สำรองครั้งล่าสุด ${timeAgoTH(lastBackup)}`}
+              </p>
+              <button onClick={handleExport}
+                className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white"
+                style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))' }}>
+                <Download className="w-3.5 h-3.5" />
+                สำรองข้อมูลตอนนี้
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* ── ข้อมูลกิจการ ── */}
+        <section className="card-elevated p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-[var(--primary-container)] flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-5 h-5" style={{ color: 'var(--primary)' }} />
+            </div>
+            <div>
+              <h2 className="font-headline font-bold text-[var(--on-surface)]">ข้อมูลกิจการ</h2>
+              <p className="text-xs text-[var(--on-surface-variant)]">ใช้แสดงในเอกสารและรายงาน</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label style={labelStyle}>ชื่อกิจการ</label>
+              <input style={fieldStyle} value={settings.companyName}
+                onChange={e => set('companyName', e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label style={labelStyle}>เลขผู้เสียภาษี</label>
+                <input style={fieldStyle} placeholder="0-0000-00000-00-0"
+                  value={settings.taxId} onChange={e => set('taxId', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>เบอร์โทร</label>
+                <input type="tel" style={fieldStyle} placeholder="02-000-0000"
+                  value={settings.phone} onChange={e => set('phone', e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>ที่อยู่</label>
+              <textarea style={{ ...fieldStyle, resize: 'vertical', minHeight: 64 }}
+                value={settings.address} onChange={e => set('address', e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label style={labelStyle}>อัตรา VAT (%)</label>
+                <input type="number" min="0" max="100" step="0.01" inputMode="decimal" style={fieldStyle}
+                  value={settings.vatPercent}
+                  onChange={e => set('vatPercent', Math.max(0, Number(e.target.value) || 0))} />
+              </div>
+              <div>
+                <label style={labelStyle}>เครดิตตั้งต้นของลูกค้าใหม่</label>
+                <div style={{ position: 'relative' }}>
+                  <select style={{ ...fieldStyle, cursor: 'pointer', appearance: 'none' }}
+                    value={settings.defaultCreditTermDays}
+                    onChange={e => set('defaultCreditTermDays', Number(e.target.value))}>
+                    {CREDIT_TERM_OPTIONS.map(d => (
+                      <option key={d} value={d}>{creditTermLabelTH(d)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <button onClick={saveSettings} disabled={!dirty}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all"
+              style={{
+                background: dirty ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : 'var(--surface-container-high)',
+                color: dirty ? 'white' : 'var(--on-surface-variant)',
+                cursor: dirty ? 'pointer' : 'not-allowed',
+              }}>
+              <Save className="w-4 h-4" />
+              {dirty ? 'บันทึกการตั้งค่า' : 'บันทึกแล้ว'}
+            </button>
+          </div>
+        </section>
+
+        {/* ── ข้อมูลและการสำรอง ── */}
+        <section className="card-elevated p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-[var(--primary-container)] flex items-center justify-center flex-shrink-0">
+              <Database className="w-5 h-5" style={{ color: 'var(--primary)' }} />
+            </div>
+            <div>
+              <h2 className="font-headline font-bold text-[var(--on-surface)]">ข้อมูลและการสำรอง</h2>
+              <p className="text-xs text-[var(--on-surface-variant)]">ข้อมูลเก็บบนเครื่องนี้เท่านั้น</p>
+            </div>
+          </div>
+
+          {/* จำนวนรายการ */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            {recordCounts.map(r => (
+              <div key={r.label} className="rounded-xl p-3" style={{ backgroundColor: 'var(--surface-container-low)' }}>
+                <p className="font-headline font-extrabold text-lg text-[var(--on-surface)]">{r.value}</p>
+                <p className="text-[11px] text-[var(--on-surface-variant)]">{r.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* พื้นที่ที่ใช้ */}
+          <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: 'var(--surface-container-low)' }}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="flex items-center gap-2 text-xs font-bold text-[var(--on-surface-variant)]">
+                <HardDrive className="w-3.5 h-3.5" />
+                พื้นที่ข้อมูล
+              </span>
+              <span className="text-xs font-bold text-[var(--on-surface)]">
+                {formatBytes(usage.bytes)} / {formatBytes(usage.quota)}
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-container-high)' }}>
+              <div className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.max(2, usage.percent)}%`,
+                  backgroundColor: usage.percent > 80 ? 'var(--error)' : usage.percent > 60 ? 'var(--warning)' : 'var(--primary)',
+                }} />
+            </div>
+            <p className="flex items-center gap-1.5 text-[11px] text-[var(--on-surface-variant)] mt-2">
+              <ImageIcon className="w-3 h-3 flex-shrink-0" />
+              รูปภาพอีก {formatBytes(imageBytes)} (เก็บแยกไม่กินพื้นที่ก้อนนี้)
+            </p>
+            {usage.percent > 80 && (
+              <p className="text-[11px] font-bold mt-1.5" style={{ color: 'var(--error)' }}>
+                พื้นที่ใกล้เต็ม — ควรสำรองข้อมูลแล้วลบรายการเก่าที่ไม่ใช้
+              </p>
+            )}
+          </div>
+
+          {/* ปุ่มสำรอง / กู้คืน */}
+          <div className="space-y-3">
+            <button onClick={handleExport}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--outline-variant)] hover:shadow-md transition-all text-left">
+              <Download className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--primary)' }} />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[var(--on-surface)]">ส่งออกไฟล์สำรอง (JSON)</p>
+                <p className="text-xs text-[var(--on-surface-variant)]">
+                  ได้ข้อมูลทั้งหมดในไฟล์เดียว กู้กลับเข้าแอปได้
+                  {lastBackup && ` · ล่าสุด ${formatThaiDate(lastBackup, { short: true })}`}
+                </p>
+              </div>
+            </button>
+
+            <input ref={fileInput} type="file" accept="application/json,.json" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }} />
+
+            <button onClick={() => fileInput.current?.click()}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-[var(--outline-variant)] hover:shadow-md transition-all text-left">
+              <Upload className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--primary)' }} />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[var(--on-surface)]">กู้คืนจากไฟล์สำรอง</p>
+                <p className="text-xs text-[var(--on-surface-variant)]">แทนที่ข้อมูลทั้งหมดบนเครื่องนี้</p>
+              </div>
+            </button>
+
+            <button onClick={handleReset}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border hover:shadow-md transition-all text-left"
+              style={{ borderColor: 'var(--error)' }}>
+              <Trash2 className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--error)' }} />
+              <div className="min-w-0">
+                <p className="text-sm font-bold" style={{ color: 'var(--error)' }}>ล้างข้อมูลและเริ่มใหม่</p>
+                <p className="text-xs text-[var(--on-surface-variant)]">ลบทุกอย่างแล้วใส่ข้อมูลตัวอย่างกลับมา</p>
+              </div>
+            </button>
+          </div>
+
+          {/* หมายเหตุเรื่องข้อจำกัด — บอกตรงๆ ดีกว่าให้ผู้ใช้มาเจอเองตอนข้อมูลหาย */}
+          <div className="mt-5 pt-5 border-t border-[var(--outline-variant)] space-y-2.5">
+            {[
+              { icon: ShieldCheck, text: 'ข้อมูลไม่ถูกส่งออกจากเครื่องนี้เลย ไม่มีการเชื่อมต่อเซิร์ฟเวอร์' },
+              { icon: Info, text: 'ข้อมูลผูกกับเบราว์เซอร์ตัวนี้ เปิดจากเครื่องอื่นหรือเบราว์เซอร์อื่นจะไม่เห็นข้อมูลเดียวกัน' },
+              { icon: AlertTriangle, text: 'ลบแอปออกจากหน้าจอโฮม หรือล้างข้อมูลเบราว์เซอร์ = ข้อมูลหายถาวร ควรสำรองสม่ำเสมอ' },
+            ].map((n, i) => {
+              const Icon = n.icon;
+              return (
+                <p key={i} className="flex items-start gap-2 text-[11px] text-[var(--on-surface-variant)] leading-relaxed">
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  {n.text}
+                </p>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

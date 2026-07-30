@@ -130,7 +130,7 @@ export default function SalesPage() {
             }),
         },
       ],
-      'morix_ขายสินค้า'
+      'morix-sales'
     );
 
     markBackedUp();

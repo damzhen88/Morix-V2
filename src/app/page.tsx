@@ -10,6 +10,7 @@ import { formatTHB } from '@/lib/format';
 import { useApp, useKPIs, usePaymentsByOrder } from '@/store';
 import { formatThaiDate, timeAgoTH } from '@/lib/format';
 import { balance, paymentSequenceLabelTH } from '@/lib/payment';
+import BackupReminder from '@/components/ui/BackupReminder';
 
 type Activity = {
   type: 'sale' | 'payment' | 'expense' | 'purchase';
@@ -151,6 +152,9 @@ export default function Dashboard() {
         <h1 className="page-header-title">ภาพรวม</h1>
         <p className="page-header-subtitle">{formatThaiDate(new Date().toISOString(), { weekday: true })}</p>
       </div>
+
+      {/* เตือนสำรองข้อมูล — ข้อมูลอยู่บนเครื่องเท่านั้น */}
+      <BackupReminder />
 
       {/* การ์ด KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10 stagger-children">

@@ -349,6 +349,54 @@ export function formatBytes(bytes: number): string {
 }
 
 // ─────────────────────────────────────────
+// ตั้งค่าแอป
+// ─────────────────────────────────────────
+
+const SETTINGS_KEY = 'morix-settings';
+
+export interface AppSettings {
+  companyName: string;
+  taxId: string;
+  address: string;
+  phone: string;
+  /** อัตราภาษีมูลค่าเพิ่ม (%) */
+  vatPercent: number;
+  /** จำนวนวันเครดิตตั้งต้นสำหรับลูกค้าใหม่ */
+  defaultCreditTermDays: number;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  companyName: 'MORIX DECORATIVE',
+  taxId: '',
+  address: '',
+  phone: '',
+  vatPercent: 7,
+  defaultCreditTermDays: 0,
+};
+
+export function readSettings(): AppSettings {
+  if (!hasStorage()) return DEFAULT_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    // เติมค่า default ให้ฟิลด์ที่เพิ่มมาทีหลัง ไม่ให้ undefined หลุดเข้า UI
+    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<AppSettings>) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export function writeSettings(settings: AppSettings): void {
+  if (!hasStorage()) return;
+  try {
+    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (err) {
+    if (isQuotaError(err)) throw new StorageFullError();
+    throw err;
+  }
+}
+
+// ─────────────────────────────────────────
 // เตือนให้สำรองข้อมูล
 // ─────────────────────────────────────────
 

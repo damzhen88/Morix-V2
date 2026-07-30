@@ -128,7 +128,7 @@ export default function CrmPage() {
         'ซื้อครั้งล่าสุด': c.lastOrderDate ?? '',
       })),
       'ลูกค้า',
-      'morix_ลูกค้า'
+      'morix-customers'
     );
 
     markBackedUp();

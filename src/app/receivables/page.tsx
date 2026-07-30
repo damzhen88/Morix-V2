@@ -120,7 +120,7 @@ export default function ReceivablesPage() {
           }),
         },
       ],
-      'morix_ลูกหนี้'
+      'morix-receivables'
     );
 
     markBackedUp();
