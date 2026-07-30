@@ -132,8 +132,8 @@ export default function ExpensesPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-[var(--on-surface)]">{getDesc(exp)}</p>
                       <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">{exp.vendor}</p>
-                      {exp.ref && (
-                        <span className="text-xs font-mono text-[var(--primary-dark)] mt-0.5 inline-block">{exp.ref}</span>
+                      {exp.notes && (
+                        <span className="text-xs text-[var(--on-surface-variant)] mt-0.5 inline-block" style={{ overflowWrap: 'anywhere' }}>{exp.notes}</span>
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -178,10 +178,10 @@ export default function ExpensesPage() {
                 <p className="text-sm font-semibold text-[var(--on-surface)] truncate">{getDesc(exp)}</p>
                 <div className="flex items-center gap-3 mt-0.5">
                   <span className="text-xs text-[var(--on-surface-variant)]">{exp.vendor}</span>
-                  {exp.ref && (
+                  {exp.notes && (
                     <>
                       <span className="text-[var(--outline)]">·</span>
-                      <span className="text-xs font-mono text-[var(--primary-dark)]">{exp.ref}</span>
+                      <span className="text-xs text-[var(--on-surface-variant)]">{exp.notes}</span>
                     </>
                   )}
                 </div>

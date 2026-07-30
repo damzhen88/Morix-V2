@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // เปิด type check ตอน build แล้ว (error ใน src/ เป็น 0)
+  // ปิดไว้ตอนแรกทำให้ความไม่ตรงกันของ type ระหว่าง DB กับ UI ไม่เคยโป๊ะ
+  // จนกลายเป็นบั๊กจริงหลายจุด เช่น หน้าขายอ่านฟิลด์ที่ไม่มีอยู่
   
   // Security headers
   async headers() {

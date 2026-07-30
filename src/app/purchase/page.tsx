@@ -5,7 +5,10 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { useApp } from '@/store';
+import { useApp, useMutations } from '@/store';
+import { useToast } from '@/components/ui/Toast';
+import { StorageFullError } from '@/lib/local-db';
+import type { PurchaseOrder } from '@/types';
 import { PageLoader } from '@/components/ui';
 // Dynamic import for mobile version to avoid SSR hydration issues
 const MobilePurchaseOrder = dynamic(
@@ -31,8 +34,13 @@ import {
 // ✅ Custom noise texture backgrounds
 // ============================================================
 
+/** ค่าขนส่ง 3 ช่วงของเส้นทางนำเข้า จีน -> ไทย -> หน้างาน */
+type LogisticsKey = 'chinaDomestic' | 'chinaThailand' | 'localDelivery';
+
 export default function PurchasePage() {
   const { state } = useApp();
+  const { addPurchaseOrder } = useMutations();
+  const { toast } = useToast();
   
   // Mobile detection - ALL hooks at top level
   const [isMobile, setIsMobile] = useState(false);
@@ -52,7 +60,7 @@ export default function PurchasePage() {
   const [activeCurrency, setActiveCurrency] = useState('USD');
   const [showNewVendorForm, setShowNewVendorForm] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
-  const [logistics, setLogistics] = useState({
+  const [logistics, setLogistics] = useState<Record<LogisticsKey, { amount: string; currency: string }>>({
     chinaDomestic: { amount: '', currency: 'CNY' },
     chinaThailand: { amount: '', currency: 'USD' },
     localDelivery: { amount: '', currency: 'THB' },
@@ -134,35 +142,76 @@ export default function PurchasePage() {
     });
   };
 
-  const updateLogisticsAmount = (key: string, amount: string) => {
+  const updateLogisticsAmount = (key: LogisticsKey, amount: string) => {
     setLogistics({
       ...logistics,
       [key]: { ...logistics[key], amount }
     });
   };
 
-  const updateLogisticsCurrency = (key: string, currency: string) => {
+  const updateLogisticsCurrency = (key: LogisticsKey, currency: string) => {
     setLogistics({
       ...logistics,
       [key]: { ...logistics[key], currency }
     });
   };
 
-  const handleSaveDraft = () => {
-    alert(`Draft saved!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
-  };
-
-  const handleConfirm = () => {
-    if (!formData.supplier) {
-      alert('Please select a supplier first');
+  /**
+   * บันทึกใบสั่งซื้อลงเครื่อง
+   * เดิมทั้งสองปุ่มแค่ alert แล้วทิ้งข้อมูล และอ้างฟิลด์ poNumber/supplier
+   * ที่ไม่มีอยู่ในฟอร์ม (ฟอร์มใช้ vendor)
+   */
+  const savePurchaseOrder = (status: 'draft' | 'confirmed') => {
+    if (!formData.vendor.trim()) {
+      toast('กรุณาระบุผู้จำหน่ายก่อน', 'error');
       return;
     }
     if (formData.items.length === 0) {
-      alert('Please add at least one item');
+      toast('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ', 'error');
       return;
     }
-    alert(`Purchase Order confirmed!\n\nPO Number: ${formData.poNumber}\nSupplier: ${formData.supplier}\nItems: ${formData.items.length}\nTotal: ฿${calculateGrandTotal().toLocaleString()}`);
+
+    try {
+      const now = new Date().toISOString();
+      const grandTotal = calculateGrandTotal();
+
+      const po = addPurchaseOrder({
+        id: '',
+        po_number: `PO-${Date.now().toString(36).toUpperCase().slice(-6)}`,
+        supplier: formData.vendor,
+        currency: 'CNY',
+        exchange_rate: RATE,
+        status,
+        items: [],
+        shipment_costs: [],
+        total_cny: itemsSubtotalUSD,
+        total_thb: itemsSubtotalTHB,
+        landed_cost_total_thb: grandTotal,
+        notes: formData.notes || undefined,
+        created_at: now,
+        updated_at: now,
+      } as PurchaseOrder);
+
+      toast(
+        status === 'draft'
+          ? `บันทึกแบบร่าง ${po.po_number} แล้ว`
+          : `ยืนยันใบสั่งซื้อ ${po.po_number} — ฿${grandTotal.toLocaleString('th-TH', { maximumFractionDigits: 0 })}`,
+        'success'
+      );
+
+      setFormData({ vendor: '', exchangeRate: String(RATE), items: [], notes: '' });
+      setLogistics({
+        chinaDomestic: { amount: '', currency: 'CNY' },
+        chinaThailand: { amount: '', currency: 'USD' },
+        localDelivery: { amount: '', currency: 'THB' },
+      });
+    } catch (err) {
+      toast(err instanceof StorageFullError ? err.message : 'บันทึกใบสั่งซื้อไม่สำเร็จ', 'error');
+    }
   };
+
+  const handleSaveDraft = () => savePurchaseOrder('draft');
+  const handleConfirm = () => savePurchaseOrder('confirmed');
 
   // ============================================================
   // RENDER
