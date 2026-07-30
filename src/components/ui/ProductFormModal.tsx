@@ -26,11 +26,11 @@ interface ProductFormModalProps {
 }
 
 const CATEGORIES = [
-  { value: 'ASA', label: 'ASA Wall Panels' },
+  { value: 'ASA', label: 'แผงผนัง ASA' },
   { value: 'WPC', label: 'WPC Flooring / Decking' },
   { value: 'SPC', label: 'SPC Surface' },
   { value: 'ACCESSORIES', label: 'Accessories' },
-  { value: 'CEILING', label: 'Ceiling Panels' },
+  { value: 'CEILING', label: 'แผงฝ้าเพดาน' },
 ];
 
 const UNITS = [
@@ -128,7 +128,7 @@ function ImageUploadZone({ images, onChange, onUpload, onRemove, disabled }: {
     <div>
       <label style={labelStyle}>
         <Image style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />
-        Product Images
+        รูปสินค้า
         <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 4, color: 'var(--on-surface-variant)' }}>
           ({images.filter(i => !i.uploading).length}/10)
         </span>
@@ -170,7 +170,7 @@ function ImageUploadZone({ images, onChange, onUpload, onRemove, disabled }: {
           <Upload style={{ width: 22, height: 22, color: 'var(--primary)' }} />
         </div>
         <p style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)', marginBottom: '0.25rem' }}>
-          {dragging ? 'Drop images here' : 'Click or drag images to upload'}
+          {dragging ? 'วางรูปที่นี่' : 'คลิกหรือลากรูปมาวางเพื่ออัปโหลด'}
         </p>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--on-surface-variant)' }}>
           JPEG, PNG, WEBP · Max 5MB per file
@@ -213,7 +213,7 @@ function ImageUploadZone({ images, onChange, onUpload, onRemove, disabled }: {
                     padding: '2px 6px', borderRadius: 9999,
                     textTransform: 'uppercase', letterSpacing: '0.05em',
                   }}>
-                    Primary
+                    รูปหลัก
                   </div>
                 )}
 
@@ -406,8 +406,8 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
               <Package style={{ width: 20, height: 20, color: 'var(--primary)' }} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>Add New Product</h2>
-              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Add to catalog and inventory</p>
+              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>เพิ่มสินค้าใหม่</h2>
+              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>เพิ่มเข้ารายการสินค้าและคลัง</p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: 10, color: 'var(--on-surface-variant)' }}>
@@ -428,12 +428,12 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
               disabled={loading}
             />
 
-            {/* Product Name */}
+            {/* ชื่อสินค้า */}
             <div>
-              <label style={labelStyle}>Product Name *</label>
+              <label style={labelStyle}>ชื่อสินค้า *</label>
               <input
                 style={fieldStyle}
-                placeholder="e.g. Aluminum Panel 120x240cm"
+                placeholder="เช่น แผงผนัง ASA สีเทา"
                 value={form.name} onChange={e => set('name', e.target.value)}
                 onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--primary)'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(249,115,22,0.12)'; }}
                 onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'transparent'; (e.target as HTMLInputElement).style.boxShadow = 'none'; }}
@@ -444,7 +444,7 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
             <div style={groupStyle}>
               <div>
                 <label style={labelStyle}>SKU</label>
-                <input style={fieldStyle} placeholder="AL-PNL-001"
+                <input style={fieldStyle} placeholder="ASA-DK-001"
                   value={form.sku} onChange={e => set('sku', e.target.value)}
                   onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--primary)'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(249,115,22,0.12)'; }}
                   onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'transparent'; (e.target as HTMLInputElement).style.boxShadow = 'none'; }} />
@@ -464,7 +464,7 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
             {/* Price + Cost + Unit */}
             <div style={groupStyle}>
               <div>
-                <label style={labelStyle}>Unit Price (THB) *</label>
+                <label style={labelStyle}>Unit ราคาขาย (บาท) *</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.875rem', color: 'var(--on-surface-variant)', fontWeight: 600 }}>฿</span>
                   <input type="number" step="0.01" style={{ ...fieldStyle, paddingLeft: '2rem' }}
@@ -474,7 +474,7 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>Cost (THB)</label>
+                <label style={labelStyle}>ต้นทุน (บาท)</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.875rem', color: 'var(--on-surface-variant)', fontWeight: 600 }}>฿</span>
                   <input type="number" step="0.01" style={{ ...fieldStyle, paddingLeft: '2rem' }}
@@ -484,7 +484,7 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>Unit</label>
+                <label style={labelStyle}>หน่วย</label>
                 <div style={{ position: 'relative' }}>
                   <select style={{ ...fieldStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}
                     value={form.unit} onChange={e => set('unit', e.target.value)}>
@@ -498,14 +498,14 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
             {/* Stock levels */}
             <div style={groupStyle}>
               <div>
-                <label style={labelStyle}>Reorder Level</label>
+                <label style={labelStyle}>จุดสั่งซื้อซ้ำ</label>
                 <input type="number" style={fieldStyle} placeholder="10"
                   value={form.reorderLevel} onChange={e => set('reorderLevel', e.target.value)}
                   onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--primary)'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(249,115,22,0.12)'; }}
                   onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'transparent'; (e.target as HTMLInputElement).style.boxShadow = 'none'; }} />
               </div>
               <div>
-                <label style={labelStyle}>Minimum Stock</label>
+                <label style={labelStyle}>สต็อกขั้นต่ำ</label>
                 <input type="number" style={fieldStyle} placeholder="5"
                   value={form.minStock} onChange={e => set('minStock', e.target.value)}
                   onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'var(--primary)'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(249,115,22,0.12)'; }}
@@ -515,9 +515,9 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
 
             {/* Status */}
             <div>
-              <label style={labelStyle}>Status</label>
+              <label style={labelStyle}>สถานะ</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {[['active', 'Active', 'var(--success)'], ['inactive', 'Inactive', 'var(--on-surface-variant)']].map(([s, label, color]) => (
+                {[['active', 'ใช้งาน', 'var(--success)'], ['inactive', 'Inactive', 'var(--on-surface-variant)']].map(([s, label, color]) => (
                   <button key={s} type="button"
                     onClick={() => set('status', s as string)}
                     style={{
@@ -535,9 +535,9 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
 
             {/* Description */}
             <div>
-              <label style={labelStyle}>Notes / Description</label>
+              <label style={labelStyle}>หมายเหตุ / รายละเอียด</label>
               <textarea style={{ ...fieldStyle, resize: 'vertical', minHeight: 80 }}
-                placeholder="Optional notes…"
+                placeholder="หมายเหตุเพิ่มเติม"
                 value={form.description} onChange={e => set('description', e.target.value)} />
             </div>
           </div>
@@ -546,7 +546,7 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
           <div style={{ padding: '1rem 2rem 1.5rem', display: 'flex', gap: '0.75rem', borderTop: '1px solid var(--outline-variant)' }}>
             <button type="button" onClick={onClose}
               style={{ flex: 1, padding: '0.875rem', borderRadius: 9999, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)' }}>
-              Cancel
+              ยกเลิก
             </button>
             <button type="submit" disabled={loading}
               style={{
@@ -561,12 +561,12 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
               {loading ? (
                 <>
                   <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />
-                  Saving…
+                  กำลังบันทึก…
                 </>
               ) : (
                 <>
                   <Plus style={{ width: 16, height: 16 }} />
-                  Add Product
+                  เพิ่มสินค้า
                 </>
               )}
             </button>

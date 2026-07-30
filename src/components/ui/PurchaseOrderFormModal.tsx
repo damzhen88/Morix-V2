@@ -13,7 +13,7 @@ interface PurchaseOrderFormModalProps {
 }
 
 const SUPPLIERS = [
-  'Global Logistics Pro', 'China Direct Import Co.', 'Siam Materials Supply',
+  'Global Logistics Pro (ตัวแทนนำเข้า)', 'China Direct Import Co.', 'Siam Materials Supply',
   'Pacific Trade Co.', 'Bangkok Hardware Co.',
 ];
 
@@ -26,7 +26,7 @@ const IMPORT_PRODUCTS = [
 ];
 
 const LOGISTICS_TYPES = [
-  { label: 'China Domestic Freight', currency: 'CNY', rate: 7.2 },
+  { label: 'ค่าขนส่งในประเทศจีน', currency: 'CNY', rate: 7.2 },
   { label: 'China → Thailand Freight', currency: 'USD', rate: 35.42 },
   { label: 'Local Delivery (Bangkok)', currency: 'THB', rate: 1 },
 ];
@@ -180,8 +180,8 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
               <ShoppingCart style={{ width: 18, height: 18, color: '#D97706' }} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1rem', color: 'var(--on-surface)' }}>New Purchase Order</h2>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', marginTop: 1 }}>Import procurement from suppliers abroad</p>
+              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1rem', color: 'var(--on-surface)' }}>เปิดใบสั่งซื้อใหม่</h2>
+              <p style={{ fontSize: '0.6875rem', color: 'var(--on-surface-variant)', marginTop: 1 }}>สั่งซื้อสินค้านำเข้าจากผู้จำหน่ายต่างประเทศ</p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: 8, color: 'var(--on-surface-variant)' }}>
@@ -198,18 +198,18 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
               <div style={{ position: 'relative' }}>
                 <select style={{ ...inputStyle, paddingRight: '2rem', cursor: 'pointer', appearance: 'none' }}
                   value={supplier} onChange={e => setSupplier(e.target.value)}>
-                  <option value="">Select…</option>
+                  <option value="">เลือก…</option>
                   {SUPPLIERS.map(s => <option key={s}>{s}</option>)}
                 </select>
                 <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--on-surface-variant)', pointerEvents: 'none' }} />
               </div>
             </div>
             <div>
-              <label style={labelStyle}>PO Date</label>
+              <label style={labelStyle}>วันที่สั่งซื้อ</label>
               <input type="date" style={inputStyle} value={poDate} onChange={e => setPoDate(e.target.value)} />
             </div>
             <div>
-              <label style={labelStyle}>Status</label>
+              <label style={labelStyle}>สถานะ</label>
               <div style={{ position: 'relative' }}>
                 <select style={{ ...inputStyle, paddingRight: '2rem', cursor: 'pointer', appearance: 'none' }}
                   value={status} onChange={e => setStatus(e.target.value)}>
@@ -227,7 +227,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Package style={{ width: 14, height: 14, color: 'var(--primary)' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>Products</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>สินค้า</span>
                 <span style={{ fontSize: '0.625rem', color: 'var(--on-surface-variant)' }}>({items.length})</span>
               </div>
               <button type="button" onClick={addItem}
@@ -265,7 +265,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Truck style={{ width: 14, height: 14, color: '#2563EB' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>Logistics</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--on-surface)' }}>ค่าขนส่ง</span>
               </div>
               <button type="button" onClick={addLogistics}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0.375rem 0.75rem', borderRadius: 8, border: 'none', backgroundColor: '#2563EB', color: 'white', cursor: 'pointer', fontSize: '0.6875rem', fontWeight: 700 }}>
@@ -274,7 +274,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
             </div>
 
             {logistics.length === 0 ? (
-              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', textAlign: 'center', padding: '0.5rem' }}>No logistics added</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', textAlign: 'center', padding: '0.5rem' }}>ยังไม่มีค่าขนส่ง</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {logistics.map((l, idx) => (
@@ -317,7 +317,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
                   </div>
                 ))}
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>Total</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>รวมทั้งสิ้น</span>
                   <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#f97316' }}>฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
@@ -328,15 +328,15 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
               <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#475569', marginBottom: '0.5rem' }}>USD</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Items</span>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>รายการสินค้า</span>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>${itemsSubtotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>Logistics</span>
+                  <span style={{ fontSize: '0.6875rem', color: '#64748b' }}>ค่าขนส่ง</span>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>${logisticsTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>Total</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>รวมทั้งสิ้น</span>
                   <span style={{ fontSize: '1rem', fontWeight: 800, color: '#f59e0b' }}>${grandTotalUSD.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
@@ -345,9 +345,9 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
 
           {/* Notes */}
           <div>
-            <label style={labelStyle}>Notes</label>
+            <label style={labelStyle}>หมายเหตุ</label>
             <textarea style={{ ...inputStyle, resize: 'none', minHeight: 48 }}
-              placeholder="Delivery address, special instructions…"
+              placeholder="ที่อยู่จัดส่ง หรือข้อกำหนดพิเศษ"
               value={note} onChange={e => setNote(e.target.value)} />
           </div>
 
@@ -355,7 +355,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
           <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
             <button type="button" onClick={onClose}
               style={{ flex: 1, padding: '0.75rem', borderRadius: 12, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--on-surface)' }}>
-              Cancel
+              ยกเลิก
             </button>
             <button type="submit" disabled={loading}
               style={{
@@ -368,7 +368,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
                 transition: 'all 150ms',
               }}>
               {loading ? (
-                <><span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />Creating…</>
+                <><span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />กำลังบันทึก…</>
               ) : (
                 <>
                   <Save style={{ width: 14, height: 14 }} />

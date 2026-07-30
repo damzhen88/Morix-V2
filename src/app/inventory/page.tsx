@@ -37,14 +37,14 @@ export default function InventoryPage() {
         <div>
           <div className="page-header-eyebrow">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
-            Warehouse Operations
+            จัดการคลังสินค้า
           </div>
-          <h1 className="page-header-title">Inventory</h1>
-          <p className="page-header-subtitle">Real-time stock levels across all warehouses</p>
+          <h1 className="page-header-title">คลังสินค้า</h1>
+          <p className="page-header-subtitle">ยอดคงเหลือทุกคลังแบบเรียลไทม์</p>
         </div>
         <button className="btn-primary" onClick={() => openForm('product')}>
           <Plus className="w-4 h-4" />
-          Stock Adjustment
+          ปรับยอดสต็อก
         </button>
       </div>
 
@@ -53,8 +53,8 @@ export default function InventoryPage() {
         {[
           { label: 'Total SKUs',         value: inventoryItems.length.toString(), icon: Package,       color: 'var(--primary)' },
           { label: 'Total Stock Value',  value: `฿${(totalValue / 1000).toFixed(0)}K`, icon: TrendingUp,  color: 'var(--success)' },
-          { label: 'Low Stock Items',     value: lowStock.toString(),             icon: AlertTriangle, color: 'var(--warning)' },
-          { label: 'Out of Stock',        value: outOfStock.toString(),           icon: AlertTriangle, color: 'var(--error)' },
+          { label: 'สินค้าใกล้หมด',     value: lowStock.toString(),             icon: AlertTriangle, color: 'var(--warning)' },
+          { label: 'สินค้าหมด',        value: outOfStock.toString(),           icon: AlertTriangle, color: 'var(--error)' },
         ].map((k, i) => {
           const Icon = k.icon;
           return (
@@ -77,7 +77,7 @@ export default function InventoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
           <input
             className="input-field-search w-full"
-            placeholder="Search SKU or product name…"
+            placeholder="ค้นหา SKU หรือชื่อสินค้า…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -90,7 +90,7 @@ export default function InventoryPage() {
               : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]'
           }`}>
           <AlertTriangle className="w-3.5 h-3.5 inline mr-1.5" />
-          Low Stock Only ({lowStock})
+          ใกล้หมด Only ({lowStock})
         </button>
       </div>
 
@@ -114,30 +114,30 @@ export default function InventoryPage() {
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center gap-3">
                   <div>
-                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Stock</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">คงเหลือ</p>
                     <p className={`font-headline font-bold text-base ${isOut ? 'text-[var(--error)]' : isLow ? 'text-[var(--warning)]' : 'text-[var(--on-surface)]'}`}>
                       {item.stock} <span className="text-xs font-normal text-[var(--on-surface-variant)]">{item.unit}</span>
                     </p>
                   </div>
                   <div className="w-px h-8 bg-[var(--outline-variant)]" />
                   <div>
-                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Reorder</p>
+                    <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">จุดสั่งซื้อ</p>
                     <p className="text-sm font-semibold text-[var(--on-surface-variant)]">{item.reorder} {item.unit}</p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">Value</p>
+                  <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wider font-bold">มูลค่า</p>
                   <p className="font-headline font-bold text-sm text-[var(--on-surface)]">฿{item.value.toLocaleString()}</p>
                 </div>
               </div>
 
               <div className="mt-2">
                 {isOut
-                  ? <span className="badge badge-error">Out of Stock</span>
+                  ? <span className="badge badge-error">สินค้าหมด</span>
                   : isLow
-                    ? <span className="badge badge-warning">Low Stock</span>
-                    : <span className="badge badge-success">In Stock</span>
+                    ? <span className="badge badge-warning">ใกล้หมด</span>
+                    : <span className="badge badge-success">มีสินค้า</span>
                 }
               </div>
             </div>
@@ -152,12 +152,12 @@ export default function InventoryPage() {
           <thead>
             <tr className="bg-[var(--surface-container-low)]">
               <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">SKU</th>
-              <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Product</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Location</th>
-              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Stock</th>
-              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Reorder</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Status</th>
-              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Value</th>
+              <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">สินค้า</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">คลัง</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">คงเหลือ</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">จุดสั่งซื้อ</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">สถานะ</th>
+              <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">มูลค่า</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--outline-variant)]">
@@ -195,10 +195,10 @@ export default function InventoryPage() {
                   </td>
                   <td className="px-4 py-4 text-center">
                     {isOut
-                      ? <span className="badge badge-error">Out of Stock</span>
+                      ? <span className="badge badge-error">สินค้าหมด</span>
                       : isLow
-                        ? <span className="badge badge-warning">Low Stock</span>
-                        : <span className="badge badge-success">In Stock</span>
+                        ? <span className="badge badge-warning">ใกล้หมด</span>
+                        : <span className="badge badge-success">มีสินค้า</span>
                     }
                   </td>
                   <td className="px-4 py-4 text-right font-headline font-bold text-[var(--on-surface)]">
@@ -214,7 +214,7 @@ export default function InventoryPage() {
         {filtered.length === 0 && (
           <div className="p-12 text-center">
             <Warehouse className="w-12 h-12 mx-auto mb-4 text-[var(--on-surface-variant)] opacity-30" />
-            <p className="text-[var(--on-surface-variant)]">No items match your filter.</p>
+            <p className="text-[var(--on-surface-variant)]">ไม่พบสินค้าที่ตรงกับตัวกรอง</p>
           </div>
         )}
       </div>

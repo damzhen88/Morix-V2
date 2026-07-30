@@ -1,4 +1,4 @@
-// Purchase Order Page for MORIX V2 - Anti-Slop Design
+// ใบสั่งซื้อ Page for MORIX V2 - Anti-Slop Design
 // Works within DashboardLayout - NO duplicate header/sidebar
 
 'use client';
@@ -245,10 +245,10 @@ export default function PurchasePage() {
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-stone-400 uppercase tracking-widest mb-2">
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              New Procurement Request
+              เปิดคำขอสั่งซื้อใหม่
             </div>
             <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-stone-900 leading-none">
-              Purchase Order
+              ใบสั่งซื้อ
               <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
             </h1>
           </div>
@@ -271,8 +271,8 @@ export default function PurchasePage() {
               <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
             </div>
             <div>
-              <div className="text-sm font-bold text-stone-900">Draft</div>
-              <div className="text-xs text-stone-400">In Progress</div>
+              <div className="text-sm font-bold text-stone-900">ฉบับร่าง</div>
+              <div className="text-xs text-stone-400">กำลังดำเนินการ</div>
             </div>
           </div>
 
@@ -287,8 +287,8 @@ export default function PurchasePage() {
               <CheckCircle className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-stone-400">Confirmed</div>
-              <div className="text-xs text-stone-300">Pending</div>
+              <div className="text-sm font-semibold text-stone-400">ยืนยันแล้ว</div>
+              <div className="text-xs text-stone-300">รอดำเนินการ</div>
             </div>
           </div>
 
@@ -303,8 +303,8 @@ export default function PurchasePage() {
               <Package className="w-4 h-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-stone-400">Received</div>
-              <div className="text-xs text-stone-300">Awaiting</div>
+              <div className="text-sm font-semibold text-stone-400">รับของแล้ว</div>
+              <div className="text-xs text-stone-300">รออนุมัติ</div>
             </div>
           </div>
         </div>
@@ -328,7 +328,7 @@ export default function PurchasePage() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
                   <Factory className="w-3 h-3" />
-                  Vendor Selection
+                  เลือกผู้จำหน่าย
                 </label>
                 <div className="relative">
                   <select 
@@ -344,10 +344,10 @@ export default function PurchasePage() {
                       }
                     }}
                   >
-                    <option value="">Select a Vendor...</option>
-                    <option>Global Logistics Pro</option>
-                    <option>Shenzhen Tech Supplies</option>
-                    <option value="new">+ Add New Vendor</option>
+                    <option value="">เลือกผู้จำหน่าย…</option>
+                    <option>ตัวแทนนำเข้า</option>
+                    <option>ผู้จำหน่ายเซินเจิ้น</option>
+                    <option value="new">+ เพิ่มผู้จำหน่ายใหม่</option>
                   </select>
                   <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 rotate-90 pointer-events-none" />
                 </div>
@@ -359,22 +359,22 @@ export default function PurchasePage() {
                   <div className="flex items-center gap-2">
                     <Factory className="w-4 h-4 text-orange-600" />
                     <label className="text-xs font-bold text-orange-700 uppercase tracking-wider">
-                      New Vendor Details
+                      รายละเอียดผู้จำหน่ายใหม่
                     </label>
                   </div>
                   <input
                     className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                    placeholder="Enter vendor name..."
+                    placeholder="กรอกชื่อผู้จำหน่าย…"
                     value={newVendorName}
                     onChange={(e) => setNewVendorName(e.target.value)}
                   />
                   <input
                     className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                    placeholder="Contact email (optional)"
+                    placeholder="อีเมลติดต่อ (ไม่บังคับ)"
                   />
                   <input
                     className="w-full h-11 bg-white border border-orange-200 rounded-lg px-4 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all"
-                    placeholder="Phone number (optional)"
+                    placeholder="เบอร์โทร (ไม่บังคับ)"
                   />
                   <div className="flex gap-2">
                     <button
@@ -387,7 +387,7 @@ export default function PurchasePage() {
                       }}
                       className="flex-1 h-10 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-colors"
                     >
-                      Add Vendor
+                      เพิ่มผู้จำหน่าย
                     </button>
                     <button
                       onClick={() => {
@@ -396,7 +396,7 @@ export default function PurchasePage() {
                       }}
                       className="px-4 h-10 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold rounded-lg transition-colors"
                     >
-                      Cancel
+                      ยกเลิก
                     </button>
                   </div>
                 </div>
@@ -406,7 +406,7 @@ export default function PurchasePage() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
                   <CreditCard className="w-3 h-3" />
-                  Import Pricing (USD/CNY)
+                  ราคานำเข้า (USD/CNY)
                 </label>
                 <div className="flex bg-stone-100 rounded-xl p-1.5">
                   {['USD', 'CNY', 'THB'].map((curr) => (
@@ -429,7 +429,7 @@ export default function PurchasePage() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2">
                   <Globe className="w-3 h-3" />
-                  Exchange Rate (THB)
+                  อัตราแลกเปลี่ยน (บาท)
                 </label>
                 <div className="relative">
                   <input 
@@ -453,11 +453,11 @@ export default function PurchasePage() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
                   <Package className="w-3.5 h-3.5 text-orange-600" />
                 </div>
-                <h3 className="text-sm font-bold text-stone-900">Purchase Items</h3>
+                <h3 className="text-sm font-bold text-stone-900">รายการสินค้าที่สั่ง</h3>
               </div>
               <button onClick={addItem} className="h-8 px-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:shadow-lg hover:shadow-orange-500/20 transition-all flex items-center gap-1">
                 <Plus className="w-3 h-3" />
-                Add Item
+                เพิ่มรายการ
               </button>
             </div>
 
@@ -466,12 +466,12 @@ export default function PurchasePage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-stone-50/80">
-                    <th className="py-3 px-6 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">Item Description</th>
+                    <th className="py-3 px-6 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">รายละเอียดสินค้า</th>
                     <th className="py-3 px-3 text-left text-[9px] font-bold uppercase tracking-widest text-stone-400">SKU</th>
-                    <th className="py-3 px-3 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">Qty</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Unit Price</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (USD)</th>
-                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">Subtotal (THB)</th>
+                    <th className="py-3 px-3 text-center text-[9px] font-bold uppercase tracking-widest text-stone-400">จำนวน</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">ราคาต่อหน่วย</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">รวมย่อย (USD)</th>
+                    <th className="py-3 px-3 text-right text-[9px] font-bold uppercase tracking-widest text-stone-400">รวมย่อย (บาท)</th>
                     <th className="py-3 px-6 w-12"></th>
                   </tr>
                 </thead>
@@ -483,7 +483,7 @@ export default function PurchasePage() {
                           type="text"
                           value={item.name}
                           onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                          placeholder="Item name"
+                          placeholder="ชื่อสินค้า"
                           className="w-full text-sm font-semibold text-stone-900 bg-transparent border-b border-stone-200 focus:border-orange-400 outline-none py-1 px-2 rounded transition-colors"
                         />
                       </td>
@@ -543,15 +543,15 @@ export default function PurchasePage() {
           {/* Logistics Section - 3 Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
-            {/* China Domestic */}
+            {/* ในประเทศจีน */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-amber-200 transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20">
                   <Truck className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-stone-900">China Domestic</h4>
-                  <p className="text-[10px] text-stone-400">Freight within China</p>
+                  <h4 className="text-xs font-bold text-stone-900">ในประเทศจีน</h4>
+                  <p className="text-[10px] text-stone-400">ค่าขนส่งในประเทศจีน</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -580,15 +580,15 @@ export default function PurchasePage() {
               </div>
             </div>
 
-            {/* China-Thailand */}
+            {/* จีน-ไทย */}
             <div className="bg-white rounded-2xl border-2 border-dashed border-stone-300 p-5 hover:border-blue-300 transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
                   <PlaneTakeoff className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-stone-900">China-Thailand</h4>
-                  <p className="text-[10px] text-stone-400">International shipping</p>
+                  <h4 className="text-xs font-bold text-stone-900">จีน-ไทย</h4>
+                  <p className="text-[10px] text-stone-400">ค่าขนส่งระหว่างประเทศ</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -617,15 +617,15 @@ export default function PurchasePage() {
               </div>
             </div>
 
-            {/* Local Delivery */}
+            {/* ขนส่งในประเทศ */}
             <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md hover:border-green-200 transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/20">
                   <Warehouse className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-stone-900">Local Delivery</h4>
-                  <p className="text-[10px] text-stone-400">Thailand warehouse</p>
+                  <h4 className="text-xs font-bold text-stone-900">ขนส่งในประเทศ</h4>
+                  <p className="text-[10px] text-stone-400">คลังในประเทศไทย</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -659,11 +659,11 @@ export default function PurchasePage() {
           <section className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm">
             <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400 flex items-center gap-2 mb-3">
               <Info className="w-3 h-3" />
-              Internal Vendor Notes
+              หมายเหตุภายในเกี่ยวกับผู้จำหน่าย
             </label>
             <textarea 
               className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-sm text-stone-900 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all placeholder:text-stone-400"
-              placeholder="Mention specific packaging requirements, quality control standards, or delivery instructions..."
+              placeholder="ระบุข้อกำหนดการบรรจุ มาตรฐานการตรวจคุณภาพ หรือคำแนะนำการจัดส่ง"
               rows={3}
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -677,19 +677,19 @@ export default function PurchasePage() {
         <div className="lg:col-span-4">
           <div className="sticky top-24 space-y-4">
             
-            {/* Order Summary Card */}
+            {/* สรุปคำสั่งซื้อ Card */}
             <div className="bg-white rounded-3xl border-2 border-stone-200 p-6 shadow-xl shadow-stone-200/50">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                   <CreditCard className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-base font-extrabold text-stone-900 tracking-tight">Order Summary</h3>
+                <h3 className="text-base font-extrabold text-stone-900 tracking-tight">สรุปคำสั่งซื้อ</h3>
               </div>
 
               <div className="space-y-3">
                 {/* Items — show both USD input and THB equivalent */}
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Items Subtotal</span>
+                  <span className="text-stone-500 font-medium">รวมรายการสินค้า</span>
                   <div className="text-right">
                     <span className="font-bold text-stone-400 text-xs mr-2">USD</span>
                     <span className="font-bold text-stone-900">
@@ -704,7 +704,7 @@ export default function PurchasePage() {
 
                 {/* Logistics */}
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Logistics Total</span>
+                  <span className="text-stone-500 font-medium">รวมค่าขนส่ง</span>
                   <div className="text-right">
                     <span className="font-bold text-orange-600">
                       ฿{logisticsTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}
@@ -714,7 +714,7 @@ export default function PurchasePage() {
 
                 {/* Tax */}
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-stone-500 font-medium">Est. Tax (7%)</span>
+                  <span className="text-stone-500 font-medium">ภาษีประมาณการ (7%)</span>
                   <span className="font-bold text-orange-600">
                     ฿{calculateTax().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                   </span>
@@ -725,7 +725,7 @@ export default function PurchasePage() {
                 {/* GRAND TOTAL — Always THB */}
                 <div className="py-4 px-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
                   <div className="flex justify-between items-baseline mb-1">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Grand Total (THB)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">รวมทั้งสิ้น (THB)</span>
                     <span className="text-2xl font-extrabold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                       ฿{calculateGrandTotal().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                     </span>
@@ -737,7 +737,7 @@ export default function PurchasePage() {
                   </div>
                 </div>
 
-                {/* ACTION BUTTONS — Inside Order Summary at the bottom */}
+                {/* ACTION BUTTONS — Inside สรุปคำสั่งซื้อ at the bottom */}
                 <div className="mt-6 pt-5 border-t-2 border-dashed border-stone-200">
                   {/* Desktop: Side by side */}
                   <div className="hidden md:flex flex-col gap-2.5">
@@ -746,14 +746,14 @@ export default function PurchasePage() {
                       onClick={handleConfirm}
                     >
                       <Send className="w-4 h-4" />
-                      Confirm Order
+                      ยืนยันคำสั่งซื้อ
                     </button>
                     <button 
                       className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-semibold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
                       onClick={handleSaveDraft}
                     >
                       <Save className="w-4 h-4" />
-                      Save as Draft
+                      บันทึกแบบร่าง
                     </button>
                   </div>
 
@@ -764,14 +764,14 @@ export default function PurchasePage() {
                       onClick={handleConfirm}
                     >
                       <Send className="w-4 h-4" />
-                      Confirm Order
+                      ยืนยันคำสั่งซื้อ
                     </button>
                     <button 
                       className="w-full h-11 bg-white border-2 border-stone-200 text-stone-700 rounded-xl font-semibold hover:bg-stone-50 hover:border-stone-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2" 
                       onClick={handleSaveDraft}
                     >
                       <Save className="w-4 h-4" />
-                      Save as Draft
+                      บันทึกแบบร่าง
                     </button>
                   </div>
                 </div>
@@ -785,7 +785,7 @@ export default function PurchasePage() {
                   <Info className="w-3.5 h-3.5 text-amber-500" />
                 </div>
                 <p className="text-[11px] font-medium text-amber-800 leading-relaxed">
-                  Prices are calculated using the current exchange rate. Final settlement occurs upon inventory receipt.
+                  ราคาคำนวณจากอัตราแลกเปลี่ยนปัจจุบัน ต้นทุนจริงจะสรุปเมื่อรับสินค้าเข้าคลัง
                 </p>
               </div>
             </div>

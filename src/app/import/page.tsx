@@ -156,7 +156,7 @@ export default function ImportPage() {
 
       // Check required fields
       if (!hasRequiredFields(row, headers, importType)) {
-        errors.push({ row: rowNumber, message: 'Missing required fields', code: 'MISSING_REQUIRED' });
+        errors.push({ row: rowNumber, message: 'ข้อมูลที่จำเป็นไม่ครบ', code: 'MISSING_REQUIRED' });
         skipped++;
         continue;
       }
@@ -363,7 +363,7 @@ export default function ImportPage() {
           {/* Mapping Progress */}
           <div style={{ padding: '1rem', backgroundColor: 'var(--surface)', borderRadius: 12, marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontWeight: 600 }}>Schema Mapping</span>
+              <span style={{ fontWeight: 600 }}>จับคู่คอลัมน์</span>
               <span style={{ color: matchedCount === schema.length ? 'var(--success)' : 'var(--warning)' }}>
                 {matchedCount}/{schema.length} fields
               </span>

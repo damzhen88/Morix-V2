@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Receipt, Tag, Truck, Zap, Wrench, Building, CreditCard, Plus, Trash2, DollarSign, Calendar } from 'lucide-react';
+import { X, Receipt, Tag, Truck, Zap, Wrench, Building, CreditCard, Plus, Trash2, DollarSign, Calendar, TrendingUp, Package } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useMutations } from '@/store';
 import { StorageFullError } from '@/lib/local-db';
@@ -12,14 +13,20 @@ interface ExpenseFormModalProps {
   onClose: () => void;
 }
 
-const CATEGORIES = [
-  { id: 'logistics',   label: 'Logistics',    icon: Truck,        color: '#2563EB' },
-  { id: 'facility',    label: 'Facility',     icon: Building,      color: '#7C3AED' },
-  { id: 'utilities',   label: 'Utilities',    icon: Zap,           color: '#D97706' },
-  { id: 'maintenance', label: 'Maintenance',  icon: Wrench,       color: '#DC2626' },
-  { id: 'payroll',     label: 'Payroll',      icon: CreditCard,    color: '#059669' },
-  { id: 'marketing',   label: 'Marketing',    icon: Tag,           color: '#DB2777' },
-  { id: 'admin',      label: 'Admin',         icon: Receipt,      color: '#6B7280' },
+/**
+ * หมวดค่าใช้จ่าย — ต้องตรงกับ ExpenseCategory ใน @/types
+ * เดิมใช้ id ที่ไม่มีในระบบ (logistics/facility/payroll/admin/maintenance)
+ * ตรงกันแค่ 2 จาก 7 ค่า ทำให้กรองแล้วไม่เจอรายการ และบันทึกลงหมวดผิด
+ */
+const CATEGORIES: { id: ExpenseCategory; label: string; icon: LucideIcon; color: string }[] = [
+  { id: 'transport',      label: 'ค่าขนส่ง',        icon: Truck,      color: '#2563EB' },
+  { id: 'warehouse_rent', label: 'ค่าเช่าคลัง',      icon: Building,    color: '#7C3AED' },
+  { id: 'utilities',      label: 'ค่าสาธารณูปโภค',  icon: Zap,         color: '#D97706' },
+  { id: 'salaries',       label: 'เงินเดือน',       icon: CreditCard,  color: '#059669' },
+  { id: 'packer_wages',   label: 'ค่าจ้างแรงงาน',   icon: Wrench,      color: '#DC2626' },
+  { id: 'marketing',      label: 'ค่าการตลาด',     icon: TrendingUp,  color: '#DB2777' },
+  { id: 'office',         label: 'ค่าสำนักงาน',     icon: Package,     color: '#0891B2' },
+  { id: 'miscellaneous',  label: 'อื่นๆ',           icon: Receipt,     color: '#6B7280' },
 ];
 
 const fieldStyle: React.CSSProperties = {
@@ -41,7 +48,7 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
   const { addExpense } = useMutations();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    description: '', category: 'logistics', vendor: '', date: new Date().toISOString().split('T')[0],
+    description: '', category: 'transport', vendor: '', date: new Date().toISOString().split('T')[0],
     amount: '', currency: 'THB', ref: '', note: '',
   });
 
@@ -71,7 +78,7 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
       } as Expense);
 
       toast(`บันทึกค่าใช้จ่าย "${form.description}" แล้ว`, 'success');
-      setForm({ description: '', category: 'logistics', vendor: '', date: new Date().toISOString().split('T')[0], amount: '', currency: 'THB', ref: '', note: '' });
+      setForm({ description: '', category: 'transport', vendor: '', date: new Date().toISOString().split('T')[0], amount: '', currency: 'THB', ref: '', note: '' });
       onClose();
     } catch (err) {
       toast(err instanceof StorageFullError ? err.message : 'บันทึกไม่สำเร็จ', 'error');
@@ -102,8 +109,8 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
               <CatIcon style={{ width: 20, height: 20, color: cat.color }} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>Add Expense</h2>
-              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>Record a business expense</p>
+              <h2 style={{ fontFamily: 'var(--font-headline)', fontWeight: 700, fontSize: '1.125rem', color: 'var(--on-surface)' }}>บันทึกค่าใช้จ่าย</h2>
+              <p style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)', marginTop: 2 }}>บันทึกรายจ่ายของกิจการ</p>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', borderRadius: 10, color: 'var(--on-surface-variant)' }}>
@@ -143,19 +150,19 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
             {/* Description */}
             <div>
               <label style={labelStyle}><Receipt style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />Description *</label>
-              <input style={fieldStyle} placeholder="e.g. China Domestic Freight (PO-2847)"
+              <input style={fieldStyle} placeholder="เช่น ค่าขนส่งในประเทศจีน (PO-2847)"
                 value={form.description} onChange={e => set('description', e.target.value)} />
             </div>
 
             {/* Vendor + Date */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={labelStyle}>Vendor / Payee</label>
-                <input style={fieldStyle} placeholder="e.g. Fast Ship Co."
+                <label style={labelStyle}>ผู้ขาย / ผู้รับเงิน</label>
+                <input style={fieldStyle} placeholder="เช่น ขนส่งเร็ว จำกัด"
                   value={form.vendor} onChange={e => set('vendor', e.target.value)} />
               </div>
               <div>
-                <label style={labelStyle}><Calendar style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />Date</label>
+                <label style={labelStyle}><Calendar style={{ width: 10, height: 10, display: 'inline', marginRight: 4 }} />วันที่</label>
                 <input type="date" style={fieldStyle} value={form.date} onChange={e => set('date', e.target.value)} />
               </div>
             </div>
@@ -173,7 +180,7 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>Currency</label>
+                <label style={labelStyle}>สกุลเงิน</label>
                 <div style={{ position: 'relative' }}>
                   <select style={{ ...fieldStyle, paddingRight: '2.5rem', cursor: 'pointer', appearance: 'none' }}
                     value={form.currency} onChange={e => set('currency', e.target.value)}>
@@ -192,9 +199,9 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
 
             {/* Note */}
             <div>
-              <label style={labelStyle}>Notes</label>
+              <label style={labelStyle}>หมายเหตุ</label>
               <textarea style={{ ...fieldStyle, resize: 'vertical', minHeight: 64 }}
-                placeholder="Additional notes…"
+                placeholder="หมายเหตุเพิ่มเติม"
                 value={form.note} onChange={e => set('note', e.target.value)} />
             </div>
           </div>
@@ -203,7 +210,7 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
           <div style={{ padding: '1rem 2rem 1.5rem', display: 'flex', gap: '0.75rem', borderTop: '1px solid var(--outline-variant)' }}>
             <button type="button" onClick={onClose}
               style={{ flex: 1, padding: '0.875rem', borderRadius: 9999, border: '1.5px solid var(--outline)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '0.875rem', color: 'var(--on-surface)' }}>
-              Cancel
+              ยกเลิก
             </button>
             <button type="submit" disabled={loading}
               style={{
@@ -215,8 +222,8 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
                 transition: 'all 150ms',
               }}>
               {loading ? (
-                <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />Saving…</>
-              ) : 'Add Expense'}
+                <><span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />กำลังบันทึก…</>
+              ) : 'บันทึกค่าใช้จ่าย'}
             </button>
           </div>
         </form>

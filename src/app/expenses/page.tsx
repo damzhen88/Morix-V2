@@ -3,28 +3,29 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '@/store';
 import { useFormModal } from '@/components/ui/FormModalContext';
-import { Receipt, Plus, Download, Search, CreditCard, Truck, Package, Zap, Wrench, Building, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { Receipt, Plus, Download, Search, CreditCard, Truck, Package, Zap, Wrench, Building, TrendingUp, ChevronRight } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { formatTHB, formatThaiDate } from '@/lib/format';
+import { exportRows } from '@/lib/export-excel';
+import { markBackedUp } from '@/lib/local-db';
+import { useToast } from '@/components/ui/Toast';
+import { getExpenseCategoryLabel } from '@/lib/utils';
+import type { ExpenseCategory } from '@/types';
 
-const expenses = [
-  { id: 1, date: '2026-03-24', desc: 'China Domestic Freight (PO-2847)',  category: 'logistics', amount: 12000, currency: 'THB', vendor: 'Fast Ship Co.', ref: 'PO-2847' },
-  { id: 2, date: '2026-03-23', desc: 'International Shipping (PO-2846)',   category: 'logistics', amount: 85000, currency: 'THB', vendor: 'KERRY Express', ref: 'PO-2846' },
-  { id: 3, date: '2026-03-22', desc: 'Warehouse Rental — March 2026',     category: 'facility',  amount: 45000, currency: 'THB', vendor: 'Siam Logistics', ref: '' },
-  { id: 4, date: '2026-03-21', desc: 'Electricity Bill — Feb 2026',       category: 'utilities', amount: 12800, currency: 'THB', vendor: 'MEA', ref: '' },
-  { id: 5, date: '2026-03-20', desc: 'Office Supplies Restock',            category: 'admin',     amount: 3500,  currency: 'THB', vendor: 'Siam Stationery', ref: '' },
-  { id: 6, date: '2026-03-19', desc: 'Equipment Repair — Forklift',         category: 'maintenance', amount: 18500, currency: 'THB', vendor: 'Thai Machinery', ref: '' },
-  { id: 7, date: '2026-03-18', desc: 'Staff Salary — March (Batch 1)',     category: 'payroll',   amount: 180000, currency: 'THB', vendor: 'Internal', ref: '' },
-  { id: 8, date: '2026-03-17', desc: 'Marketing Campaign — Google Ads',    category: 'marketing', amount: 25000, currency: 'THB', vendor: 'Google Ads', ref: '' },
-];
-
-const categories = [
-  { id: 'all',         label: 'All',         icon: Receipt,     color: 'var(--on-surface-variant)' },
-  { id: 'logistics',   label: 'Logistics',    icon: Truck,       color: '#2563EB' },
-  { id: 'facility',    label: 'Facility',     icon: Building,    color: '#7C3AED' },
-  { id: 'utilities',   label: 'Utilities',    icon: Zap,         color: '#D97706' },
-  { id: 'maintenance', label: 'Maintenance', icon: Wrench,      color: '#DC2626' },
-  { id: 'payroll',     label: 'Payroll',      icon: CreditCard,  color: '#059669' },
-  { id: 'marketing',    label: 'Marketing',    icon: TrendingUp,  color: '#DB2777' },
-  { id: 'admin',       label: 'Admin',        icon: Package,     color: '#6B7280' },
+/**
+ * หมวดค่าใช้จ่าย — ต้องตรงกับ ExpenseCategory ใน @/types
+ * เดิมใช้ id ที่ไม่มีในระบบ (logistics/facility/payroll/admin/maintenance)
+ * ตรงกันแค่ 2 จาก 7 ค่า ทำให้กรองแล้วไม่เจอรายการ และบันทึกลงหมวดผิด
+ */
+const categories: { id: ExpenseCategory; label: string; icon: LucideIcon; color: string }[] = [
+  { id: 'transport',      label: 'ค่าขนส่ง',        icon: Truck,      color: '#2563EB' },
+  { id: 'warehouse_rent', label: 'ค่าเช่าคลัง',      icon: Building,    color: '#7C3AED' },
+  { id: 'utilities',      label: 'ค่าสาธารณูปโภค',  icon: Zap,         color: '#D97706' },
+  { id: 'salaries',       label: 'เงินเดือน',       icon: CreditCard,  color: '#059669' },
+  { id: 'packer_wages',   label: 'ค่าจ้างแรงงาน',   icon: Wrench,      color: '#DC2626' },
+  { id: 'marketing',      label: 'ค่าการตลาด',     icon: TrendingUp,  color: '#DB2777' },
+  { id: 'office',         label: 'ค่าสำนักงาน',     icon: Package,     color: '#0891B2' },
+  { id: 'miscellaneous',  label: 'อื่นๆ',           icon: Receipt,     color: '#6B7280' },
 ];
 
 export default function ExpensesPage() {
@@ -32,6 +33,7 @@ export default function ExpensesPage() {
   const [cat, setCat]         = useState('all');
   const { openForm } = useFormModal();
   const { state } = useApp();
+  const { toast } = useToast();
 
 
   // Load data from store
@@ -49,7 +51,28 @@ export default function ExpensesPage() {
 
   const total = filtered.reduce((s, e) => s + getAmount(e), 0);
 
-  const catData = categories.filter(c => c.id !== 'all').map(c => ({
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast('ไม่มีรายการให้ส่งออก', 'info');
+      return;
+    }
+    exportRows(
+      filtered.map(e => ({
+        'วันที่': e.date,
+        'รายละเอียด': getDesc(e),
+        'หมวด': getExpenseCategoryLabel(e.category),
+        'ผู้ขาย/ผู้รับเงิน': e.vendor ?? '',
+        'จำนวนเงิน': getAmount(e),
+        'หมายเหตุ': e.notes ?? '',
+      })),
+      'ค่าใช้จ่าย',
+      'morix-expenses'
+    );
+    markBackedUp();
+    toast('ส่งออกไฟล์ Excel แล้ว', 'success');
+  };
+
+  const catData = categories.map(c => ({
     ...c,
     amount: filtered.filter(e => e.category === c.id).reduce((s, e) => s + getAmount(e), 0),
   }));
@@ -62,17 +85,17 @@ export default function ExpensesPage() {
         <div>
           <div className="page-header-eyebrow">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
-            Financial Tracking
+            ติดตามค่าใช้จ่าย
           </div>
-          <h1 className="page-header-title">Expenses</h1>
-          <p className="page-header-subtitle">March 2026 — ฿{total.toLocaleString()} total expenses</p>
+          <h1 className="page-header-title">ค่าใช้จ่าย</h1>
+          <p className="page-header-subtitle">{filtered.length} รายการ · รวม {formatTHB(total)}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }} onClick={() => alert("Export: Coming soon — expenses will be exported as CSV")}>
+          <button className="btn-primary" style={{ background: "var(--surface-container-high)", color: "var(--on-surface)", boxShadow: "none" }} onClick={handleExport}>
             <Download className="w-4 h-4" />
-            Export
+            ส่งออก Excel
           </button>
-          <button className="btn-primary" onClick={() => openForm('expense')}><Plus className="w-4 h-4" />Add Expense</button>
+          <button className="btn-primary" onClick={() => openForm('expense')}><Plus className="w-4 h-4" />บันทึกค่าใช้จ่าย</button>
         </div>
       </div>
 
@@ -102,7 +125,7 @@ export default function ExpensesPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
         <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
-          <input className="input-field-search w-full" placeholder="Search expenses…"
+          <input className="input-field-search w-full" placeholder="ค้นหาค่าใช้จ่าย…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="card-surface px-5 py-3 rounded-xl flex items-center gap-3">
@@ -205,8 +228,8 @@ export default function ExpensesPage() {
           <div className="empty-state-icon">
             <Receipt className="w-8 h-8" style={{ color: 'var(--primary)' }} />
           </div>
-          <h3 className="empty-state-title">No expenses found</h3>
-          <p className="empty-state-desc">Try adjusting your search or category filter.</p>
+          <h3 className="empty-state-title">ไม่พบรายการค่าใช้จ่าย</h3>
+          <p className="empty-state-desc">ลองเปลี่ยนคำค้นหาหรือหมวดที่เลือก</p>
         </div>
       )}
     </div>

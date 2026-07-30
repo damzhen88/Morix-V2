@@ -11,19 +11,19 @@ import { deleteImage as deleteLocalImage } from '@/lib/local-images';
 import { useApp } from '@/store';
 
 const CATEGORY_MAP: Record<string, string> = {
-  'ASA': 'Wall Panels',
+  'ASA': 'แผงผนัง',
   'WPC': 'Flooring',
   'SPC': 'Surface',
   'ACCESSORIES': 'Accessories',
   'CEILING': 'Ceiling',
 };
 
-const CATEGORIES = ['All', 'Wall Panels', 'Flooring', 'Surface', 'Accessories', 'Ceiling'];
+const CATEGORIES = ['ทั้งหมด', 'แผงผนัง', 'พื้น', 'พื้นผิว', 'อุปกรณ์เสริม', 'ฝ้าเพดาน'];
 
 function getStatusStyle(qty: number, minStock: number) {
-  if (qty === 0) return { bg: 'bg-[var(--surface-container-high)]', text: 'text-[var(--on-surface-variant)]', label: 'Out of Stock' };
-  if (qty <= minStock) return { bg: 'bg-[var(--warning-container)]', text: 'text-[var(--warning)]', label: 'Low Stock' };
-  return { bg: 'bg-[var(--success-container)]', text: 'text-[var(--success)]', label: 'In Stock' };
+  if (qty === 0) return { bg: 'bg-[var(--surface-container-high)]', text: 'text-[var(--on-surface-variant)]', label: 'สินค้าหมด' };
+  if (qty <= minStock) return { bg: 'bg-[var(--warning-container)]', text: 'text-[var(--warning)]', label: 'ใกล้หมด' };
+  return { bg: 'bg-[var(--success-container)]', text: 'text-[var(--success)]', label: 'มีสินค้า' };
 }
 
 // Product image placeholder component
@@ -35,13 +35,13 @@ function ProductImage({ name, sku, imageUrl }: { name?: string; sku?: string; im
   const colors = ['#FEF3C7', '#DBEAFE', '#D1FAE5', '#EDE9FE', '#FCE7F3'];
   const colorIndex = (sku || name || '').charCodeAt(0) % colors.length;
   return (
-    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: colors[colorIndex] }}>
+    <div className="w-full h-full flex รายการ-center justify-center" style={{ backgroundColor: colors[colorIndex] }}>
       <span className="font-headline font-extrabold text-2xl text-[var(--on-surface-variant)] opacity-40">{initial}</span>
     </div>
   );
 }
 
-export default function ProductsPage() {
+export default function สินค้าPage() {
   const { state, dispatch } = useApp();
   const [search, setSearch]         = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -112,31 +112,31 @@ export default function ProductsPage() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--surface)' }}>
 
       {/* Page Header */}
-      <div className="page-header flex items-start justify-between gap-4 flex-wrap">
+      <div className="page-header flex รายการ-start justify-between gap-4 flex-wrap">
         <div>
           <div className="page-header-eyebrow">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
-            Product Catalog
+            รายการสินค้า
           </div>
-          <h1 className="page-header-title">Products</h1>
+          <h1 className="page-header-title">สินค้า</h1>
           <p className="page-header-subtitle">
-            {filtered.length} of {products.length} items
+            {filtered.length} of {products.length} รายการ
           </p>
         </div>
         <button className="btn-primary touch-action" onClick={() => openForm('product')}>
           <Plus className="w-4 h-4" />
-          Add Product
+          เพิ่มสินค้า
         </button>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row รายการ-start sm:รายการ-center gap-3 mb-6">
         {/* Live search */}
         <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--on-surface-variant)]" />
           <input
             className="input-field-search w-full"
-            placeholder="Search by name or SKU…"
+            placeholder="ค้นหาชื่อสินค้าหรือ SKU…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -146,7 +146,7 @@ export default function ProductsPage() {
         <div className="flex gap-2 flex-wrap flex-shrink-0">
           {CATEGORIES.map(cat => (
             <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 touch-action ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-bold transition-all flex รายการ-center gap-1.5 touch-action ${
                 activeCategory === cat
                   ? 'signature-gradient text-white shadow-sm'
                   : 'bg-[var(--surface-container-low)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]'
@@ -164,7 +164,7 @@ export default function ProductsPage() {
         </div>
 
         {/* View toggle — DESKTOP ONLY */}
-        <div className="hidden md:flex items-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-xl flex-shrink-0">
+        <div className="hidden md:flex รายการ-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-xl flex-shrink-0">
           <button onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[var(--surface-container-lowest)] shadow-sm text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`}>
             <Grid className="w-4 h-4" />
@@ -196,7 +196,7 @@ export default function ProductsPage() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex รายการ-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="font-headline font-semibold text-sm text-[var(--on-surface)] leading-tight truncate">
                           {product.name_th || '—'}
@@ -218,7 +218,7 @@ export default function ProductsPage() {
                             <div className="absolute right-0 top-10 bg-[var(--surface-container-lowest)] rounded-xl shadow-xl border border-[var(--outline-variant)] py-1 min-w-[160px] z-20 overflow-hidden">
                               {[
                                 { icon: Eye,      label: 'View Details', action: 'view' },
-                                { icon: Edit,     label: 'Edit Product', action: 'edit' },
+                                { icon: Edit,     label: 'แก้ไขสินค้า', action: 'edit' },
                                 { icon: Copy,     label: 'Duplicate',   action: 'duplicate' },
                                 { icon: Archive,  label: 'Archive',     action: 'archive' },
                                 { icon: Trash2,   label: 'Delete',      action: 'delete', danger: true },
@@ -227,7 +227,7 @@ export default function ProductsPage() {
                                 return (
                                   <button key={item.action}
                                     onClick={() => handleMenuAction(item.action, product.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors touch-action ${
+                                    className={`w-full flex รายการ-center gap-3 px-4 py-2.5 text-sm transition-colors touch-action ${
                                       (item as any).danger
                                         ? 'text-[var(--error)] hover:bg-[var(--error-container)]'
                                         : 'text-[var(--on-surface)] hover:bg-[var(--surface-container-low)]'
@@ -244,7 +244,7 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Category + Stock badge */}
-                    <div className="flex items-center gap-2 mt-1.5">
+                    <div className="flex รายการ-center gap-2 mt-1.5">
                       <span className="text-xs text-[var(--on-surface-variant)]">{catLabel}</span>
                       <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>
                         {statusStyle.label}
@@ -252,7 +252,7 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Price + Stock qty */}
-                    <div className="flex items-end justify-between mt-2">
+                    <div className="flex รายการ-end justify-between mt-2">
                       <div>
                         <p className="font-headline font-bold text-base text-[var(--on-surface)]">
                           {formatTHB(product.price_thb ?? 0)}
@@ -296,7 +296,7 @@ export default function ProductsPage() {
                       <div className="absolute right-0 top-8 bg-[var(--surface-container-lowest)] rounded-xl shadow-xl border border-[var(--outline-variant)] py-1 min-w-[160px] z-20 overflow-hidden">
                         {[
                           { icon: Eye,      label: 'View Details',  action: 'view' },
-                          { icon: Edit,     label: 'Edit Product',  action: 'edit' },
+                          { icon: Edit,     label: 'แก้ไขสินค้า',  action: 'edit' },
                           { icon: Copy,     label: 'Duplicate',     action: 'duplicate' },
                           { icon: Archive,  label: 'Archive',       action: 'archive' },
                           { icon: Trash2,   label: 'Delete',        action: 'delete', danger: true },
@@ -305,7 +305,7 @@ export default function ProductsPage() {
                           return (
                             <button key={item.action}
                               onClick={() => handleMenuAction(item.action, product.id)}
-                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                              className={`w-full flex รายการ-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                                 (item as any).danger
                                   ? 'text-[var(--error)] hover:bg-[var(--error-container)]'
                                   : 'text-[var(--on-surface)] hover:bg-[var(--surface-container-low)]'
@@ -338,16 +338,16 @@ export default function ProductsPage() {
                     <p className="text-[10px] font-mono text-[var(--on-surface-variant)] mt-0.5">{product.sku || '—'}</p>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex รายการ-center justify-between">
                     <span className="text-xs text-[var(--on-surface-variant)]">{catLabel}</span>
                     <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>
                       {statusStyle.label}
                     </span>
                   </div>
 
-                  <div className="flex items-end justify-between pt-2 border-t border-[var(--outline-variant)]">
+                  <div className="flex รายการ-end justify-between pt-2 border-t border-[var(--outline-variant)]">
                     <div>
-                      <span className="text-[10px] text-[var(--on-surface-variant)]">Unit price</span>
+                      <span className="text-[10px] text-[var(--on-surface-variant)]">ราคาต่อหน่วย</span>
                       <p className="font-headline font-bold text-lg text-[var(--on-surface)]">
                         {formatTHB(product.price_thb ?? 0)}
                       </p>
@@ -369,11 +369,11 @@ export default function ProductsPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-[var(--surface-container-low)]">
-                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Product</th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Category</th>
-                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Stock</th>
-                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Price</th>
-                <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Status</th>
+                <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">สินค้า</th>
+                <th className="px-4 py-4 text-left text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">หมวดหมู่</th>
+                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">สต็อก</th>
+                <th className="px-4 py-4 text-right text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">ราคา</th>
+                <th className="px-4 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">สถานะ</th>
                 <th className="px-6 py-4 w-12"></th>
               </tr>
             </thead>
@@ -384,7 +384,7 @@ export default function ProductsPage() {
                 return (
                   <tr key={product.id} className="hover:bg-[var(--surface-container-low)] transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex รายการ-center gap-3">
                         <div className="w-10 h-10 rounded-xl overflow-hidden">
                           <ProductImage
                             name={product.name_th}
@@ -409,7 +409,7 @@ export default function ProductsPage() {
                       <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>{statusStyle.label}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex รายการ-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {['view', 'edit', 'duplicate', 'archive', 'delete'].map(action => {
                           const icons: Record<string, any> = {
                             view: Eye, edit: Edit, duplicate: Copy, archive: Archive, delete: Trash2
@@ -443,13 +443,13 @@ export default function ProductsPage() {
           <div className="empty-state-icon">
             <Package className="w-8 h-8" style={{ color: 'var(--primary)' }} />
           </div>
-          <h3 className="empty-state-title">No products found</h3>
+          <h3 className="empty-state-title">ไม่พบสินค้า</h3>
           <p className="empty-state-desc">
-            Try adjusting your search or filter, or add your first product to get started.
+            ลองเปลี่ยนคำค้นหาหรือตัวกรอง หรือเพิ่มสินค้าชิ้นแรกเพื่อเริ่มต้น
           </p>
           <button className="btn-primary touch-action" onClick={() => openForm("product")}>
             <Plus className="w-4 h-4" />
-            Add First Product
+            เพิ่มสินค้าชิ้นแรก
           </button>
         </div>
       )}

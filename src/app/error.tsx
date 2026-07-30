@@ -33,7 +33,7 @@ export default function Error({
           </div>
 
           <h1 className="font-headline text-2xl font-extrabold text-[var(--on-surface)] mb-2">
-            Something went wrong
+            เกิดข้อผิดพลาด
           </h1>
           <p className="text-sm text-[var(--on-surface-variant)] mb-6 leading-relaxed">
             We encountered an unexpected error. Our team has been notified.
@@ -50,11 +50,11 @@ export default function Error({
               className="btn-primary"
             >
               <RefreshCw className="w-4 h-4" />
-              Try Again
+              ลองอีกครั้ง
             </button>
             <Link href="/" className="btn-secondary">
               <Home className="w-4 h-4" />
-              Go to Dashboard
+              กลับหน้าแรก
             </Link>
           </div>
         </div>

@@ -11,11 +11,11 @@ interface CreateMenuProps {
 }
 
 const ITEMS = [
-  { label: 'New Product',          desc: 'Add to catalog & inventory', icon: Package,      key: 'product'  as const, color: '#F97316' },
-  { label: 'New Sale',            desc: 'Record a customer sale',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
-  { label: 'New Client',          desc: 'Add a business partner',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
-  { label: 'New Purchase Order', desc: 'Procure import products',     icon: ShoppingCart, key: 'purchase' as const, color: '#D97706', navigate: '/purchase' as string },
-  { label: 'New Expense',        desc: 'Record a business expense',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
+  { label: 'เพิ่มสินค้า',          desc: 'เพิ่มเข้าคลังสินค้า', icon: Package,      key: 'product'  as const, color: '#F97316' },
+  { label: 'เปิดบิลขาย',            desc: 'บันทึกการขายให้ลูกค้า',    icon: TrendingUp,  key: 'sale'     as const, color: '#2563EB' },
+  { label: 'เพิ่มลูกค้า',          desc: 'เพิ่มลูกค้าเข้าระบบ',    icon: Users,       key: 'client'   as const, color: '#7C3AED' },
+  { label: 'เปิดใบสั่งซื้อ', desc: 'สั่งซื้อสินค้านำเข้า',     icon: ShoppingCart, key: 'purchase' as const, color: '#D97706', navigate: '/purchase' as string },
+  { label: 'บันทึกค่าใช้จ่าย',        desc: 'บันทึกรายจ่ายของกิจการ',    icon: Receipt,      key: 'expense'  as const, color: '#DC2626' },
 ];
 
 export default function CreateMenu({ isOpen, onClose, onOpenForm, onNavigate }: CreateMenuProps) {
@@ -64,7 +64,7 @@ export default function CreateMenu({ isOpen, onClose, onOpenForm, onNavigate }: 
                 letterSpacing: '0.08em', color: 'var(--on-surface-variant)',
               }}
             >
-              Create New
+              สร้างใหม่
             </span>
             <button
               onClick={onClose}

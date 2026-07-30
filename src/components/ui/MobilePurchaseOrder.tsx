@@ -62,8 +62,8 @@ export default function MobilePurchaseOrder() {
   // ITEMS STATE
   // ========================================
   const [items, setItems] = useState<LineItem[]>([
-    { id: 1, name: 'Ultra-Slim Aluminum Chassis', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
-    { id: 2, name: 'Glass Fiber PCB Panel', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
+    { id: 1, name: 'โครงอลูมิเนียมบาง', sku: 'CH-AS-092', quantity: 150, unit_price: 45.00 },
+    { id: 2, name: 'แผ่น PCB ไฟเบอร์กลาส', sku: 'PCB-GF-44', quantity: 300, unit_price: 12.50 },
   ]);
 
   // ========================================
@@ -414,14 +414,14 @@ export default function MobilePurchaseOrder() {
       
       {sections.logistics && (
         <div className="bg-white p-4 space-y-3">
-          {/* China Domestic */}
+          {/* ในประเทศจีน */}
           <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-100">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center flex-shrink-0">
                 <Truck className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-stone-900 truncate">China Domestic</p>
+                <p className="text-sm font-bold text-stone-900 truncate">ในประเทศจีน</p>
                 <p className="text-xs text-stone-400">ขนส่งในประเทศจีน</p>
               </div>
               <select value={logistics.chinaDomestic.currency}
@@ -460,14 +460,14 @@ export default function MobilePurchaseOrder() {
               placeholder="0.00" className="w-full h-12 bg-white border-2 border-dashed border-stone-300 rounded-xl px-4 text-lg font-semibold" />
           </div>
 
-          {/* Local Delivery */}
+          {/* ขนส่งในประเทศ */}
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
                 <Warehouse className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-stone-900 truncate">Local Delivery</p>
+                <p className="text-sm font-bold text-stone-900 truncate">ขนส่งในประเทศ</p>
                 <p className="text-xs text-stone-400">ขนส่งในประเทศไทย</p>
               </div>
               <select value={logistics.localDelivery.currency}

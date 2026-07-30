@@ -221,7 +221,7 @@ export default function ClientFormModal({ isOpen, onClose, customer }: ClientFor
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
               <div>
                 <label style={labelStyle}><Mail style={{ width: 12, height: 12, display: 'inline', marginRight: 4 }} />อีเมล</label>
-                <input type="email" style={fieldStyle} placeholder="contact@company.co.th"
+                <input type="email" style={fieldStyle} placeholder="contact@example.co.th"
                   value={form.email} onChange={e => set('email', e.target.value)} />
               </div>
               <div>
