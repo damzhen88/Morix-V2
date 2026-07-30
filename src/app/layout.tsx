@@ -4,6 +4,7 @@ import "./globals.css";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AppProvider } from "@/store";
 import { ToastProvider } from "@/components/ui/Toast";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 
 /**
  * Sarabun — ฟอนต์ไทยที่ next/font โฮสต์เองบนโดเมนเรา
@@ -30,6 +31,15 @@ export const metadata: Metadata = {
     title: "MORIX",
     statusBarStyle: "default",
   },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    // iOS ใช้ตัวนี้ตอนเพิ่มลงหน้าจอโฮม และไม่ทำมุมมนให้เอง
+    // จึงต้องมีกรอบมนมาในไฟล์รูปแล้ว
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   formatDetection: {
     // เบอร์โทรในตารางไม่ต้องให้ iOS แปลงเป็นลิงก์เอง สีจะเพี้ยนจากดีไซน์
     telephone: false,
@@ -51,10 +61,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={sarabun.variable}>
+      <head>
+        {/*
+          Next.js 16 ปล่อยเฉพาะ mobile-web-app-capable (ชื่อมาตรฐานใหม่)
+          ซึ่ง iOS 16.4+ รองรับ แต่ iOS รุ่นเก่ากว่านั้นอ่านแค่ชื่อเดิม
+          ถ้าไม่มีตัวนี้ เปิดจากหน้าจอโฮมจะยังเห็นแถบ Safari
+        */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+      </head>
       <body className="antialiased">
         <AppProvider>
           <ToastProvider>
             <DashboardLayout>{children}</DashboardLayout>
+            <InstallPrompt />
           </ToastProvider>
         </AppProvider>
       </body>
