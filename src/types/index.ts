@@ -162,7 +162,14 @@ export interface SalesOrder {
   product_cost_thb: number;
   gross_profit: number;
   net_profit: number;
-  payment_status: 'unpaid' | 'deposit' | 'paid';
+
+  // การชำระเงิน — วันที่เปิดบิลและเงื่อนไขเครดิต
+  order_date: string;
+  /** 0 = เงินสด (ครบกำหนดวันเดียวกับที่เปิดบิล) */
+  credit_term_days: number;
+  /** เก็บจริงไม่คำนวณสด เพราะต่อรองใหม่ได้ต่อบิล และการแก้เครดิตของลูกค้าต้องไม่เลื่อนบิลย้อนหลัง */
+  due_date?: string | null;
+
   notes?: string;
   images: OrderImage[];
   created_by: string;
@@ -171,8 +178,59 @@ export interface SalesOrder {
 }
 
 // =======================
+// PAYMENT TYPES
+// =======================
+
+export type PaymentMethod = 'cash' | 'transfer' | 'cheque' | 'card';
+
+/**
+ * การรับเงิน 1 ครั้ง — ตารางเดียวรองรับทั้งมัดจำ แบ่งชำระ และปิดยอด
+ *
+ * ไม่มีฟิลด์ "ประเภท" (มัดจำ/งวด/ปิดยอด) โดยเจตนา เพราะอนุมานจากลำดับได้:
+ * แถวแรกของบิล = มัดจำ, ถัดไป = งวดที่ N, แถวที่ปิดยอดพอดี = ปิดยอด
+ * ถ้าเก็บเป็นฟิลด์จะเสี่ยงได้ข้อมูลขัดกัน เช่นแถวที่ระบุ "มัดจำ" แต่เป็นการจ่ายครั้งที่ 3
+ */
+export interface Payment {
+  id: string;
+  sales_order_id: string;
+  /** วันที่รับเงินจริง (YYYY-MM-DD) — ไม่ใช่ created_at */
+  paid_at: string;
+  amount_thb: number;
+  method: PaymentMethod;
+  /** เลขที่อ้างอิง / เลขเช็ค */
+  reference_no?: string;
+  note?: string;
+  /** รูปสลิปเก็บใน IndexedDB ไม่ได้เก็บ URL ไว้เพราะ object URL สร้างใหม่ทุกครั้งที่แสดง */
+  has_slip: boolean;
+  created_at: string;
+}
+
+// =======================
 // CUSTOMER/CRM TYPES
 // =======================
+
+export type CustomerTier = 'gold' | 'silver' | 'bronze';
+
+export interface Customer {
+  id: string;
+  code: string;
+  name: string;
+  company_name?: string;
+  /** ชื่อผู้ติดต่อ */
+  contact?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  province?: string;
+  tax_id?: string;
+  customer_type: CustomerType;
+  tier: CustomerTier;
+  /** เครดิตกี่วัน — 0 = เงินสด ใช้เป็นค่าตั้งต้นเวลาเปิดบิลใหม่ */
+  credit_term_days: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export type DealStage = 'inquiry' | 'quoted' | 'paid' | 'shipped';
 

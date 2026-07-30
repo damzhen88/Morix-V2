@@ -6,7 +6,11 @@ import {
   Upload, Image, Trash2, Plus, CheckCircle, AlertCircle, GripVertical
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { api, uploadImage, deleteImage } from '@/lib/supabase';
+import { useMutations } from '@/store';
+import { StorageFullError } from '@/lib/local-db';
+import { saveImage, deleteImage as deleteLocalImage, imageKey } from '@/lib/local-images';
+import { v4 as uuidv4 } from 'uuid';
+import type { Product, ProductCategory, ProductUnit } from '@/types';
 
 interface ProductImageItem {
   id: string;
@@ -281,6 +285,7 @@ function ImageUploadZone({ images, onChange, onUpload, onRemove, disabled }: {
 // ── Main Modal ──────────────────────────────────────────
 export default function ProductFormModal({ isOpen, onClose }: ProductFormModalProps) {
   const { toast } = useToast();
+  const { addProduct } = useMutations();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<ProductImageItem[]>([]);
   const [form, setForm] = useState({
@@ -291,42 +296,32 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // Upload a single image to Supabase Storage
+  // เก็บรูปลง IndexedDB บนเครื่อง (ย่อและบีบอัดให้อัตโนมัติ)
   const handleImageUpload = useCallback(async (img: ProductImageItem) => {
     if (!img.file) return;
 
-    // Mark as uploading
     setImages(prev => prev.map(i => i.id === img.id ? { ...i, uploading: true } : i));
 
     try {
-      const publicUrl = await uploadImage(img.file, 'products', 'images');
-      if (publicUrl) {
-        setImages(prev => prev.map(i =>
-          i.id === img.id
-            ? { ...i, url: publicUrl, uploading: false, file: undefined }
-            : i
-        ));
-      } else {
-        throw new Error('Upload returned no URL');
-      }
+      // url ของรูปคือ key ใน IndexedDB ไม่ใช่ URL จริง — คอมโพเนนต์ที่แสดงใช้ useLocalImage
+      const key = imageKey('product', uuidv4());
+      await saveImage(key, img.file);
+
+      setImages(prev => prev.map(i =>
+        i.id === img.id ? { ...i, url: key, uploading: false, file: undefined } : i
+      ));
     } catch (err) {
       setImages(prev => prev.filter(i => i.id !== img.id));
-      toast('Image upload failed: ' + (err as Error).message, 'error');
+      toast(err instanceof StorageFullError ? err.message : 'บันทึกรูปไม่สำเร็จ', 'error');
     }
   }, [toast]);
 
-  // Remove an image
   const handleImageRemove = useCallback(async (img: ProductImageItem) => {
-    // If it's a server image, delete from storage
-    if (img.url.startsWith('http') && !img.file) {
-      try {
-        await deleteImage(img.url, 'products');
-      } catch {
-        // Ignore delete errors
-      }
-    } else if (img.preview) {
-      URL.revokeObjectURL(img.preview);
+    // รูปที่เก็บลงเครื่องแล้วต้องลบออกจาก IndexedDB ไม่ให้เหลือขยะกินพื้นที่
+    if (img.url.startsWith('product:')) {
+      await deleteLocalImage(img.url);
     }
+    if (img.preview) URL.revokeObjectURL(img.preview);
     setImages(prev => prev.filter(i => i.id !== img.id));
   }, []);
 
@@ -343,35 +338,40 @@ export default function ProductFormModal({ isOpen, onClose }: ProductFormModalPr
 
     setLoading(true);
     try {
-      // Collect uploaded image URLs
-      const imageUrls = images
-        .filter(i => !i.uploading && i.url.startsWith('http'))
-        .map(i => ({ url: i.url, is_primary: false }));
-      if (imageUrls.length > 0) imageUrls[0].is_primary = true;
+      const now = new Date().toISOString();
+      const productImages = images
+        .filter(i => !i.uploading && i.url.startsWith('product:'))
+        .map((i, index) => ({ id: uuidv4(), url: i.url, is_primary: index === 0, created_at: now }));
 
-      const productData = {
+      addProduct({
+        id: '',
         sku: form.sku || `SKU-${Date.now()}`,
         name_th: form.name,
-        category: form.category,
-        unit: form.unit,
+        category: form.category as ProductCategory,
+        unit: form.unit as ProductUnit,
+        spec: {},
         price_thb: parseFloat(form.price) || 0,
         cost_thb: parseFloat(form.cost) || 0,
         reorder_point: parseInt(form.reorderLevel) || 10,
         min_stock: parseInt(form.minStock) || 5,
-        spec: {},
-        images: imageUrls,
+        images: productImages,
         status: form.status === 'active' ? 'active' : 'inactive',
-      };
+        created_at: now,
+        updated_at: now,
+      } as Product);
 
-      await api.createProduct(productData);
-      toast(`Product "${form.name}" created with ${imageUrls.length} image(s)!`, 'success');
+      toast(
+        productImages.length > 0
+          ? `เพิ่มสินค้า "${form.name}" พร้อมรูป ${productImages.length} รูปแล้ว`
+          : `เพิ่มสินค้า "${form.name}" แล้ว`,
+        'success'
+      );
 
-      // Cleanup
       setImages([]);
       setForm({ name: '', sku: '', category: 'ASA', unit: 'piece', price: '', cost: '', reorderLevel: '10', minStock: '5', status: 'active', description: '' });
       onClose();
-    } catch (err: any) {
-      toast('Failed to create product: ' + (err.message || 'Unknown error'), 'error');
+    } catch (err) {
+      toast(err instanceof StorageFullError ? err.message : 'เพิ่มสินค้าไม่สำเร็จ', 'error');
     } finally {
       setLoading(false);
     }

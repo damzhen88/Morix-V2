@@ -5,9 +5,18 @@
  * All operations are explicit - NO guessing.
  */
 
-import { supabase } from './supabase';
+import * as db from './local-db';
+import type { Collection } from './local-db';
 import { ImportType, MORIX_SCHEMA, TYPE_CONFIG, findHeaderMatch } from './morix-schema';
 import { convertValue, validateRow, hasRequiredFields } from './morix-validator';
+
+// ตารางใน schema (สไตล์ SQL) -> collection ใน local-db (camelCase)
+const TABLE_TO_COLLECTION: Record<string, Collection | undefined> = {
+  products: 'products',
+  stock_movements: 'stockMovements',
+  inventory: 'inventory',
+  settings: undefined,
+};
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -133,7 +142,8 @@ export class MorixImportService {
     let skipped = 0;
 
     const config = TYPE_CONFIG[this.type];
-    const tableName = config.table;
+    // ชื่อตารางใน schema เป็นสไตล์ SQL แต่ local-db ใช้ชื่อ camelCase
+    const collection = TABLE_TO_COLLECTION[config.table];
 
     for (let i = 0; i < this.rawData.length; i++) {
       const rawRow = this.rawData[i];
@@ -177,37 +187,31 @@ export class MorixImportService {
         continue;
       }
 
-      // Insert to database
+      // บันทึกลงเครื่อง
       try {
-        let result;
-
-        if (this.type === 'assumptions') {
-          // Upsert settings
-          result = await supabase
-            .from(tableName)
-            .upsert([{ key: this.type, ...record }], { onConflict: 'key' });
-        } else {
-          // Regular insert
-          result = await supabase.from(tableName).insert(record);
-        }
-
-        if (result.error) {
+        if (!collection) {
+          // ชนิดที่ยังไม่มีที่เก็บบนเครื่อง (เช่น settings) — ข้ามไปแทนที่จะทำให้ทั้งไฟล์ล้ม
           this.errors.push({
             row: rowNumber,
-            message: result.error.message,
-            code: result.error.code || 'INSERT_ERROR',
+            message: `ยังไม่รองรับการนำเข้าประเภท "${this.type}"`,
+            code: 'UNSUPPORTED_TYPE',
           });
-          failed++;
-        } else {
-          imported++;
+          skipped++;
+          continue;
         }
-      } catch (err: any) {
+
+        db.insert(collection, record as never);
+        imported++;
+      } catch (err) {
         this.errors.push({
           row: rowNumber,
-          message: err.message,
-          code: 'EXCEPTION',
+          message: err instanceof Error ? err.message : 'บันทึกไม่สำเร็จ',
+          code: err instanceof db.StorageFullError ? 'STORAGE_FULL' : 'EXCEPTION',
         });
         failed++;
+
+        // พื้นที่เต็มแล้วแถวถัดไปก็จะเต็มเหมือนกัน หยุดเลยดีกว่าปล่อยให้ error ท่วม
+        if (err instanceof db.StorageFullError) break;
       }
     }
 

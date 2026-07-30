@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { X, ShoppingCart, Package, Plus, Trash2, Truck, ChevronDown, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { api } from '@/lib/supabase';
+import { useMutations } from '@/store';
+import { StorageFullError } from '@/lib/local-db';
+import type { PurchaseOrder } from '@/types';
 
 interface PurchaseOrderFormModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ const THB_RATE = 35.42;
 
 export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrderFormModalProps) {
   const { toast } = useToast();
+  const { addPurchaseOrder } = useMutations();
   const [loading, setLoading] = useState(false);
   const [supplier, setSupplier] = useState('');
   const [poDate, setPoDate] = useState(new Date().toISOString().split('T')[0]);
@@ -85,26 +88,33 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
     setLogistics(p => { const n = [...p]; n[i] = { ...n[i], [k]: v }; return n; });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplier) { toast('Please select a supplier', 'error'); return; }
+    if (!supplier) { toast('กรุณาเลือกผู้จำหน่าย', 'error'); return; }
     setLoading(true);
     try {
-      await api.createPurchaseOrder({
+      const now = new Date().toISOString();
+      addPurchaseOrder({
+        id: '',
         po_number: `PO-${Date.now()}`,
-        supplier_id: supplier,
-        order_date: new Date().toISOString().split('T')[0],
-        expected_arrival_date: expectedDate || null,
-        status: 'pending',
+        supplier,
         currency: 'CNY',
-        exchange_rate_thb: THB_RATE,
+        exchange_rate: THB_RATE,
+        status: 'confirmed',
+        items: [],
+        shipment_costs: [],
+        total_cny: grandTotalTHB / THB_RATE,
         total_thb: grandTotalTHB,
-        notes: note || null,
-      });
-      toast(`PO created — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
+        landed_cost_total_thb: grandTotalTHB,
+        notes: note || undefined,
+        created_at: now,
+        updated_at: now,
+      } as PurchaseOrder);
+
+      toast(`สร้างใบสั่งซื้อแล้ว — ฿${grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}`, 'success');
       onClose();
-    } catch (err: any) {
-      toast('Failed to create PO: ' + (err.message || 'Unknown error'), 'error');
+    } catch (err) {
+      toast(err instanceof StorageFullError ? err.message : 'สร้างใบสั่งซื้อไม่สำเร็จ', 'error');
     } finally {
       setLoading(false);
     }

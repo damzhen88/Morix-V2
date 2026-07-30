@@ -75,17 +75,54 @@ export function formatDate(dateStr: string): string {
   return d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export function formatRelativeTime(dateStr: string): string {
-  const now = new Date();
-  const then = new Date(dateStr);
-  const diffMs = now.getTime() - then.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+/**
+ * เวลาที่ผ่านมาแบบภาษาไทย
+ *
+ * รวมงานของ formatRelativeTime และ getTimeAgo เดิมที่ทำงานซ้ำกันและคืนภาษาอังกฤษ
+ * ละเอียดถึงระดับนาทีเพราะใช้กับกิจกรรมล่าสุดบนหน้าแรก
+ */
+export function timeAgoTH(dateStr: string): string {
+  if (!dateStr) return '—';
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7)  return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return formatDate(dateStr);
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+
+  // เผื่อวันที่ในอนาคต (เครื่องตั้งเวลาเพี้ยน หรือผู้ใช้กรอกวันข้างหน้า)
+  if (diffMs < 0) return formatThaiDate(dateStr);
+
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return 'เมื่อสักครู่';
+  if (mins < 60) return `${mins} นาทีที่แล้ว`;
+
+  const hours = Math.floor(diffMs / 3_600_000);
+  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
+
+  const days = Math.floor(diffMs / 86_400_000);
+  if (days === 1) return 'เมื่อวาน';
+  if (days < 7) return `${days} วันที่แล้ว`;
+  if (days < 30) return `${Math.floor(days / 7)} สัปดาห์ที่แล้ว`;
+
+  return formatThaiDate(dateStr);
+}
+
+/**
+ * วันที่แบบไทย — ได้ พ.ศ. อัตโนมัติจาก locale th-TH
+ * ซึ่งถูกต้องสำหรับเอกสารธุรกิจไทย
+ */
+export function formatThaiDate(
+  dateStr: string,
+  { weekday = false, short = false }: { weekday?: boolean; short?: boolean } = {}
+): string {
+  if (!dateStr) return '—';
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '—';
+
+  return d.toLocaleDateString('th-TH', {
+    weekday: weekday ? 'long' : undefined,
+    day: 'numeric',
+    month: short ? 'short' : 'long',
+    year: 'numeric',
+  });
 }
 
 // ─────────────────────────────────────────

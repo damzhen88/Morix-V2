@@ -2,7 +2,8 @@
 
 import { 
   Product, Warehouse, Inventory, StockMovement, PurchaseOrder,
-  SalesOrder, CRNDeal, Expense, User, OrderItem, PurchaseOrderItem
+  SalesOrder, CRNDeal, Expense, User, OrderItem, PurchaseOrderItem,
+  Customer, Payment
 } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -14,6 +15,8 @@ const daysAgo = (days: number) => {
   d.setDate(d.getDate() - days);
   return d.toISOString();
 };
+/** วันที่ล้วน YYYY-MM-DD — ใช้กับ order_date / paid_at ที่ไม่เก็บเวลา */
+const dateAgo = (days: number) => daysAgo(days).slice(0, 10);
 
 // =======================
 // USERS
@@ -326,7 +329,9 @@ export const salesOrders: SalesOrder[] = [
     product_cost_thb: 14000,
     gross_profit: 18500,
     net_profit: 15500,
-    payment_status: 'paid',
+    order_date: dateAgo(25),
+    credit_term_days: 30,
+    due_date: dateAgo(-5),
     notes: 'โครงการตกแต่งภายใน',
     images: [{ id: id(), url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400', type: 'delivery', description: 'Delivery proof', created_at: now() }],
     created_by: 'sales1',
@@ -349,7 +354,9 @@ export const salesOrders: SalesOrder[] = [
     product_cost_thb: 8100,
     gross_profit: 9600,
     net_profit: 8500,
-    payment_status: 'deposit',
+    order_date: dateAgo(10),
+    credit_term_days: 0,
+    due_date: null,
     images: [],
     created_by: 'sales1',
     created_at: daysAgo(10),
@@ -371,7 +378,9 @@ export const salesOrders: SalesOrder[] = [
     product_cost_thb: 176000,
     gross_profit: 220000,
     net_profit: 200000,
-    payment_status: 'unpaid',
+    order_date: dateAgo(5),
+    credit_term_days: 60,
+    due_date: dateAgo(-55),
     notes: 'รอการยืนยันจากลูกค้า',
     images: [],
     created_by: 'sales1',
@@ -394,7 +403,9 @@ export const salesOrders: SalesOrder[] = [
     product_cost_thb: 33750,
     gross_profit: 41750,
     net_profit: 37450,
-    payment_status: 'paid',
+    order_date: dateAgo(50),
+    credit_term_days: 30,
+    due_date: dateAgo(20),
     images: [],
     created_by: 'sales1',
     created_at: daysAgo(20),
@@ -405,6 +416,73 @@ export const salesOrders: SalesOrder[] = [
 // =======================
 // CRM DEALS
 // =======================
+
+// =======================
+// CUSTOMERS
+// =======================
+// เครดิตต่างกันเพื่อให้เห็นทั้ง 3 แบบตอนเปิดแอปครั้งแรก:
+// เงินสด / เครดิต 30 วัน / เครดิต 60 วัน
+
+export const customers: Customer[] = [
+  {
+    id: 'cust-001', code: 'C-001',
+    name: 'บริษัท รีโนเวท คอนสตรัคชั่น จำกัด', company_name: 'บริษัท รีโนเวท คอนสตรัคชั่น จำกัด',
+    contact: 'คุณประเสริฐ', phone: '02-555-1234', email: 'contact@renovate.co.th',
+    province: 'กรุงเทพมหานคร', tax_id: '0105558001234',
+    customer_type: 'contractor', tier: 'gold', credit_term_days: 30,
+    notes: 'ลูกค้าประจำ สั่งซื้อสม่ำเสมอ',
+    created_at: daysAgo(180), updated_at: daysAgo(25),
+  },
+  {
+    id: 'cust-002', code: 'C-002',
+    name: 'คุณสมชาย ศรีสุข',
+    contact: 'คุณสมชาย', phone: '089-123-4567',
+    province: 'นนทบุรี',
+    customer_type: 'homeowner', tier: 'bronze', credit_term_days: 0,
+    created_at: daysAgo(90), updated_at: daysAgo(10),
+  },
+  {
+    id: 'cust-003', code: 'C-003',
+    name: 'โครงการ The Palm Residence', company_name: 'บจก. เดอะ ปาล์ม พร็อพเพอร์ตี้',
+    contact: 'คุณนภา', phone: '02-777-8888', email: 'purchase@thepalm.co.th',
+    province: 'สมุทรปราการ', tax_id: '0105560009876',
+    customer_type: 'project', tier: 'gold', credit_term_days: 60,
+    notes: 'โครงการใหญ่ ต้องออกใบกำกับภาษีทุกครั้ง',
+    created_at: daysAgo(120), updated_at: daysAgo(3),
+  },
+  {
+    id: 'cust-004', code: 'C-004',
+    name: 'ร้านวัสดุก่อสร้างชัยอนันต์', company_name: 'ร้านวัสดุก่อสร้างชัยอนันต์',
+    contact: 'คุณชัย', phone: '044-222-333',
+    province: 'นครราชสีมา',
+    customer_type: 'dealer', tier: 'silver', credit_term_days: 30,
+    notes: 'ตัวแทนจำหน่ายภาคอีสาน',
+    created_at: daysAgo(60), updated_at: daysAgo(8),
+  },
+];
+
+// =======================
+// PAYMENTS (การรับเงิน)
+// =======================
+// so-001 จ่ายครบ · so-002 มัดจำแล้วรอที่เหลือ · so-003 แบ่งจ่าย 2 งวด · so-004 ยังไม่จ่าย (เครดิตค้าง)
+
+export const payments: Payment[] = [
+  {
+    id: 'pay-001', sales_order_id: 'so-001', paid_at: dateAgo(25),
+    amount_thb: 10000, method: 'transfer', reference_no: 'TRF-88213',
+    note: 'มัดจำ', has_slip: false, created_at: daysAgo(25),
+  },
+  {
+    id: 'pay-002', sales_order_id: 'so-001', paid_at: dateAgo(14),
+    amount_thb: 25500, method: 'transfer', reference_no: 'TRF-90144',
+    note: 'ชำระส่วนที่เหลือ', has_slip: false, created_at: daysAgo(14),
+  },
+  {
+    id: 'pay-003', sales_order_id: 'so-002', paid_at: dateAgo(9),
+    amount_thb: 5000, method: 'cash',
+    note: 'มัดจำหน้าร้าน', has_slip: false, created_at: daysAgo(9),
+  },
+];
 
 export const crmDeals: CRNDeal[] = [
   { id: 'lead-001', lead_id: 'LEAD-001', customer_name: 'คุณสมชาย มาลี', customer_type: 'contractor', contact_phone: '089-xxx-xxxx', deal_value: 85000, stage: 'inquiry', notes: 'สนใจ WPC Decking', created_at: daysAgo(5), updated_at: daysAgo(2), last_interaction_at: daysAgo(0) },

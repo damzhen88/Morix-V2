@@ -1,17 +1,16 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
 import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, ArrowLeft, Package, Database, Receipt, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
+import * as db from '@/lib/local-db';
+import type { Collection } from '@/lib/local-db';
+import { useMutations } from '@/store';
 import { ImportType, MORIX_SCHEMA, TYPE_CONFIG, getRequiredFields } from '@/lib/morix-schema';
 import { convertValue, validateRow, hasRequiredFields } from '@/lib/morix-validator';
 
-// Dynamic import xlsx to avoid SSR issues
-const XLSX = dynamic(() => import('xlsx'), { ssr: false });
-
 export default function ImportPage() {
+  const { reload } = useMutations();
   const [step, setStep] = useState<'select' | 'preview' | 'importing' | 'done'>('select');
   const [importType, setImportType] = useState<ImportType>('products');
   const [fileName, setFileName] = useState('');
@@ -142,12 +141,14 @@ export default function ImportPage() {
     let success = 0, failed = 0, skipped = 0;
     const errors: any[] = [];
 
-    const tableMap: Record<ImportType, string> = {
+    // ชนิดที่นำเข้าได้ -> collection ใน local-db (assumptions ยังไม่มีที่เก็บบนเครื่อง)
+    const collectionMap: Record<ImportType, Collection | undefined> = {
       products: 'products',
-      stock_movement: 'stock_movements',
+      stock_movement: 'stockMovements',
       inventory: 'inventory',
-      assumptions: 'settings',
+      assumptions: undefined,
     };
+    const collection = collectionMap[importType];
 
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i];
@@ -190,22 +191,31 @@ export default function ImportPage() {
         continue;
       }
 
-      // Insert
+      // บันทึกลงเครื่อง
       try {
-        let result;
-        if (importType === 'assumptions') {
-          result = await supabase.from(tableMap[importType]).upsert([{ key: importType, ...record }], { onConflict: 'key' });
-        } else {
-          result = await supabase.from(tableMap[importType]).insert(record);
+        if (!collection) {
+          errors.push({ row: rowNumber, message: `ยังไม่รองรับการนำเข้าประเภทนี้`, code: 'UNSUPPORTED_TYPE' });
+          skipped++;
+          continue;
         }
 
-        if (result.error) throw result.error;
+        db.insert(collection, record as never);
         success++;
-      } catch (err: any) {
-        errors.push({ row: rowNumber, message: err.message, code: 'INSERT_ERROR' });
+      } catch (err) {
+        errors.push({
+          row: rowNumber,
+          message: err instanceof Error ? err.message : 'บันทึกไม่สำเร็จ',
+          code: err instanceof db.StorageFullError ? 'STORAGE_FULL' : 'INSERT_ERROR',
+        });
         failed++;
+
+        // พื้นที่เต็มแล้วแถวถัดไปก็เต็มเหมือนกัน หยุดเลย
+        if (err instanceof db.StorageFullError) break;
       }
     }
+
+    // อ่านข้อมูลใหม่เข้า store ให้ทุกหน้าเห็นของที่เพิ่งนำเข้าทันที
+    reload();
 
     setResult({ success, failed, skipped, errors: errors.slice(0, 20) });
     setStep('done');

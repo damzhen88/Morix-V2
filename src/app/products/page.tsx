@@ -6,7 +6,8 @@ import { Package, Plus, Search, Grid, List, MoreVertical, Edit, Copy, Archive, T
 import { useFormModal } from '@/components/ui/FormModalContext';
 import ProductFormModal from '@/components/ui/ProductFormModal';
 import { formatTHB } from '@/lib/format';
-import { api, deleteImage } from '@/lib/supabase';
+import { useMutations } from '@/store';
+import { deleteImage as deleteLocalImage } from '@/lib/local-images';
 import { useApp } from '@/store';
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -48,14 +49,10 @@ export default function ProductsPage() {
   const [openMenu, setOpenMenu]     = useState<string | null>(null);
   const { openForm } = useFormModal();
   const { toast } = useToast();
+  const { updateProduct, deleteProduct } = useMutations();
 
   const products = state.products;
 
-
-  // Load data from Supabase on mount
-  useEffect(() => {
-    dispatch({ type: 'LOAD_ALL' });
-  }, [dispatch]);
 
   // Category counts from real data
   const catCounts: Record<string, number> = { All: products.length };
@@ -93,22 +90,20 @@ export default function ProductsPage() {
         break;
       case 'archive':
         try {
-          await api.updateProduct(productId, { status: 'inactive' });
-          toast('Product archived', 'info');
-          dispatch({ type: 'UPDATE_PRODUCT', payload: { ...product, status: 'inactive' } });
-        } catch (err: any) { toast('Failed: ' + (err.message || 'Unknown'), 'error'); }
+          updateProduct(productId, { status: 'inactive' });
+          toast('เก็บสินค้าเข้าคลังแล้ว', 'info');
+        } catch { toast('ดำเนินการไม่สำเร็จ', 'error'); }
         break;
       case 'delete':
-        if (!confirm(`Delete product "${product.name_th}"? This cannot be undone.`)) return;
+        if (!confirm(`ลบสินค้า "${product.name_th}" ? การลบไม่สามารถย้อนกลับได้`)) return;
         try {
-          const imgs = (product.images || []) as any[];
-          for (const img of imgs) {
-            try { if (img.url) await deleteImage(img.url, 'products'); } catch {}
+          // ลบรูปออกจาก IndexedDB ด้วย ไม่ให้เหลือขยะกินพื้นที่
+          for (const img of product.images || []) {
+            if (img.url) await deleteLocalImage(img.url);
           }
-          await api.deleteProduct(productId);
-          toast(`"${product.name_th}" deleted`, 'success');
-          dispatch({ type: 'DELETE_PRODUCT', payload: productId });
-        } catch (err: any) { toast('Failed: ' + (err.message || 'Unknown'), 'error'); }
+          deleteProduct(productId);
+          toast(`ลบ "${product.name_th}" แล้ว`, 'success');
+        } catch { toast('ลบไม่สำเร็จ', 'error'); }
         break;
     }
   };
@@ -260,7 +255,7 @@ export default function ProductsPage() {
                     <div className="flex items-end justify-between mt-2">
                       <div>
                         <p className="font-headline font-bold text-base text-[var(--on-surface)]">
-                          {formatTHB(product.price_thb)}
+                          {formatTHB(product.price_thb ?? 0)}
                         </p>
                         <p className="text-[10px] text-[var(--on-surface-variant)]">per unit</p>
                       </div>
@@ -354,7 +349,7 @@ export default function ProductsPage() {
                     <div>
                       <span className="text-[10px] text-[var(--on-surface-variant)]">Unit price</span>
                       <p className="font-headline font-bold text-lg text-[var(--on-surface)]">
-                        {formatTHB(product.price_thb)}
+                        {formatTHB(product.price_thb ?? 0)}
                       </p>
                     </div>
                     <span className="text-xs font-semibold text-[var(--on-surface-variant)]">
@@ -408,7 +403,7 @@ export default function ProductsPage() {
                       {product.min_stock || 0} <span className="text-[var(--on-surface-variant)] font-normal">{product.unit || 'pcs'}</span>
                     </td>
                     <td className="px-4 py-4 text-right font-headline font-bold text-[var(--on-surface)]">
-                      {formatTHB(product.price_thb)}
+                      {formatTHB(product.price_thb ?? 0)}
                     </td>
                     <td className="px-4 py-4 text-center">
                       <span className={`badge ${statusStyle.bg.replace('bg-', 'badge-')}`}>{statusStyle.label}</span>

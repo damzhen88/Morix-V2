@@ -155,20 +155,7 @@ export function getDealStageLabel(stage: string): string {
   return labels[stage] || stage;
 }
 
-// Get time ago
-export function getTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return formatDate(dateString);
-}
+// เวลาที่ผ่านมา: ใช้ timeAgoTH ใน @/lib/format แทน (ของเดิมคืนภาษาอังกฤษและซ้ำกับ format.ts)
 
 // Debounce function
 export function debounce<T extends (...args: any[]) => any>(

@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { X, Receipt, Tag, Truck, Zap, Wrench, Building, CreditCard, Plus, Trash2, DollarSign, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { api } from '@/lib/supabase';
+import { useMutations } from '@/store';
+import { StorageFullError } from '@/lib/local-db';
+import type { Expense, ExpenseCategory } from '@/types';
 
 interface ExpenseFormModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ const labelStyle: React.CSSProperties = {
 
 export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalProps) {
   const { toast } = useToast();
+  const { addExpense } = useMutations();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     description: '', category: 'logistics', vendor: '', date: new Date().toISOString().split('T')[0],
@@ -44,26 +47,34 @@ export default function ExpenseFormModal({ isOpen, onClose }: ExpenseFormModalPr
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount) {
-      toast('Please fill in description and amount', 'error');
+      toast('กรุณากรอกรายละเอียดและจำนวนเงิน', 'error');
       return;
     }
     setLoading(true);
     try {
-      await api.createExpense({
+      // เก็บทุกช่องที่ผู้ใช้กรอก — เดิมทิ้ง vendor/ref/note ไปเพราะ DB ไม่มีคอลัมน์
+      addExpense({
+        id: '',
         description: form.description,
-        category: form.category,
-        date: form.date,
+        category: form.category as ExpenseCategory,
         amount_thb: parseFloat(form.amount) || 0,
-      });
-      toast(`Expense "${form.description}" recorded!`, 'success');
-      // Reset form
+        vendor: form.vendor || undefined,
+        date: form.date,
+        is_recurring: false,
+        status: 'approved',
+        notes: [form.ref && `อ้างอิง: ${form.ref}`, form.note].filter(Boolean).join(' · ') || undefined,
+        created_by: 'local',
+        created_at: new Date().toISOString(),
+      } as Expense);
+
+      toast(`บันทึกค่าใช้จ่าย "${form.description}" แล้ว`, 'success');
       setForm({ description: '', category: 'logistics', vendor: '', date: new Date().toISOString().split('T')[0], amount: '', currency: 'THB', ref: '', note: '' });
       onClose();
-    } catch (err: any) {
-      toast('Failed to record expense: ' + (err.message || 'Unknown error'), 'error');
+    } catch (err) {
+      toast(err instanceof StorageFullError ? err.message : 'บันทึกไม่สำเร็จ', 'error');
     } finally {
       setLoading(false);
     }

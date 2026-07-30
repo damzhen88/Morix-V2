@@ -8,10 +8,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Package, Warehouse, ShoppingCart,
   Users, Receipt, TrendingUp, Settings, Menu, X,
-  Home, Plus, LogOut, Search, Bell, ChevronLeft, ChevronRight, FileText, Globe, Upload,
+  Home, Plus, Search, Bell, ChevronLeft, ChevronRight, FileText, Globe, Upload,
 
 } from 'lucide-react';
-import { useAuth } from '@/lib/auth-context';
 import { useI18n } from '@/lib/i18n';
 import SearchModal from '@/components/ui/SearchModal';
 import ProductFormModal from '@/components/ui/ProductFormModal';
@@ -45,7 +44,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed]   = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const { user, signOut, loading } = useAuth();
   const { language, setLanguage, t } = useI18n();
 
   useEffect(() => {
@@ -72,26 +70,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       return next;
     });
   }, []);
-
-  const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/login';
-  };
-
-  if (pathname === '/login') {
-    return <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)' }}>{children}</div>;
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid var(--primary)', borderTopColor: 'transparent', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)' }}>Loading…</p>
-        </div>
-      </div>
-    );
-  }
 
   const sidebarW = collapsed ? '5rem' : '18rem';
 
@@ -206,17 +184,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
             }}>
             {collapsed ? <ChevronRight style={{ width: 20, height: 20 }} /> : <><ChevronLeft style={{ width: 20, height: 20 }} /><span>{t('nav.collapse')}</span></>}
           </button>
-          <button onClick={handleSignOut}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: collapsed ? '0.75rem 0' : '0.75rem 1rem',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer',
-              color: 'var(--on-surface-variant)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', width: '100%',
-            }}>
-            <LogOut style={{ width: 20, height: 20, flexShrink: 0 }} />
-            {!collapsed && <span>{t('nav.logout')}</span>}
-          </button>
         </div>
       </aside>
 
@@ -254,11 +221,6 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
               style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--primary)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', fontWeight: 600 }}>
               <Globe style={{ width: 20, height: 20 }} />
               {language === 'en' ? '🌐 English' : '🌐 ภาษาไทย'}
-            </button>
-            <button onClick={handleSignOut}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--error)', fontFamily: 'var(--font-body)', fontSize: '0.875rem', borderTop: '1px solid var(--outline-variant)', marginTop: '0.5rem', paddingTop: '1rem' }}>
-              <LogOut style={{ width: 20, height: 20 }} />
-              {t('nav.logout')}
             </button>
           </div>
         </div>

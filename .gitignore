@@ -38,3 +38,4 @@ coverage/
 *.pem
 .env.local
 .vercel
+tsconfig.tsbuildinfo
