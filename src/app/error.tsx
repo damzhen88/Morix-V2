@@ -23,7 +23,7 @@ export default function Error({
         {/* Logo */}
         <div className="w-16 h-16 rounded-2xl signature-gradient flex items-center justify-center mx-auto mb-6 shadow-lg"
           style={{ boxShadow: '0 8px 24px rgba(249,115,22,0.3)' }}>
-          <span className="text-white font-black text-2xl">M</span>
+          <span className="text-white font-extrabold text-2xl">M</span>
         </div>
 
         {/* Error card */}
@@ -32,7 +32,7 @@ export default function Error({
             <AlertTriangle className="w-7 h-7 text-[var(--error)]" />
           </div>
 
-          <h1 className="font-headline text-2xl font-black text-[var(--on-surface)] mb-2">
+          <h1 className="font-headline text-2xl font-extrabold text-[var(--on-surface)] mb-2">
             Something went wrong
           </h1>
           <p className="text-sm text-[var(--on-surface-variant)] mb-6 leading-relaxed">

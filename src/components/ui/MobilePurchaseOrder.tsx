@@ -220,7 +220,7 @@ export default function MobilePurchaseOrder() {
       <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white px-4 py-4 shadow-lg">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black truncate">{poNumber}</h1>
+            <h1 className="text-lg font-extrabold truncate">{poNumber}</h1>
             <p className="text-amber-100 text-xs">{today}</p>
           </div>
           <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
@@ -240,7 +240,7 @@ export default function MobilePurchaseOrder() {
           </div>
           <div className="min-w-0">
             <span className="text-[10px] opacity-70 block">ยอดรวม</span>
-            <p className="text-sm font-black text-white truncate">{fmtTHB(grandTotalTHB)}</p>
+            <p className="text-sm font-extrabold text-white truncate">{fmtTHB(grandTotalTHB)}</p>
           </div>
         </div>
       </div>
@@ -537,7 +537,7 @@ export default function MobilePurchaseOrder() {
             <div className="flex justify-between items-baseline gap-2">
               <span className="text-stone-300 font-semibold">ยอดรวมทั้งสิ้น</span>
               <div className="text-right">
-                <span className="text-xl font-black text-amber-400">{fmtTHB(grandTotalTHB)}</span>
+                <span className="text-xl font-extrabold text-amber-400">{fmtTHB(grandTotalTHB)}</span>
                 <span className="block text-xs text-stone-400 mt-1">≈ {fmtUSD(grandTotalUSD)} USD</span>
               </div>
             </div>

@@ -97,7 +97,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div className="hidden lg:block" style={{ display: 'flex', gap: '0.25rem', marginBottom: '2.5rem', backgroundColor: 'var(--surface-container-low)', padding: '0.25rem', borderRadius: 16 }}>
+      <div className="hidden md:flex" style={{ gap: '0.25rem', marginBottom: '2.5rem', backgroundColor: 'var(--surface-container-low)', padding: '0.25rem', borderRadius: 16 }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{
@@ -115,7 +115,7 @@ export default function SettingsPage() {
       </div>
 
       {/* ── MOBILE SECTION ACCORDION ── */}
-      <div className="lg:hidden space-y-2 mb-6">
+      <div className="md:hidden space-y-2 mb-6">
         <p className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)] px-1">Select Section</p>
         {TABS.map(t => {
           const icons: Record<string, any> = {
@@ -177,7 +177,7 @@ export default function SettingsPage() {
               <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--on-surface-variant)', marginBottom: '0.75rem' }}>Logo</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem', border: '2px dashed var(--outline-variant)', borderRadius: 16, backgroundColor: 'var(--surface-container-low)' }}>
                 <div style={{ width: 72, height: 72, borderRadius: 16, background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 900, fontSize: '1.75rem' }}>M</span>
+                  <span style={{ color: 'white', fontFamily: 'var(--font-headline)', fontWeight: 800, fontSize: '1.75rem' }}>M</span>
                 </div>
                 <div>
                   <button onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = "image/*"; input.onchange = (e) => { const file = (e.target as HTMLInputElement).files?.[0]; if(file) alert("Profile image upload: " + file.name); }; input.click(); }}
@@ -204,7 +204,7 @@ export default function SettingsPage() {
                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>PostgreSQL Database · Real-time · Auth</p>
                   </div>
                 </div>
-                <span style={{ padding: '0.25rem 0.875rem', backgroundColor: 'rgba(62,207,142,0.15)', color: '#3ecf8e', fontSize: '0.625rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 9999, border: '1px solid rgba(62,207,142,0.3)' }}>
+                <span style={{ padding: '0.25rem 0.875rem', backgroundColor: 'rgba(62,207,142,0.15)', color: '#3ecf8e', fontSize: '0.625rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', borderRadius: 9999, border: '1px solid rgba(62,207,142,0.3)' }}>
                   Connected
                 </span>
               </div>
@@ -388,7 +388,7 @@ export default function SettingsPage() {
                   <tr key={i} style={{ borderTop: '1px solid var(--outline-variant)' }}>
                     <td style={{ padding: '1.25rem 2rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'white', fontSize: '0.875rem', flexShrink: 0 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'white', fontSize: '0.875rem', flexShrink: 0 }}>
                           {m.initial}
                         </div>
                         <div>
@@ -470,7 +470,7 @@ export default function SettingsPage() {
         style={{ maxWidth: 'calc(100vw - 2rem)' }}
       >
         {/* Desktop: pill shape, right side */}
-        <div className="hidden lg:flex items-center gap-2.5 px-3 py-2.5 rounded-2xl shadow-xl border border-[var(--outline-variant)]" 
+        <div className="hidden md:flex items-center gap-2.5 px-3 py-2.5 rounded-2xl shadow-xl border border-[var(--outline-variant)]" 
           style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)' }}>
           <button onClick={discard} 
             style={{ padding: '0.625rem 1.25rem', borderRadius: 9999, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '0.375rem', whiteSpace: 'nowrap' }}>
@@ -485,7 +485,7 @@ export default function SettingsPage() {
         </div>
         
         {/* Mobile: full width bottom bar */}
-        <div className="lg:hidden flex gap-2.5 w-full" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderRadius: 20, padding: '0.75rem', border: '1px solid var(--outline-variant)' }}>
+        <div className="md:hidden flex gap-2.5 w-full" style={{ background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(16px)', borderRadius: 20, padding: '0.75rem', border: '1px solid var(--outline-variant)' }}>
           <button onClick={discard} 
             className="flex-1" 
             style={{ padding: '0.75rem', borderRadius: 16, border: '1.5px solid var(--outline-variant)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--on-surface)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}>

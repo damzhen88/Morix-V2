@@ -209,7 +209,7 @@ function ImageUploadZone({ images, onChange, onUpload, onRemove, disabled }: {
                   <div style={{
                     position: 'absolute', bottom: 4, left: 4,
                     backgroundColor: 'var(--primary)',
-                    color: 'white', fontSize: '0.5rem', fontWeight: 900,
+                    color: 'white', fontSize: '0.5rem', fontWeight: 800,
                     padding: '2px 6px', borderRadius: 9999,
                     textTransform: 'uppercase', letterSpacing: '0.05em',
                   }}>

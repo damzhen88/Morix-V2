@@ -198,7 +198,7 @@ export default function PurchasePage() {
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
               New Procurement Request
             </div>
-            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-stone-900 leading-none">
+            <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-stone-900 leading-none">
               Purchase Order
               <span className="text-xl lg:text-2xl font-light text-stone-300 ml-3">#PO-2847</span>
             </h1>
@@ -467,7 +467,7 @@ export default function PurchasePage() {
                         />
                       </td>
                       <td className="py-3 px-3 text-right">
-                        <span className="text-sm font-black text-stone-900">
+                        <span className="text-sm font-extrabold text-stone-900">
                           ${(item.quantity * item.unit_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                       </td>
@@ -518,7 +518,7 @@ export default function PurchasePage() {
                     <button 
                       key={curr}
                       onClick={() => updateLogisticsCurrency('chinaDomestic', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                      className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-lg transition-all ${
                         logistics.chinaDomestic.currency === curr 
                           ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-sm' 
                           : 'text-stone-500 hover:bg-white hover:text-stone-700'
@@ -555,7 +555,7 @@ export default function PurchasePage() {
                     <button 
                       key={curr}
                       onClick={() => updateLogisticsCurrency('chinaThailand', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                      className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-lg transition-all ${
                         logistics.chinaThailand.currency === curr 
                           ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm' 
                           : 'text-stone-500 hover:bg-white hover:text-stone-700'
@@ -592,7 +592,7 @@ export default function PurchasePage() {
                     <button 
                       key={curr}
                       onClick={() => updateLogisticsCurrency('localDelivery', curr)}
-                      className={`flex-1 py-1.5 text-[9px] font-black rounded-lg transition-all ${
+                      className={`flex-1 py-1.5 text-[9px] font-extrabold rounded-lg transition-all ${
                         logistics.localDelivery.currency === curr 
                           ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm' 
                           : 'text-stone-500 hover:bg-white hover:text-stone-700'
@@ -634,7 +634,7 @@ export default function PurchasePage() {
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                   <CreditCard className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="text-base font-black text-stone-900 tracking-tight">Order Summary</h3>
+                <h3 className="text-base font-extrabold text-stone-900 tracking-tight">Order Summary</h3>
               </div>
 
               <div className="space-y-3">
@@ -677,7 +677,7 @@ export default function PurchasePage() {
                 <div className="py-4 px-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
                   <div className="flex justify-between items-baseline mb-1">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500">Grand Total (THB)</span>
-                    <span className="text-2xl font-black bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                    <span className="text-2xl font-extrabold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                       ฿{calculateGrandTotal().toLocaleString('th-TH', { minimumFractionDigits: 0 })}
                     </span>
                   </div>
@@ -750,7 +750,7 @@ export default function PurchasePage() {
       <footer className="mt-10 flex justify-center">
         <div className="flex items-center gap-2.5 opacity-15">
           <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-stone-400">
+          <span className="text-[9px] font-extrabold tracking-[0.25em] uppercase text-stone-400">
             MORIX ERP • Executive Procurement System
           </span>
           <div className="w-1.5 h-1.5 rounded-full bg-stone-400" />

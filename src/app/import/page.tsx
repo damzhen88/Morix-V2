@@ -257,7 +257,7 @@ export default function ImportPage() {
       </Link>
 
       <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', fontWeight: 900, color: 'var(--on-surface)', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', fontWeight: 800, color: 'var(--on-surface)', marginBottom: '0.5rem' }}>
           📥 Morix Import System
         </h1>
         <p style={{ color: 'var(--on-surface-variant)' }}>

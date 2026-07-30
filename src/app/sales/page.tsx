@@ -82,7 +82,7 @@ export default function SalesPage() {
       </div>
 
       {/* Recent Sales — MOBILE CARD LIST */}
-      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+      <div className="md:hidden mobile-card-list space-y-3 mb-6">
         {/* Status filter */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {['all', 'confirmed', 'pending', 'delivered'].map(f => (
@@ -110,7 +110,7 @@ export default function SalesPage() {
               <div>
                 <p className="text-xs text-[var(--on-surface-variant)]">{sale.created_at ? new Date(sale.created_at).toLocaleDateString('th-TH') : '—'} · {sale.items?.length || 0} items</p>
               </div>
-              <p className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
+              <p className="font-headline font-extrabold text-lg" style={{ color: 'var(--primary-dark)' }}>
                 {formatTHB(sale.total)}
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function SalesPage() {
         {filtered.length > 0 && (
           <div className="card-surface p-4 flex items-center justify-between">
             <span className="text-sm font-bold text-[var(--on-surface)]">Total ({filtered.length})</span>
-            <span className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
+            <span className="font-headline font-extrabold text-lg" style={{ color: 'var(--primary-dark)' }}>
               ฿{filtered.reduce((s, r) => s + r.total, 0).toLocaleString('th-TH')}
             </span>
           </div>
@@ -128,7 +128,7 @@ export default function SalesPage() {
       </div>
 
       {/* Recent Sales Table — DESKTOP ONLY */}
-      <div className="hidden lg:block card-elevated overflow-hidden">
+      <div className="hidden md:block card-elevated overflow-hidden">
         {/* Table header */}
         <div className="px-6 py-5 flex items-center justify-between border-b border-[var(--outline-variant)]">
           <h2 className="font-headline font-bold text-[var(--on-surface)]">Recent Transactions</h2>
@@ -182,7 +182,7 @@ export default function SalesPage() {
             <tr className="bg-[var(--surface-container-low)]">
               <td colSpan={4} className="px-6 py-4 text-sm font-bold text-[var(--on-surface)]">Total</td>
               <td className="px-4 py-4 text-right">
-                <span className="font-headline font-black text-lg" style={{ color: 'var(--primary-dark)' }}>
+                <span className="font-headline font-extrabold text-lg" style={{ color: 'var(--primary-dark)' }}>
                   ฿{filtered.reduce((s, r) => s + r.total, 0).toLocaleString('th-TH')}
                 </span>
               </td>

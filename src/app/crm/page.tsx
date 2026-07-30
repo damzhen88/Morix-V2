@@ -168,12 +168,12 @@ export default function CrmPage() {
 
       {/* Client Cards */}
       {/* ── MOBILE CARD LIST ── */}
-      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+      <div className="md:hidden mobile-card-list space-y-3 mb-6">
         {filtered.map(client => (
           <div key={client.id} className="card-elevated p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-headline font-black text-base text-white flex-shrink-0
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-headline font-extrabold text-base text-white flex-shrink-0
                   ${client.tier === 'gold' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
                     client.tier === 'silver' ? 'bg-gradient-to-br from-slate-300 to-slate-500' :
                     'bg-gradient-to-br from-orange-300 to-orange-500'}`}>
@@ -208,14 +208,14 @@ export default function CrmPage() {
       </div>
 
       {/* ── DESKTOP GRID ── */}
-      <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
+      <div className="hidden md:grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
         {filtered.map(client => (
           <div key={client.id} className="card-elevated p-6 group hover:border-[var(--primary-pale)] transition-all">
 
             {/* Top: Avatar + Tier badge */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-headline font-black text-lg text-white
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-headline font-extrabold text-lg text-white
                   ${client.tier === 'gold' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
                     client.tier === 'silver' ? 'bg-gradient-to-br from-slate-300 to-slate-500' :
                     'bg-gradient-to-br from-orange-300 to-orange-500'}`}>

@@ -95,7 +95,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Inventory Mobile Card List */}
-      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+      <div className="md:hidden mobile-card-list space-y-3 mb-6">
         {filtered.map(item => {
           const isLow = item.stock <= item.reorder && item.stock > 0;
           const isOut = item.stock === 0;
@@ -146,7 +146,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Inventory Table — DESKTOP ONLY */}
-      <div className="hidden lg:block card-elevated overflow-hidden">
+      <div className="hidden md:block card-elevated overflow-hidden">
         <div className="overflow-x-auto">
         <table className="w-full">
           <thead>

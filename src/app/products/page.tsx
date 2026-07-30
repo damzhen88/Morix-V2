@@ -36,7 +36,7 @@ function ProductImage({ name, sku, imageUrl }: { name?: string; sku?: string; im
   const colorIndex = (sku || name || '').charCodeAt(0) % colors.length;
   return (
     <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: colors[colorIndex] }}>
-      <span className="font-headline font-black text-2xl text-[var(--on-surface-variant)] opacity-40">{initial}</span>
+      <span className="font-headline font-extrabold text-2xl text-[var(--on-surface-variant)] opacity-40">{initial}</span>
     </div>
   );
 }
@@ -153,7 +153,7 @@ export default function ProductsPage() {
               }`}>
               {cat}
               {catCounts[cat] > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold ${
                   activeCategory === cat ? 'bg-white/20 text-white' : 'bg-[var(--surface-container-high)]'
                 }`}>
                   {catCounts[cat]}
@@ -164,7 +164,7 @@ export default function ProductsPage() {
         </div>
 
         {/* View toggle — DESKTOP ONLY */}
-        <div className="hidden lg:flex items-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-xl flex-shrink-0">
+        <div className="hidden md:flex items-center gap-1 bg-[var(--surface-container-low)] p-1 rounded-xl flex-shrink-0">
           <button onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[var(--surface-container-lowest)] shadow-sm text-[var(--primary)]' : 'text-[var(--on-surface-variant)]'}`}>
             <Grid className="w-4 h-4" />
@@ -178,7 +178,7 @@ export default function ProductsPage() {
 
       {/* ── MOBILE CARD VIEW (always shown on mobile) ── */}
       {filtered.length > 0 && (
-        <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+        <div className="md:hidden mobile-card-list space-y-3 mb-6">
           {filtered.map(product => {
             const statusStyle = getStatusStyle(product.min_stock || 0, product.reorder_point || 5);
             const catLabel = CATEGORY_MAP[product.category] || product.category || '—';
@@ -276,7 +276,7 @@ export default function ProductsPage() {
 
       {/* ── DESKTOP GRID VIEW ── */}
       {viewMode === 'grid' && (
-        <div className="hidden lg:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 stagger-children">
+        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 stagger-children">
           {filtered.map(product => {
             const statusStyle = getStatusStyle(product.min_stock || 0, product.reorder_point || 5);
             const catLabel = CATEGORY_MAP[product.category] || product.category || '—';
@@ -365,7 +365,7 @@ export default function ProductsPage() {
 
       {/* ── DESKTOP LIST VIEW ── */}
       {viewMode === 'list' && (
-        <div className="hidden lg:block card-elevated overflow-hidden">
+        <div className="hidden md:block card-elevated overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="bg-[var(--surface-container-low)]">

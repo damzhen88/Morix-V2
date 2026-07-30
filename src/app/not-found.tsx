@@ -13,12 +13,12 @@ export default function NotFound() {
         {/* Logo */}
         <div className="w-16 h-16 rounded-2xl signature-gradient flex items-center justify-center mx-auto mb-6 shadow-lg"
           style={{ boxShadow: '0 8px 24px rgba(249,115,22,0.3)' }}>
-          <span className="text-white font-black text-2xl">M</span>
+          <span className="text-white font-extrabold text-2xl">M</span>
         </div>
 
         {/* 404 card */}
         <div className="card-elevated p-10 text-center">
-          <p className="font-headline text-8xl font-black text-[var(--surface-container)] mb-4">404</p>
+          <p className="font-headline text-8xl font-extrabold text-[var(--surface-container)] mb-4">404</p>
           <h1 className="font-headline text-2xl font-bold text-[var(--on-surface)] mb-2">
             Page not found
           </h1>

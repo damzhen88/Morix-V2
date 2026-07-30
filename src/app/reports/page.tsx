@@ -73,7 +73,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── MOBILE KEY STATS (simplified) ── */}
-      <div className="lg:hidden grid grid-cols-2 gap-3 mb-6">
+      <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
         {kpis.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
@@ -93,7 +93,7 @@ export default function ReportsPage() {
       </div>
 
       {/* KPI Cards — DESKTOP */}
-      <div className="hidden lg:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         {kpis.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
@@ -175,7 +175,7 @@ export default function ReportsPage() {
               <div key={p.sku}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-md bg-[var(--primary-container)] text-[10px] font-black text-[var(--primary-dark)] flex items-center justify-center">
+                    <span className="w-5 h-5 rounded-md bg-[var(--primary-container)] text-[10px] font-extrabold text-[var(--primary-dark)] flex items-center justify-center">
                       {i + 1}
                     </span>
                     <div>

@@ -318,7 +318,7 @@ export default function PurchaseOrderFormModal({ isOpen, onClose }: PurchaseOrde
                 ))}
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.5rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#e2e8f0' }}>Total</span>
-                  <span style={{ fontSize: '1.125rem', fontWeight: 900, color: '#f97316' }}>฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}</span>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#f97316' }}>฿{grandTotalTHB.toLocaleString('th-TH', { minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
             </div>

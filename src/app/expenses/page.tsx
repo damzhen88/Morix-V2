@@ -109,14 +109,14 @@ export default function ExpensesPage() {
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
             Total ({filtered.length})
           </span>
-          <span className="font-headline font-black text-[var(--error)]">
+          <span className="font-headline font-extrabold text-[var(--error)]">
             ฿{total.toLocaleString()}
           </span>
         </div>
       </div>
 
       {/* Expense List — MOBILE CARD VIEW */}
-      <div className="lg:hidden mobile-card-list space-y-3 mb-6">
+      <div className="md:hidden mobile-card-list space-y-3 mb-6">
         {filtered.map(exp => {
           const catInfo = categories.find(c => c.id === exp.category);
           const CatIcon = catInfo?.icon || Receipt;
@@ -156,7 +156,7 @@ export default function ExpensesPage() {
         {filtered.length > 0 && (
           <div className="card-surface p-4 flex items-center justify-between">
             <span className="text-sm font-bold text-[var(--on-surface)]">Total ({filtered.length})</span>
-            <span className="font-headline font-black text-lg text-[var(--error)]">
+            <span className="font-headline font-extrabold text-lg text-[var(--error)]">
               ฿{total.toLocaleString()}
             </span>
           </div>
@@ -164,7 +164,7 @@ export default function ExpensesPage() {
       </div>
 
       {/* Expense List — DESKTOP TABLE VIEW */}
-      <div className="hidden lg:block space-y-3 stagger-children">
+      <div className="hidden md:block space-y-3 stagger-children">
         {filtered.map(exp => {
           const catInfo = categories.find(c => c.id === exp.category);
           const CatIcon = catInfo?.icon || Receipt;

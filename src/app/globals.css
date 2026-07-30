@@ -3,7 +3,6 @@
    "The Digital Curator" — Premium B2B Decorative Materials CRM
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @import 'tailwindcss';
@@ -58,9 +57,9 @@
   --info-container:     #EFF6FF;
 
   /* Typography */
-  --font-headline: 'Outfit', sans-serif;
-  --font-body:     'DM Sans', sans-serif;
-  --font-label:    'DM Sans', sans-serif;
+  --font-headline: var(--font-sarabun), sans-serif;
+  --font-body:     var(--font-sarabun), sans-serif;
+  --font-label:    var(--font-sarabun), sans-serif;
 
   /* Radius Scale */
   --radius-xs:   4px;
@@ -73,9 +72,9 @@
 }
 
 @theme {
-  --font-headline: 'Outfit', sans-serif;
-  --font-body:     'DM Sans', sans-serif;
-  --font-label:    'DM Sans', sans-serif;
+  --font-headline: var(--font-sarabun), sans-serif;
+  --font-body:     var(--font-sarabun), sans-serif;
+  --font-label:    var(--font-sarabun), sans-serif;
 
   --radius-xs:   4px;
   --radius-sm:   8px;
@@ -99,7 +98,31 @@ html {
 body {
   background-color: var(--surface);
   color: var(--on-surface);
-  line-height: 1.6;
+  /* ไทยต้องการ leading มากกว่าละติน เพราะมีสระและวรรณยุกต์บน-ล่าง */
+  line-height: 1.75;
+  /* ไทยไม่มีช่องว่างระหว่างคำ ถ้าไม่ตั้งค่านี้ข้อความยาวจะดัน layout แตก */
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* ── iOS: เผื่อพื้นที่ปลอดภัยรอบจอ (notch / home indicator) ────────
+   จำเป็นเมื่อติดตั้งเป็นแอปบนหน้าจอโฮมและใช้ viewport-fit=cover
+   ไม่งั้นแถบเมนูล่างจะถูก home indicator บังจนกดไม่ได้ */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top    { padding-top:    env(safe-area-inset-top, 0px); }
+
+/* ตัวเลขและรหัสสินค้าไม่ควรถูกตัดกลางคำแบบข้อความไทย */
+.tabular, [class*="font-mono"] {
+  overflow-wrap: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ช่องกรอกบน iOS: ต่ำกว่า 16px Safari จะซูมหน้าจอเองตอนโฟกัส */
+input, select, textarea {
+  font-size: max(16px, 1em);
+}
+@media (min-width: 768px) {
+  input, select, textarea { font-size: inherit; }
 }
 
 /* Headings use Outfit */
